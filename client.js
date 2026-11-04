@@ -1,0 +1,4931 @@
+/**
+ * dsh-ppt-workbench — Client 半（P1：浏览 + 批注 + 结构化编辑）
+ *
+ * 产品形态：作为 `.pptx` document renderer 的 body，在右侧栏文档 tab 内直接浏览
+ * LibreOffice 渲染出的逐页 PNG，在页面上打 pin 批注，并在「编辑」模式下选中顶层形状、
+ * 通过底部属性面板生成结构化 ops，保存回 PPTX（python-pptx 后端，支持 undo/redo）。
+ *
+ * 数据结构（Host 侧 /api/dsh-ppt-workbench/*）见同目录 CONTRACT.md / EDIT-CONTRACT.md：
+ * - GET  deck?sessionId=&path=   -> { deck(含 history), slides, annotations, annotationsRepair }
+ * - GET  slide?sha=&page=        -> image/png
+ * - POST annotations             -> { annotations, annotationsRepair, deckSha }
+ * - POST edit {baseSha, ops}     -> deck 全量 + { edit: { newSha, warnings, history } }
+ * - GET  history / POST undo / POST redo
+ *
+ * 普通浏览器脚本（非 ESM）：window.__ModuleLoader__.load({ id, factory })。
+ * 只依赖 react；不 import @deepseek-ai/*；样式只用宿主 --dsw-* token。
+ */
+window.__ModuleLoader__.load({
+  id: 'dsh-ppt-workbench',
+  factory(require) {
+    var React = require('react');
+    var h = React.createElement;
+
+    var NS = 'dsh-ppt-workbench';
+    var RENDERER_ID = 'dsh-ppt-workbench/pptx';
+    var API_PREFIX = 'api/dsh-ppt-workbench/';
+    var STYLE_TAG_ID = 'dsh-ppt-workbench/client.css';
+    var EAGER_PAGES = 3;
+    var RAIL_HIDE_WIDTH = 520;
+    var DRAWER_HIDE_WIDTH = 480;
+    var EMPTY_MAP = Object.freeze({});
+    var EMPTY_LIST = Object.freeze([]);
+
+    /** 运行时句柄：locale 服务在 apply 时注入，供模块级 tr() 使用。 */
+    var runtime = { locale: null };
+
+    // ------------------------------------------------------------------
+    // 字典（中英双语；组件一律走模块级 tr()/translator()，不依赖 props.t）
+    // ------------------------------------------------------------------
+    var ZH = {
+      'viewer.title': 'PPT 工作台',
+      'author.me': '我',
+
+      'status.loading': '正在渲染幻灯片…',
+      'status.loadingHint': '首次打开需要几秒钟（LibreOffice 渲染），之后会使用缓存。',
+      'status.refreshing': '正在刷新…',
+
+      'error.title': '无法加载演示文稿',
+      'error.retry': '重试',
+      'error.code': '错误代码：{code}',
+      'error.generic': '加载失败，请稍后重试。',
+      'error.network': '网络请求失败，请检查连接后重试。',
+      'error.noPath': '无法解析文件路径。',
+      'error.noSession': '缺少会话信息，无法加载文件。',
+      'error.session': '会话可能已关闭，请重新打开该会话后再试。',
+      'error.notFound': '文件不存在，可能已被移动或删除。',
+      'error.unsupported': '仅支持 .pptx 文件。',
+      'error.hint': '也可以在文档工具栏切换到内置预览查看。',
+
+      'banner.repair': '{repaired} 条批注已自动跟随，{orphaned} 条待重新锚定',
+      'banner.repairOrphanedOnly': '{orphaned} 条批注待重新锚定',
+      'banner.repairedOnly': '{repaired} 条批注已自动跟随到新版本',
+      'banner.dismiss': '关闭提示',
+      'banner.refreshFailed': '刷新失败：{message}',
+      'banner.outside': '该文件不在会话工作区内：可以浏览，但批注为只读，无法保存。',
+
+      'toolbar.nav': '翻页',
+      'toolbar.page': '{page} / {total}',
+      'toolbar.prev': '上一页',
+      'toolbar.next': '下一页',
+      'toolbar.zoom': '缩放',
+      'toolbar.zoomFit': '适配',
+      'toolbar.zoomFitTitle': '适配宽度',
+      'toolbar.zoomActual': '100%',
+      'toolbar.zoomActualTitle': '按实际像素显示（100%）',
+      'toolbar.annotate': '批注',
+      'toolbar.annotateTitle': '开启批注模式：点击页面添加批注',
+      'toolbar.annotateOnTitle': '退出批注模式',
+      'annotate.hint': '批注模式：点击元素添加批注 · 在页面上拖拽可框选多个元素 · Esc 退出',
+      'toolbar.send': '发送给 dsh',
+      'toolbar.sendTitle': '把未解决批注整理成指令插入输入框',
+      'toolbar.sendDisabled': '没有未解决的批注',
+      'toolbar.railShow': '显示缩略图',
+      'toolbar.railHide': '隐藏缩略图',
+      'toolbar.truncated': '已渲染前 {rendered} 页（共 {total} 页）',
+      'toolbar.truncatedChip': '前 {rendered} 页',
+      'toolbar.missingFonts': '缺字体 {count}',
+
+      'fonts.title': '字体缺失',
+      'fonts.hint': '以下字体在本机不可用，版式可能与 PowerPoint 不同：',
+      'fonts.close': '关闭字体提示',
+
+      'rail.aria': '幻灯片缩略图',
+      'rail.pageAria': '跳到第 {page} 页',
+      'rail.openTitle': '{count} 条未解决批注',
+
+      'canvas.aria': '幻灯片画布',
+      'canvas.empty': '没有可显示的幻灯片。',
+      'canvas.shape': '元素',
+      'canvas.truncatedNote': '已渲染前 {rendered} 页，剩余 {rest} 页未渲染（单次上限 100 页）。',
+
+      'page.loading': '第 {page} 页加载中…',
+      'page.failed': '第 {page} 页渲染失败',
+      'page.retry': '重试',
+
+      'pin.label': '第 {page} 页第 {index} 条批注：{body}',
+      'pin.orphanLabel': '待重新锚定：{body}',
+
+      'compose.title': '添加批注 · 第 {page} 页',
+      'compose.shape': '锚定形状：{name}',
+      'compose.free': '未锚定形状，记录点击位置',
+      'compose.area': '框选区域（未命中元素）',
+      'compose.shapesMany': '框选 {count} 个元素：{names}',
+      'compose.placeholder': '写下要修改的内容…',
+      'compose.save': '保存批注',
+      'compose.saving': '正在保存…',
+      'compose.cancel': '取消',
+      'compose.hint': '⌘/Ctrl + Enter 保存 · Esc 取消',
+      'compose.empty': '请先输入批注内容。',
+      'compose.noWrite': '文件在会话工作区外，无法添加批注。',
+      'compose.saved': '已添加批注。',
+
+      'drawer.title': '批注',
+      'drawer.filterOpen': '未解决',
+      'drawer.filterResolved': '已解决',
+      'drawer.filterOrphaned': '待重新锚定',
+      'drawer.collapse': '收起批注面板',
+      'drawer.expand': '展开批注面板',
+      'drawer.empty': '还没有批注。打开「批注」模式后点击页面即可添加。',
+      'drawer.emptyResolved': '还没有已解决的批注。',
+      'drawer.emptyOrphaned': '没有待重新锚定的批注。',
+
+      'annotation.page': '第 {page} 页',
+      'annotation.freeAnchor': '未锚定形状',
+      'annotation.areaAnchor': '框选区域',
+      'annotation.orphanedHint': '原锚点已失效，文件更新后可重新锚定。',
+      'annotation.resolve': '解决',
+      'annotation.reopen': '重新打开',
+      'annotation.reply': '回复',
+      'annotation.delete': '删除',
+      'annotation.deleteConfirm': '确认删除',
+      'annotation.cancel': '取消',
+      'annotation.replyPlaceholder': '回复这条批注…',
+      'annotation.replySubmit': '发送回复',
+      'annotation.replyCancel': '取消',
+      'annotation.repliedToast': '已发送回复。',
+      'annotation.resolvedToast': '已标记为解决。',
+      'annotation.reopenedToast': '已重新打开。',
+      'annotation.deletedToast': '已删除批注。',
+
+      'send.none': '没有未解决的批注。',
+      'send.inserted': '已插入输入框，请确认后发送。',
+      'send.copied': '已复制，粘贴到输入框即可。',
+      'send.manual': '无法自动插入，请手动复制以下内容：',
+      'send.header': '请按以下批注修改 `{name}`（共 {count} 条，文件 SHA {sha}）：',
+      'send.lineShape': '{index}. 第 {page} 页「{quote}」：{body}',
+      'send.lineFree': '{index}. 第 {page} 页：{body}（未锚定形状）',
+      'send.footer': '修改后请保持其他页内容不变，并重新 present。',
+
+      'toolbar.edit': '编辑',
+      'toolbar.editTitle': '开启编辑模式：点击元素选中并修改',
+      'toolbar.editOnTitle': '退出编辑模式（有未保存修改时会先确认）',
+      'edit.hint': '编辑模式 · 双击文本原位编辑 · 拖动移动/角点缩放 · ⌘/Ctrl+S 保存',
+      'edit.title': '编辑',
+      'edit.pending': '待保存 {count}',
+      'edit.pendingOps': '{count} 条待保存修改',
+      'edit.save': '保存',
+      'edit.saving': '正在保存…',
+      'edit.saved': '已保存。',
+      'edit.noChanges': '没有待保存的修改。',
+      'edit.applyCount': '将应用 {count} 处修改',
+      'edit.clearDraft': '清空草稿',
+      'edit.undo': '撤销',
+      'edit.redo': '重做',
+      'edit.undoDone': '已撤销。',
+      'edit.redoDone': '已重做。',
+      'edit.undoBlocked': '请先保存或清空草稿，再撤销/重做。',
+      'edit.noHistory': '没有可撤销的历史',
+      'edit.version': '版本 {version}',
+      'edit.exit': '退出编辑',
+      'edit.dirtyTitle': '有未保存的修改',
+      'edit.dirtyBody': '当前有 {count} 处修改尚未保存，退出编辑模式会丢失。',
+      'edit.dirtySave': '保存并退出',
+      'edit.dirtyDiscard': '放弃并退出',
+      'edit.dirtyCancel': '继续编辑',
+      'edit.pageMenu': '页面',
+      'edit.duplicateSlide': '复制当前页',
+      'edit.deleteSlide': '删除当前页',
+      'edit.deleteSlideConfirm': '确认删除第 {page} 页',
+      'edit.moveUp': '上移当前页',
+      'edit.moveDown': '下移当前页',
+      'edit.insertSlide': '插入空白页',
+      'edit.pageOpDone': '页面已更新。',
+      'edit.pageOpBlocked': '请先保存或清空草稿，再执行页面操作。',
+      'edit.readonly': '只读',
+      'edit.editable': '可编辑',
+      'edit.readonlyShape': '该元素（{type}）不支持直接编辑。',
+      'edit.text': '文本',
+      'edit.textHint': '最多 4000 字符',
+      'edit.font': '字体',
+      'edit.fontSize': '字号',
+      'edit.pt': 'pt',
+      'edit.bold': '粗体',
+      'edit.italic': '斜体',
+      'edit.color': '颜色',
+      'edit.colorInherited': '继承主题色',
+      'edit.geometry': '位置与大小（英寸）',
+      'edit.left': '左',
+      'edit.top': '上',
+      'edit.width': '宽',
+      'edit.height': '高',
+      'edit.notes': '演讲者备注',
+      'edit.notesFor': '第 {page} 页备注',
+      'edit.notesHint': '最多 10000 字符',
+      'edit.table': '表格',
+      'edit.tableSize': '{rows} 行 × {cols} 列',
+      'edit.chart': '图表数据（只读）',
+      'edit.selectHint': '点击画布中的元素以选中',
+      'edit.conflict': '文件已被外部修改，当前草稿基于旧版本；重新加载会丢弃草稿。',
+      'edit.conflictTitle': '文件已被外部修改',
+      'edit.conflictCopy': '冲突副本：{name}',
+      'edit.reload': '重新加载（丢弃草稿）',
+      'edit.badOp': '修改无法应用：{message}',
+      'edit.badOpIndex': '（第 {index} 条）',
+      'edit.failed': '保存失败：{message}',
+      'edit.notSupported': '当前 Host 尚未提供编辑能力（/edit 不可用）。',
+      'edit.finishAnnotation': '有未保存的批注内容，请先保存或取消。',
+      'edit.previewOnly': '该文件不在会话工作区内，只能预览。',
+      'edit.unknown': '未知错误',
+      'edit.draftCleared': '已清空草稿。',
+      'edit.saveSaving': '保存中…',
+      'edit.saveSavedAt': '已保存 {time}',
+      'edit.autoSave': '自动保存',
+      'edit.autoSaveOnTitle': '自动保存已开启（点击关闭）',
+      'edit.autoSaveOffTitle': '自动保存已关闭（点击开启）',
+      'edit.autoDraftHint': '修改会自动加入草稿',
+      'edit.inlineAria': '原位编辑文本',
+      'edit.inlineHint': '⌘/Ctrl+Enter 或点击别处保存 · Esc 取消',
+      'edit.resizeHandle': '调整大小',
+      'edit.sizeLive': '{w} × {h} in',
+      'edit.openNative': '在 LibreOffice 中编辑',
+      'edit.openNativeTitle': '保存当前修改并用 LibreOffice 打开',
+      'edit.openNativeOpening': '正在打开…',
+      'edit.openNativeDone': '已在 LibreOffice 打开，保存后会刷新。',
+      'edit.openNativeFailed': '无法在 LibreOffice 中打开：{message}',
+      'edit.openNativeUnsupported': '当前环境不支持在 LibreOffice 中打开。',
+      'toast.close': '关闭提示',
+    };
+
+    var EN = {
+      'viewer.title': 'PPT Workbench',
+      'author.me': 'Me',
+
+      'status.loading': 'Rendering slides…',
+      'status.loadingHint': 'The first open takes a few seconds (LibreOffice render); later opens use the cache.',
+      'status.refreshing': 'Refreshing…',
+
+      'error.title': 'Could not load the presentation',
+      'error.retry': 'Retry',
+      'error.code': 'Error code: {code}',
+      'error.generic': 'Loading failed. Please retry.',
+      'error.network': 'Network request failed. Check the connection and retry.',
+      'error.noPath': 'Unable to resolve the file path.',
+      'error.noSession': 'Missing session information; cannot load the file.',
+      'error.session': 'The session may be closed. Reopen the session and try again.',
+      'error.notFound': 'The file does not exist; it may have been moved or deleted.',
+      'error.unsupported': 'Only .pptx files are supported.',
+      'error.hint': 'You can also switch to the built-in preview from the document toolbar.',
+
+      'banner.repair': '{repaired} annotations moved with the deck, {orphaned} need re-anchoring',
+      'banner.repairOrphanedOnly': '{orphaned} annotations need re-anchoring',
+      'banner.repairedOnly': '{repaired} annotations moved to the new version',
+      'banner.dismiss': 'Dismiss',
+      'banner.refreshFailed': 'Refresh failed: {message}',
+      'banner.outside': 'This file is outside the session workspace: browsing works, but annotations are read-only.',
+
+      'toolbar.nav': 'Pagination',
+      'toolbar.page': '{page} / {total}',
+      'toolbar.prev': 'Previous slide',
+      'toolbar.next': 'Next slide',
+      'toolbar.zoom': 'Zoom',
+      'toolbar.zoomFit': 'Fit',
+      'toolbar.zoomFitTitle': 'Fit to width',
+      'toolbar.zoomActual': '100%',
+      'toolbar.zoomActualTitle': 'Actual pixel size (100%)',
+      'toolbar.annotate': 'Annotate',
+      'toolbar.annotateTitle': 'Turn on annotation mode: click a slide to add a note',
+      'toolbar.annotateOnTitle': 'Leave annotation mode',
+      'annotate.hint': 'Annotation mode: click an element, or drag a box to select several · Esc to exit',
+      'toolbar.send': 'Send to dsh',
+      'toolbar.sendTitle': 'Turn open annotations into a prompt in the composer',
+      'toolbar.sendDisabled': 'No open annotations',
+      'toolbar.railShow': 'Show thumbnails',
+      'toolbar.railHide': 'Hide thumbnails',
+      'toolbar.truncated': 'Only the first {rendered} pages are rendered ({total} total)',
+      'toolbar.truncatedChip': 'first {rendered}',
+      'toolbar.missingFonts': 'Missing fonts: {count}',
+
+      'fonts.title': 'Missing fonts',
+      'fonts.hint': 'These fonts are unavailable on this machine; layout may differ from PowerPoint:',
+      'fonts.close': 'Close font notice',
+
+      'rail.aria': 'Slide thumbnails',
+      'rail.pageAria': 'Go to slide {page}',
+      'rail.openTitle': '{count} open annotations',
+
+      'canvas.aria': 'Slide canvas',
+      'canvas.empty': 'No slides to display.',
+      'canvas.shape': 'Element',
+      'canvas.truncatedNote': 'The first {rendered} pages are rendered; {rest} more are not (100-page limit).',
+
+      'page.loading': 'Loading slide {page}…',
+      'page.failed': 'Slide {page} failed to render',
+      'page.retry': 'Retry',
+
+      'pin.label': 'Annotation {index} on slide {page}: {body}',
+      'pin.orphanLabel': 'Needs re-anchoring: {body}',
+
+      'compose.title': 'Add annotation · slide {page}',
+      'compose.shape': 'Anchored to shape: {name}',
+      'compose.free': 'No shape hit; records the click position',
+      'compose.area': 'Marquee area (no element hit)',
+      'compose.shapesMany': 'Marquee selected {count} elements: {names}',
+      'compose.placeholder': 'What should change here…',
+      'compose.save': 'Save annotation',
+      'compose.saving': 'Saving…',
+      'compose.cancel': 'Cancel',
+      'compose.hint': '⌘/Ctrl + Enter to save · Esc to cancel',
+      'compose.empty': 'Type the annotation first.',
+      'compose.noWrite': 'This file is outside the session workspace; annotations cannot be saved.',
+      'compose.saved': 'Annotation added.',
+
+      'drawer.title': 'Annotations',
+      'drawer.filterOpen': 'Open',
+      'drawer.filterResolved': 'Resolved',
+      'drawer.filterOrphaned': 'Needs anchor',
+      'drawer.collapse': 'Collapse annotations panel',
+      'drawer.expand': 'Expand annotations panel',
+      'drawer.empty': 'No annotations yet. Turn on "Annotate" and click a slide to add one.',
+      'drawer.emptyResolved': 'No resolved annotations yet.',
+      'drawer.emptyOrphaned': 'No annotations need re-anchoring.',
+
+      'annotation.page': 'Slide {page}',
+      'annotation.freeAnchor': 'No shape anchor',
+      'annotation.areaAnchor': 'Marquee area',
+      'annotation.orphanedHint': 'The old anchor is gone; it can be re-anchored after the file changes.',
+      'annotation.resolve': 'Resolve',
+      'annotation.reopen': 'Reopen',
+      'annotation.reply': 'Reply',
+      'annotation.delete': 'Delete',
+      'annotation.deleteConfirm': 'Confirm delete',
+      'annotation.cancel': 'Cancel',
+      'annotation.replyPlaceholder': 'Reply to this annotation…',
+      'annotation.replySubmit': 'Send reply',
+      'annotation.replyCancel': 'Cancel',
+      'annotation.repliedToast': 'Reply sent.',
+      'annotation.resolvedToast': 'Marked as resolved.',
+      'annotation.reopenedToast': 'Reopened.',
+      'annotation.deletedToast': 'Annotation deleted.',
+
+      'send.none': 'There are no open annotations.',
+      'send.inserted': 'Inserted into the composer. Review it, then send.',
+      'send.copied': 'Copied. Paste it into the composer.',
+      'send.manual': 'Could not insert automatically. Copy the text below:',
+      'send.header': 'Please update `{name}` according to these annotations ({count} total, file SHA {sha}):',
+      'send.lineShape': '{index}. Slide {page} "{quote}": {body}',
+      'send.lineFree': '{index}. Slide {page}: {body} (no shape anchor)',
+      'send.footer': 'Keep the other slides unchanged, and re-present the deck afterwards.',
+
+      'toolbar.edit': 'Edit',
+      'toolbar.editTitle': 'Edit mode: click an element to select and change it',
+      'toolbar.editOnTitle': 'Leave edit mode (asks before discarding changes)',
+      'edit.hint': 'Edit mode · double-click text to edit · drag to move / corners to resize · ⌘/Ctrl+S saves',
+      'edit.title': 'Edit',
+      'edit.pending': '{count} pending',
+      'edit.pendingOps': '{count} pending changes',
+      'edit.save': 'Save',
+      'edit.saving': 'Saving…',
+      'edit.saved': 'Saved.',
+      'edit.noChanges': 'Nothing to save.',
+      'edit.applyCount': '{count} changes ready',
+      'edit.clearDraft': 'Clear draft',
+      'edit.undo': 'Undo',
+      'edit.redo': 'Redo',
+      'edit.undoDone': 'Undone.',
+      'edit.redoDone': 'Redone.',
+      'edit.undoBlocked': 'Save or clear the draft before undo/redo.',
+      'edit.noHistory': 'No undo history',
+      'edit.version': 'Version {version}',
+      'edit.exit': 'Exit edit',
+      'edit.dirtyTitle': 'Unsaved changes',
+      'edit.dirtyBody': '{count} changes are not saved yet; leaving edit mode discards them.',
+      'edit.dirtySave': 'Save & exit',
+      'edit.dirtyDiscard': 'Discard & exit',
+      'edit.dirtyCancel': 'Keep editing',
+      'edit.pageMenu': 'Slide',
+      'edit.duplicateSlide': 'Duplicate current slide',
+      'edit.deleteSlide': 'Delete current slide',
+      'edit.deleteSlideConfirm': 'Confirm delete slide {page}',
+      'edit.moveUp': 'Move current slide up',
+      'edit.moveDown': 'Move current slide down',
+      'edit.insertSlide': 'Insert blank slide',
+      'edit.pageOpDone': 'Slide updated.',
+      'edit.pageOpBlocked': 'Save or clear the draft before page operations.',
+      'edit.readonly': 'Read-only',
+      'edit.editable': 'Editable',
+      'edit.readonlyShape': 'This element ({type}) cannot be edited directly.',
+      'edit.text': 'Text',
+      'edit.textHint': 'Up to 4000 characters',
+      'edit.font': 'Font',
+      'edit.fontSize': 'Size',
+      'edit.pt': 'pt',
+      'edit.bold': 'Bold',
+      'edit.italic': 'Italic',
+      'edit.color': 'Color',
+      'edit.colorInherited': 'Inherit theme color',
+      'edit.geometry': 'Position & size (inches)',
+      'edit.left': 'Left',
+      'edit.top': 'Top',
+      'edit.width': 'Width',
+      'edit.height': 'Height',
+      'edit.notes': 'Speaker notes',
+      'edit.notesFor': 'Slide {page} notes',
+      'edit.notesHint': 'Up to 10,000 characters',
+      'edit.table': 'Table',
+      'edit.tableSize': '{rows} rows × {cols} columns',
+      'edit.chart': 'Chart data (read-only)',
+      'edit.selectHint': 'Click an element on the canvas to select it',
+      'edit.conflict': 'The file changed outside this tab. Your draft is based on an older version; reloading discards it.',
+      'edit.conflictTitle': 'File changed externally',
+      'edit.conflictCopy': 'Conflict copy: {name}',
+      'edit.reload': 'Reload (discard draft)',
+      'edit.badOp': 'The change could not be applied: {message}',
+      'edit.badOpIndex': ' (op #{index})',
+      'edit.failed': 'Save failed: {message}',
+      'edit.notSupported': 'Editing is not available in this Host yet (/edit is missing).',
+      'edit.finishAnnotation': 'Finish or cancel the annotation draft first.',
+      'edit.previewOnly': 'This file is outside the session workspace; preview only.',
+      'edit.unknown': 'Unknown error',
+      'edit.draftCleared': 'Draft cleared.',
+      'edit.saveSaving': 'Saving…',
+      'edit.saveSavedAt': 'Saved {time}',
+      'edit.autoSave': 'Auto-save',
+      'edit.autoSaveOnTitle': 'Auto-save is on (click to turn off)',
+      'edit.autoSaveOffTitle': 'Auto-save is off (click to turn on)',
+      'edit.autoDraftHint': 'Changes are added to the draft automatically',
+      'edit.inlineAria': 'Edit text in place',
+      'edit.inlineHint': '⌘/Ctrl+Enter or click elsewhere to save · Esc to cancel',
+      'edit.resizeHandle': 'Resize',
+      'edit.sizeLive': '{w} × {h} in',
+      'edit.openNative': 'Edit in LibreOffice',
+      'edit.openNativeTitle': 'Save changes and open in LibreOffice',
+      'edit.openNativeOpening': 'Opening…',
+      'edit.openNativeDone': 'Opened in LibreOffice; changes refresh after you save there.',
+      'edit.openNativeFailed': 'Could not open LibreOffice: {message}',
+      'edit.openNativeUnsupported': 'Opening in LibreOffice is not supported in this environment.',
+      'toast.close': 'Dismiss',
+    };
+
+    // ------------------------------------------------------------------
+    // i18n：模块级翻译器（宿主切语言会同步 document.documentElement.lang）
+    // ------------------------------------------------------------------
+    function language() {
+      try {
+        var locale = runtime.locale;
+        if (locale && typeof locale.getSnapshot === 'function') {
+          var snapshot = locale.getSnapshot();
+          if (snapshot && typeof snapshot.active === 'string' && snapshot.active) {
+            return snapshot.active.toLowerCase();
+          }
+        }
+      } catch (error) {
+        /* ignore */
+      }
+      try {
+        return String(document.documentElement.lang || 'zh').toLowerCase();
+      } catch (error) {
+        return 'zh';
+      }
+    }
+
+    function lookup(key, lang) {
+      var dict = String(lang || '').indexOf('zh') === 0 ? ZH : EN;
+      var value = dict[key];
+      if (value === undefined) value = ZH[key];
+      return value === undefined ? key : value;
+    }
+
+    function translate(key, params, lang) {
+      var template = lookup(key, lang);
+      if (!params) return template;
+      return template.replace(/\{(\w+)\}/g, function (match, name) {
+        return params[name] === undefined || params[name] === null ? match : String(params[name]);
+      });
+    }
+
+    function tr(key, params) {
+      return translate(key, params, language());
+    }
+
+    function translator(lang) {
+      return function (key, params) {
+        return translate(key, params, lang);
+      };
+    }
+
+    /** 语言切换时触发一次重渲染（locale 服务不可用时退化为一次性渲染）。 */
+    function useLocaleRevision() {
+      var state = React.useState(0);
+      var setRevision = state[1];
+      React.useEffect(function () {
+        var locale = runtime.locale;
+        if (!locale || typeof locale.subscribe !== 'function') return undefined;
+        var unsubscribe = null;
+        try {
+          unsubscribe = locale.subscribe(function () {
+            setRevision(function (value) {
+              return value + 1;
+            });
+          });
+        } catch (error) {
+          unsubscribe = null;
+        }
+        return function () {
+          try {
+            if (typeof unsubscribe === 'function') unsubscribe();
+          } catch (error) {
+            /* ignore */
+          }
+        };
+      }, []);
+      return state[0];
+    }
+
+    // ------------------------------------------------------------------
+    // HTTP / 地址
+    // ------------------------------------------------------------------
+    function apiUrl(path) {
+      try {
+        return new URL(API_PREFIX + path, document.baseURI).href;
+      } catch (error) {
+        return '/' + API_PREFIX + path;
+      }
+    }
+
+    function jsonFetch(path, options) {
+      return fetch(apiUrl(path), Object.assign({ credentials: 'include' }, options || {})).then(
+        function (response) {
+          return response.text().then(function (text) {
+            var data;
+            try {
+              data = JSON.parse(text);
+            } catch (error) {
+              data = { raw: String(text).slice(0, 2000) };
+            }
+            return { status: response.status, ok: response.ok, data: data };
+          });
+        },
+      );
+    }
+
+    /** `dsh-resource://file/session/<sid>/<encoded path>`，编码规则对齐宿主 sessionFileAddress。 */
+    function decodeFilePath(address) {
+      if (typeof address !== 'string') return address;
+      var prefix = 'dsh-resource://file/';
+      if (address.indexOf(prefix) !== 0) return address;
+      var rest = address.slice(prefix.length);
+      var slash = rest.indexOf('/');
+      if (slash < 0) return rest;
+      var scope = rest.slice(0, slash);
+      var tail = rest.slice(slash + 1);
+      if (scope !== 'session') return tail;
+      var second = tail.indexOf('/');
+      if (second < 0) return tail;
+      var encoded = tail.slice(second + 1).split('/').map(function (part) {
+        try {
+          return decodeURIComponent(part);
+        } catch (error) {
+          return part;
+        }
+      }).join('/');
+      return encoded;
+    }
+
+    function sessionIdFromAddress(address) {
+      if (typeof address !== 'string') return undefined;
+      var marker = 'dsh-resource://file/session/';
+      if (address.indexOf(marker) !== 0) return undefined;
+      var rest = address.slice(marker.length);
+      var slash = rest.indexOf('/');
+      var raw = slash < 0 ? rest : rest.slice(0, slash);
+      try {
+        return decodeURIComponent(raw);
+      } catch (error) {
+        return raw;
+      }
+    }
+
+    function basename(path) {
+      if (typeof path !== 'string' || !path) return '';
+      var parts = path.replace(/\\/g, '/').split('/');
+      return parts[parts.length - 1] || path;
+    }
+
+    // ------------------------------------------------------------------
+    // 小工具
+    // ------------------------------------------------------------------
+    function clamp01(value) {
+      var number = Number(value);
+      if (!Number.isFinite(number)) return 0;
+      if (number < 0) return 0;
+      if (number > 1) return 1;
+      return number;
+    }
+
+    function truncate(text, max) {
+      var value = String(text === undefined || text === null ? '' : text).replace(/\s+/g, ' ').trim();
+      if (!max || value.length <= max) return value;
+      return value.slice(0, max - 1) + '…';
+    }
+
+    function shaShort(sha) {
+      var value = String(sha || '');
+      return value ? value.slice(0, 8) + '…' : 'unknown';
+    }
+
+    function pad2(value) {
+      return value < 10 ? '0' + value : String(value);
+    }
+
+    function formatTime(value) {
+      if (!value) return '';
+      var date = new Date(value);
+      if (!Number.isFinite(date.getTime())) return '';
+      var now = new Date();
+      var sameDay = date.getFullYear() === now.getFullYear() &&
+        date.getMonth() === now.getMonth() &&
+        date.getDate() === now.getDate();
+      var clock = pad2(date.getHours()) + ':' + pad2(date.getMinutes());
+      if (sameDay) return clock;
+      return (date.getMonth() + 1) + '-' + pad2(date.getDate()) + ' ' + clock;
+    }
+
+    function normalizeError(resultOrError) {
+      if (resultOrError && resultOrError.data && typeof resultOrError.data === 'object') {
+        var data = resultOrError.data;
+        if (data.code || data.ok === false) {
+          return {
+            code: String(data.code || 'http-' + (resultOrError.status || 0)),
+            message: String(data.message || tr('error.generic')),
+            status: resultOrError.status,
+            currentSha: typeof data.currentSha === 'string' ? data.currentSha : undefined,
+            opIndex: Number.isInteger(data.opIndex) ? data.opIndex : undefined,
+          };
+        }
+        if (data.raw) {
+          return {
+            code: 'http-' + (resultOrError.status || 0),
+            message: truncate(data.raw, 200) || tr('error.generic'),
+            status: resultOrError.status,
+          };
+        }
+      }
+      if (resultOrError && resultOrError.code) {
+        return {
+          code: String(resultOrError.code),
+          message: String(resultOrError.message || tr('error.generic')),
+          status: resultOrError.status,
+        };
+      }
+      if (resultOrError && resultOrError.name === 'AbortError') {
+        return { code: 'aborted', message: '' };
+      }
+      return {
+        code: 'network',
+        message: resultOrError && resultOrError.message ? String(resultOrError.message) : tr('error.generic'),
+      };
+    }
+
+    function errorHint(error, t) {
+      if (!error) return '';
+      switch (error.code) {
+        case 'session-not-live':
+        case 'missing-session':
+          return t('error.session');
+        case 'not-found':
+          return t('error.notFound');
+        case 'unsupported-format':
+          return t('error.unsupported');
+        case 'outside-workspace':
+          return t('compose.noWrite');
+        case 'network':
+          return t('error.network');
+        default:
+          return t('error.hint');
+      }
+    }
+
+
+    // ------------------------------------------------------------------
+    // 编辑辅助（P1：python-pptx 结构化编辑）
+    // ------------------------------------------------------------------
+    var EMU_PER_INCH = 914400;
+
+    function isShapeEditable(shape) {
+      if (!shape) return false;
+      if (shape.editable === false) return false;
+      if (Array.isArray(shape.groupPath) && shape.groupPath.length > 0) return false;
+      if (shape.hasPicture || shape.hasChart || shape.hasTable) return false;
+      if (String(shape.type || '').indexOf('GROUP') >= 0) return false;
+      // 没有文本框的对象（媒体/组合等）不提供文本与字体编辑
+      if (shape.hasText === false) return false;
+      return true;
+    }
+
+    /** 编辑模式下可被选中的顶层形状（表格/图表/图片可选中，只读展示）。 */
+    function isShapeSelectable(shape) {
+      if (!shape) return false;
+      if (Array.isArray(shape.groupPath) && shape.groupPath.length > 0) return false;
+      if (shape.editable === false && !shape.hasTable && !shape.hasChart && !shape.hasPicture) return false;
+      return true;
+    }
+
+    function hitEditableShape(slide, pointXEmu, pointYEmu) {
+      if (!slide || !Array.isArray(slide.shapes)) return null;
+      for (var index = slide.shapes.length - 1; index >= 0; index -= 1) {
+        var shape = slide.shapes[index];
+        if (!shape || !isShapeSelectable(shape)) continue;
+        var left = Number(shape.left);
+        var top = Number(shape.top);
+        var width = Number(shape.width);
+        var height = Number(shape.height);
+        if (![left, top, width, height].every(Number.isFinite)) continue;
+        if (pointXEmu >= left && pointXEmu <= left + width && pointYEmu >= top && pointYEmu <= top + height) {
+          return shape;
+        }
+      }
+      return null;
+    }
+
+    function emuToInches(value) {
+      var number = Number(value);
+      if (!Number.isFinite(number)) return '';
+      return String(Math.round((number / EMU_PER_INCH) * 100) / 100);
+    }
+
+    function inchesToEmu(value) {
+      if (value === '' || value === null || value === undefined) return null;
+      var number = Number(String(value).replace(',', '.'));
+      if (!Number.isFinite(number)) return null;
+      return Math.round(number * EMU_PER_INCH);
+    }
+
+    function normalizeHexColor(value) {
+      var text = String(value === undefined || value === null ? '' : value).trim().replace(/^#/, '');
+      if (/^[0-9a-fA-F]{6}$/.test(text)) return text.toUpperCase();
+      if (/^[0-9a-fA-F]{3}$/.test(text)) {
+        return (text.charAt(0) + text.charAt(0) + text.charAt(1) + text.charAt(1) + text.charAt(2) + text.charAt(2)).toUpperCase();
+      }
+      return '';
+    }
+
+    function shapeFont(shape) {
+      return shape && shape.font && typeof shape.font === 'object' ? shape.font : {};
+    }
+
+    function shapeFullText(shape) {
+      if (!shape) return '';
+      if (typeof shape.text === 'string') return shape.text;
+      return typeof shape.textPreview === 'string' ? shape.textPreview : '';
+    }
+
+    function shapeKeyOf(slideIndex, shapeId) {
+      return String(slideIndex) + ':' + String(shapeId);
+    }
+
+    function findShapeAt(slides, slideIndex, shapeId) {
+      if (!Array.isArray(slides) || !Number.isInteger(slideIndex)) return null;
+      var slide = slides[slideIndex];
+      if (!slide || !Array.isArray(slide.shapes)) return null;
+      for (var index = 0; index < slide.shapes.length; index += 1) {
+        var shape = slide.shapes[index];
+        if (shape && shape.shapeId === shapeId) return shape;
+      }
+      return null;
+    }
+
+    /** 把 pendingOps 叠加到 inventory 上，供选中框、属性面板与 hover 使用。 */
+    function buildPendingView(slides, pendingOps) {
+      if (!Array.isArray(slides)) return { slides: EMPTY_LIST, notes: new Map() };
+      if (!Array.isArray(pendingOps) || pendingOps.length === 0) {
+        return { slides: slides, notes: new Map() };
+      }
+      var cloned = null;
+      var index = null;
+      var notes = new Map();
+      function ensure() {
+        if (cloned) return;
+        cloned = slides.map(function (slide) {
+          return Object.assign({}, slide, {
+            shapes: Array.isArray(slide.shapes)
+              ? slide.shapes.map(function (shape) { return Object.assign({}, shape); })
+              : [],
+          });
+        });
+        index = new Map();
+        cloned.forEach(function (slide, slideIndex) {
+          (slide.shapes || []).forEach(function (shape) {
+            index.set(shapeKeyOf(slideIndex, shape.shapeId), shape);
+          });
+        });
+      }
+      pendingOps.forEach(function (op) {
+        if (!op) return;
+        if (op.op === 'setNotes') {
+          ensure();
+          notes.set(op.slideIndex, String(op.text === undefined ? '' : op.text));
+          return;
+        }
+        if (!Number.isInteger(op.slideIndex) || !Number.isInteger(op.shapeId)) return;
+        ensure();
+        var shape = index.get(shapeKeyOf(op.slideIndex, op.shapeId));
+        if (!shape) return;
+        if (op.op === 'setText') {
+          shape.text = String(op.text === undefined ? '' : op.text);
+          shape.textPreview = truncate(shape.text, 80);
+        } else if (op.op === 'setFont') {
+          var font = Object.assign({}, shape.font || {});
+          if (op.sizePt !== undefined) font.sizePt = op.sizePt;
+          if (op.bold !== undefined) font.bold = !!op.bold;
+          if (op.italic !== undefined) font.italic = !!op.italic;
+          if (op.color !== undefined) font.color = op.color;
+          shape.font = font;
+        } else if (op.op === 'setShapeBox') {
+          ['left', 'top', 'width', 'height'].forEach(function (field) {
+            if (op[field] !== undefined) shape[field] = op[field];
+          });
+        } else if (op.op === 'setTableCell') {
+          if (!shape.table || !Array.isArray(shape.table.cells)) return;
+          if (!Number.isInteger(op.row) || !Number.isInteger(op.col)) return;
+          var cells = shape.table.cells.map(function (row) { return Array.isArray(row) ? row.slice() : []; });
+          while (cells.length <= op.row) cells.push([]);
+          while (cells[op.row].length <= op.col) cells[op.row].push('');
+          cells[op.row][op.col] = String(op.text === undefined ? '' : op.text);
+          shape.table = Object.assign({}, shape.table, {
+            cells: cells,
+            rows: Math.max(Number(shape.table.rows) || 0, cells.length),
+            cols: Math.max(Number(shape.table.cols) || 0, cells[0] ? cells[0].length : 0),
+          });
+        }
+      });
+      return { slides: cloned || slides, notes: notes };
+    }
+
+    function findViewShape(viewSlides, slideIndex, shapeId) {
+      return findShapeAt(viewSlides, slideIndex, shapeId);
+    }
+
+    /** 形状 -> 表单字符串（英寸、pt、hex）。 */
+    function shapeForm(shape) {
+      var font = shapeFont(shape);
+      var table = shape && shape.table && Array.isArray(shape.table.cells) ? shape.table.cells : null;
+      return {
+        text: shapeFullText(shape),
+        sizePt: font.sizePt === undefined || font.sizePt === null ? '' : String(font.sizePt),
+        bold: !!font.bold,
+        italic: !!font.italic,
+        color: normalizeHexColor(font.color),
+        left: emuToInches(shape && shape.left),
+        top: emuToInches(shape && shape.top),
+        width: emuToInches(shape && shape.width),
+        height: emuToInches(shape && shape.height),
+        cells: table ? table.map(function (row) { return (Array.isArray(row) ? row : []).map(function (value) { return String(value === undefined || value === null ? '' : value); }); }) : [],
+      };
+    }
+
+    /** 表单与 inventory 的差异 -> 结构化 ops。 */
+    function shapeFormOps(shape, form, slideIndex) {
+      var ops = [];
+      if (!shape || !Number.isInteger(shape.shapeId) || !form) return ops;
+      if (!Number.isInteger(slideIndex)) return ops;
+      var shapeId = shape.shapeId;
+      if (typeof form.text === 'string' && form.text.length <= 4000 && form.text !== shapeFullText(shape)) {
+        ops.push({ op: 'setText', slideIndex: slideIndex, shapeId: shapeId, text: form.text });
+      }
+      var font = shapeFont(shape);
+      var fontOp = { op: 'setFont', slideIndex: slideIndex, shapeId: shapeId };
+      var fontChanged = false;
+      var size = Number(String(form.sizePt === undefined ? '' : form.sizePt).replace(',', '.'));
+      if (Number.isFinite(size) && size > 0 && size <= 400 && size !== Number(font.sizePt)) {
+        fontOp.sizePt = size;
+        fontChanged = true;
+      }
+      if (!!form.bold !== !!font.bold) {
+        fontOp.bold = !!form.bold;
+        fontChanged = true;
+      }
+      if (!!form.italic !== !!font.italic) {
+        fontOp.italic = !!form.italic;
+        fontChanged = true;
+      }
+      var color = normalizeHexColor(form.color);
+      if (color && color !== normalizeHexColor(font.color)) {
+        fontOp.color = color;
+        fontChanged = true;
+      }
+      if (fontChanged) ops.push(fontOp);
+      var boxOp = { op: 'setShapeBox', slideIndex: slideIndex, shapeId: shapeId };
+      var boxChanged = false;
+      ['left', 'top', 'width', 'height'].forEach(function (field) {
+        var originalEmu = Number(shape[field]);
+        var displayed = emuToInches(originalEmu);
+        var raw = form[field] === undefined || form[field] === null ? '' : String(form[field]).trim();
+        // 表单按 2 位小数的英寸展示；未改动的字段直接跳过，避免四舍五入造成伪 diff。
+        if (raw === displayed) return;
+        var emu = inchesToEmu(raw);
+        if (emu !== null && emu !== originalEmu) {
+          boxOp[field] = emu;
+          boxChanged = true;
+        }
+      });
+      if (boxChanged) ops.push(boxOp);
+      if (shape.table && Array.isArray(shape.table.cells) && Array.isArray(form.cells)) {
+        var oldCells = shape.table.cells;
+        form.cells.forEach(function (row, rowIndex) {
+          if (!Array.isArray(row)) return;
+          row.forEach(function (value, colIndex) {
+            var old = oldCells[rowIndex] && oldCells[rowIndex][colIndex];
+            var oldText = old === undefined || old === null ? '' : String(old);
+            var text = String(value === undefined || value === null ? '' : value);
+            if (text.length <= 1000 && text !== oldText) {
+              ops.push({ op: 'setTableCell', slideIndex: slideIndex, shapeId: shapeId, row: rowIndex, col: colIndex, text: text });
+            }
+          });
+        });
+      }
+      return ops;
+    }
+
+    function notesFormOp(slideIndex, notes, currentNotes) {
+      if (!Number.isInteger(slideIndex)) return [];
+      var text = String(notes === undefined || notes === null ? '' : notes);
+      if (text.length > 10000) return [];
+      if (text === String(currentNotes === undefined || currentNotes === null ? '' : currentNotes)) return [];
+      return [{ op: 'setNotes', slideIndex: slideIndex, text: text }];
+    }
+
+    function extractHistory(data) {
+      if (!data) return null;
+      var source = data.edit && data.edit.history
+        ? data.edit.history
+        : data.deck && data.deck.history
+          ? data.deck.history
+          : data.history;
+      if (!source) return null;
+      return {
+        version: Number(source.version) || 0,
+        cursor: Number(source.cursor) || 0,
+        canUndo: source.canUndo === true,
+        canRedo: source.canRedo === true,
+      };
+    }
+
+    var AUTOSAVE_STORAGE_KEY = 'dsh-ppt-wb-autosave';
+    var MIN_SHAPE_EMU = 91440; // 0.1in
+
+    function readAutosavePref() {
+      try {
+        return window.localStorage.getItem(AUTOSAVE_STORAGE_KEY) !== 'off';
+      } catch (error) {
+        return true;
+      }
+    }
+
+    function writeAutosavePref(enabled) {
+      try {
+        window.localStorage.setItem(AUTOSAVE_STORAGE_KEY, enabled ? 'on' : 'off');
+      } catch (error) {
+        /* localStorage 不可用时仅内存生效 */
+      }
+    }
+
+    function formatClock(timestamp) {
+      var date = new Date(timestamp);
+      if (!Number.isFinite(date.getTime())) return '';
+      return pad2(date.getHours()) + ':' + pad2(date.getMinutes());
+    }
+
+    function clampNumber(value, min, max) {
+      if (!Number.isFinite(value)) return min;
+      if (value < min) return min;
+      if (value > max) return max;
+      return value;
+    }
+
+    /** pendingOps 去重键：同一目标的同类 op 合并，避免自动草稿堆叠。 */
+    function pendingOpKey(op) {
+      if (!op || typeof op.op !== 'string') return '';
+      if (op.op === 'setNotes') return 'setNotes:' + op.slideIndex;
+      if (op.op === 'setTableCell') {
+        return 'setTableCell:' + op.slideIndex + ':' + op.shapeId + ':' + op.row + ':' + op.col;
+      }
+      if (op.shapeId === undefined || op.shapeId === null) {
+        return op.op + ':' + op.slideIndex;
+      }
+      return op.op + ':' + op.slideIndex + ':' + op.shapeId;
+    }
+
+    function mergePendingOps(existing, incoming) {
+      var result = Array.isArray(existing) ? existing.slice() : [];
+      if (!Array.isArray(incoming)) return result;
+      incoming.forEach(function (op) {
+        if (!op) return;
+        var key = pendingOpKey(op);
+        var replaced = false;
+        if (key) {
+          for (var index = result.length - 1; index >= 0; index -= 1) {
+            if (pendingOpKey(result[index]) === key) {
+              result[index] = result[index].op === 'setFont' || result[index].op === 'setShapeBox'
+                ? Object.assign({}, result[index], op)
+                : op;
+              replaced = true;
+              break;
+            }
+          }
+        }
+        if (!replaced) result.push(op);
+      });
+      return result;
+    }
+
+    function boxPercentStyle(box, slideWidthEmu, slideHeightEmu) {
+      if (!box || !slideWidthEmu || !slideHeightEmu) return null;
+      return {
+        left: (Number(box.left) / slideWidthEmu) * 100 + '%',
+        top: (Number(box.top) / slideHeightEmu) * 100 + '%',
+        width: (Number(box.width) / slideWidthEmu) * 100 + '%',
+        height: (Number(box.height) / slideHeightEmu) * 100 + '%',
+      };
+    }
+
+    function handlePositionStyle(dir, box) {
+      var x = parseFloat(box.left);
+      var y = parseFloat(box.top);
+      var w = parseFloat(box.width);
+      var h = parseFloat(box.height);
+      var cx = dir.indexOf('w') >= 0 ? x : dir.indexOf('e') >= 0 ? x + w : x + w / 2;
+      var cy = dir.indexOf('n') >= 0 ? y : dir.indexOf('s') >= 0 ? y + h : y + h / 2;
+      return { left: cx + '%', top: cy + '%' };
+    }
+
+    function shapeCanInlineEdit(shape) {
+      if (!shape) return false;
+      if (!isShapeEditable(shape)) return false;
+      if (shape.hasText === false) return false;
+      if (shape.hasTable || shape.hasChart || shape.hasPicture) return false;
+      return true;
+    }
+
+    function editErrorText(error, t) {
+      if (!error) return t('edit.unknown');
+      if (error.code === 'stale') return '';
+      if (error.code === 'bad-op') {
+        var suffix = error.opIndex === undefined || error.opIndex === null
+          ? ''
+          : t('edit.badOpIndex', { index: Number(error.opIndex) + 1 });
+        return t('edit.badOp', { message: error.message || t('edit.unknown') }) + suffix;
+      }
+      if (error.code === 'no-history') return t('edit.noHistory');
+      if (error.code === 'outside-workspace') return t('edit.previewOnly');
+      if (error.code === 'not-found') return t('error.notFound');
+      if (error.code === 'session-not-live') return t('error.session');
+      if (error.code === 'unsupported-format') return t('error.unsupported');
+      if (error.code === 'http-404' || error.code === 'not-implemented') return t('edit.notSupported');
+      return t('edit.failed', { message: error.message || t('edit.unknown') });
+    }
+
+    // ------------------------------------------------------------------
+    // 样式（只用 --dsw-* token；亮/暗主题共用）
+    // ------------------------------------------------------------------
+    var CSS = [
+      '[data-ppt-workbench]{box-sizing:border-box}',
+      '[data-ppt-workbench] *{box-sizing:border-box}',
+      '.wb-root{position:relative;display:flex;flex-direction:column;width:100%;height:100%;min-height:0;overflow:hidden;background:var(--dsw-alias-bg-base,#fff);color:var(--dsw-alias-label-primary,#1a1a1a);font-family:var(--dsw-alias-font-family,var(--dsw-font-family,inherit));font-size:13px;line-height:1.5;white-space:normal;text-align:left}',
+      '.wb-root button{font-family:inherit}',
+      '.wb-progress{position:absolute;top:0;left:0;right:0;height:2px;overflow:hidden;z-index:30;background:var(--dsw-alias-bg-layer-2,transparent)}',
+      '.wb-progress::after{content:"";position:absolute;top:0;bottom:0;width:40%;background:var(--dsw-alias-brand-primary,#4d6bfe);animation:wb-indeterminate 1.1s ease-in-out infinite}',
+      '@keyframes wb-indeterminate{0%{left:-40%}100%{left:100%}}',
+      '.wb-banner{flex:none;display:flex;align-items:flex-start;gap:8px;padding:6px 10px;font-size:12px;line-height:1.45;border-bottom:.5px solid var(--dsw-alias-border-l2,rgba(128,128,128,.3));background:var(--dsw-alias-bg-layer-2,#f4f4f5);color:var(--dsw-alias-label-primary,#1a1a1a)}',
+      '.wb-banner[data-kind="warn"]{background:var(--dsw-alias-state-warn-tertiary,#fff7e6);color:var(--dsw-alias-label-primary,#1a1a1a)}',
+      '.wb-banner[data-kind="error"]{background:var(--dsw-alias-state-error-secondary,#fdecec);color:var(--dsw-alias-state-error-primary,#d92d20)}',
+      '.wb-bannerIcon{flex:none;line-height:1.3}',
+      '.wb-bannerText{flex:1 1 auto;min-width:0;word-break:break-word}',
+      '.wb-toolbar{position:relative;z-index:20;flex:none;display:flex;align-items:center;flex-wrap:wrap;gap:6px 8px;padding:6px 10px;min-height:40px;border-bottom:.5px solid var(--dsw-alias-border-l3,rgba(128,128,128,.3));background:var(--dsw-alias-bg-base,#fff)}',
+      '.wb-group{display:inline-flex;align-items:center;gap:2px;flex:none}',
+      '.wb-spacer{flex:1 1 auto;min-width:4px}',
+      '.wb-btn{appearance:none;-webkit-appearance:none;display:inline-flex;align-items:center;justify-content:center;gap:5px;height:26px;padding:0 8px;border:.5px solid transparent;border-radius:var(--dsw-radius-sm,6px);background:transparent;color:var(--dsw-alias-label-secondary,#555);font:inherit;font-size:12px;cursor:pointer;white-space:nowrap}',
+      '.wb-btn:hover:not([disabled]){background:var(--dsw-alias-interactive-bg-hover,rgba(128,128,128,.14));color:var(--dsw-alias-label-primary,#1a1a1a)}',
+      '.wb-btn:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#4d6bfe);outline-offset:1px}',
+      '.wb-btn[disabled]{opacity:.45;cursor:default}',
+      '.wb-btn[aria-pressed="true"]{background:var(--dsw-alias-interactive-bg-active,rgba(77,107,254,.16));color:var(--dsw-alias-brand-primary,#4d6bfe);border-color:var(--dsw-alias-brand-primary,#4d6bfe)}',
+      '.wb-btn.wb-primary{background:var(--dsw-alias-button-primary-fill,#4d6bfe);color:var(--dsw-alias-label-primary-inverted,#fff);border-color:transparent}',
+      '.wb-btn.wb-primary:hover:not([disabled]){background:var(--dsw-alias-button-primary-hover,#3b5bf0);color:var(--dsw-alias-label-primary-inverted,#fff)}',
+      '.wb-btn.wb-icon{width:26px;padding:0}',
+      '.wb-count{font-variant-numeric:tabular-nums;color:var(--dsw-alias-label-secondary,#555);font-size:12px;min-width:52px;text-align:center;white-space:nowrap}',
+      '.wb-chip{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:999px;border:.5px solid var(--dsw-alias-border-l2,rgba(128,128,128,.35));background:var(--dsw-alias-bg-layer-2,#f4f4f5);color:var(--dsw-alias-label-secondary,#555);font-size:11px;cursor:pointer;white-space:nowrap}',
+      '.wb-chip:hover{color:var(--dsw-alias-label-primary,#1a1a1a);background:var(--dsw-alias-bg-layer-3,#e9e9ea)}',
+      '.wb-chip[data-info="true"]{cursor:default;color:var(--dsw-alias-label-tertiary,#888)}',
+      '.wb-chip.wb-chipWarn{color:var(--dsw-alias-state-warn-label,#b45309);border-color:var(--dsw-alias-state-warn-secondary,rgba(217,119,6,.4));background:var(--dsw-alias-state-warn-tertiary,#fff7e6)}',
+      '.wb-chipWrap{position:relative;display:inline-flex}',
+      '.wb-miniSpinner{width:10px;height:10px;border-radius:50%;border:1.5px solid var(--dsw-alias-border-l2,rgba(128,128,128,.4));border-top-color:var(--dsw-alias-brand-primary,#4d6bfe);animation:wb-spin .8s linear infinite;display:inline-block}',
+      '.wb-popover{position:absolute;top:calc(100% + 6px);right:0;z-index:50;width:min(300px,calc(100vw - 40px));padding:12px;border-radius:var(--dsw-radius-lg,10px);border:.5px solid var(--dsw-alias-border-l2,rgba(128,128,128,.3));background:var(--dsw-alias-bg-layer-2,#fff);box-shadow:var(--dsw-elevation-prominent,0 8px 28px rgba(0,0,0,.2));color:var(--dsw-alias-label-primary,#1a1a1a);font-size:12px;line-height:1.5;text-align:left}',
+      '.wb-popoverHead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px}',
+      '.wb-popoverHint{margin:0 0 8px;color:var(--dsw-alias-label-secondary,#555)}',
+      '.wb-fontList{margin:0;padding:0;list-style:none;max-height:180px;overflow:auto}',
+      '.wb-fontItem{padding:4px 0;border-top:.5px solid var(--dsw-alias-border-l2,rgba(128,128,128,.2));font-family:var(--dsw-alias-font-family-code,ui-monospace,SFMono-Regular,Menlo,monospace);font-size:11.5px;word-break:break-all}',
+      '.wb-main{position:relative;flex:1 1 auto;min-height:0;display:flex;overflow:hidden}',
+      '.wb-rail{flex:none;width:96px;border-right:.5px solid var(--dsw-alias-border-l3,rgba(128,128,128,.3));overflow-y:auto;overflow-x:hidden;background:var(--dsw-alias-bg-layer-1,#f7f7f8);padding:8px 6px;display:flex;flex-direction:column;gap:8px;scrollbar-width:thin}',
+      '.wb-thumb{appearance:none;position:relative;flex:none;width:100%;padding:0;border:2px solid transparent;border-radius:5px;background:var(--dsw-alias-bg-layer-3,#eee);cursor:pointer;overflow:hidden;display:block}',
+      '.wb-thumb:hover{border-color:var(--dsw-alias-border-l2,rgba(128,128,128,.4))}',
+      '.wb-thumb.isCurrent{border-color:var(--dsw-alias-brand-primary,#4d6bfe)}',
+      '.wb-thumb img{display:block;width:100%;height:100%;object-fit:contain;background:#fff}',
+      '.wb-thumbLoading{display:block;width:100%;height:100%;background:linear-gradient(90deg,var(--dsw-alias-bg-skeleton,#ececec) 25%,var(--dsw-alias-bg-layer-2,#f6f6f6) 37%,var(--dsw-alias-bg-skeleton,#ececec) 63%);background-size:400% 100%;animation:wb-shimmer 1.4s ease infinite}',
+      '.wb-thumbNum{position:absolute;left:3px;top:2px;font-size:10px;line-height:1.3;padding:0 3px;border-radius:3px;background:rgba(0,0,0,.5);color:#fff}',
+      '.wb-thumbDot{position:absolute;right:3px;bottom:3px;width:6px;height:6px;border-radius:3px;background:var(--dsw-alias-brand-primary,#4d6bfe);box-shadow:0 0 0 1px rgba(255,255,255,.85)}',
+      '.wb-canvas{position:relative;flex:1 1 0;min-width:0;min-height:0;overflow:auto;background:var(--dsw-alias-bg-document-preview,var(--dsw-alias-bg-layer-1,#f0f0f2));outline:none;scrollbar-width:thin}',
+      '.wb-canvas:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#4d6bfe);outline-offset:-2px}',
+      '.wb-canvas.wb-annotating .wb-page{cursor:crosshair;touch-action:none;user-select:none}',
+      '.wb-annotateHint{flex:none;display:flex;align-items:center;gap:6px;padding:5px 10px;font-size:11.5px;line-height:1.45;color:var(--dsw-alias-label-secondary,#555);background:var(--dsw-alias-bg-layer-2,#f4f4f5);border-bottom:.5px solid var(--dsw-alias-border-l3,rgba(128,128,128,.3))}',
+      '.wb-shapeHover{position:absolute;border:1.5px dashed var(--dsw-alias-brand-primary,#4d6bfe);background:rgba(77,107,254,.08);border-radius:2px;pointer-events:none;z-index:2}',
+      '.wb-shapeName{position:absolute;left:0;top:-19px;max-width:100%;font-size:10.5px;line-height:16px;padding:0 5px;border-radius:3px;background:var(--dsw-alias-brand-primary,#4d6bfe);color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+      '.wb-shapeSel{position:absolute;border:2px solid var(--dsw-alias-brand-primary,#4d6bfe);background:rgba(77,107,254,.10);border-radius:2px;pointer-events:none;z-index:3}',
+      '.wb-areaSel{position:absolute;border:1.5px dashed var(--dsw-alias-brand-primary,#4d6bfe);background:rgba(77,107,254,.08);border-radius:2px;pointer-events:none;z-index:3}',
+      '.wb-marquee{position:absolute;border:1px dashed var(--dsw-alias-brand-primary,#4d6bfe);background:rgba(77,107,254,.12);pointer-events:none;z-index:5}',
+      '.wb-pages{display:flex;flex-direction:column;align-items:center;gap:10px;padding:12px;margin:0 auto;width:fit-content;min-width:100%}',
+      '.wb-page{position:relative;flex:none;scroll-margin-top:8px;background:#fff;border-radius:3px;box-shadow:0 1px 2px rgba(0,0,0,.16),0 2px 10px rgba(0,0,0,.08)}',
+      '.wb-page img.wb-slide{display:block;width:100%;height:auto;border-radius:3px;user-select:none;-webkit-user-drag:none}',
+      '.wb-pagePlaceholder{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;width:100%;background:var(--dsw-alias-bg-skeleton,#ececec);color:var(--dsw-alias-label-tertiary,#888);font-size:12px;border-radius:3px;padding:12px;text-align:center}',
+      '.wb-pagePlaceholder[data-error="true"]{background:var(--dsw-alias-state-error-secondary,#fdecec);color:var(--dsw-alias-state-error-primary,#d92d20)}',
+      '.wb-pageTruncated{padding:14px 12px 24px;color:var(--dsw-alias-label-tertiary,#888);font-size:12px;text-align:center}',
+      '.wb-pins{position:absolute;inset:0;pointer-events:none}',
+      '.wb-pin{appearance:none;pointer-events:auto;position:absolute;width:22px;height:22px;margin:-11px 0 0 -11px;display:flex;align-items:center;justify-content:center;border-radius:999px;border:1.5px solid rgba(255,255,255,.92);background:var(--dsw-alias-brand-primary,#4d6bfe);color:#fff;font:inherit;font-size:11px;font-weight:600;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.35);padding:0;line-height:1}',
+      '.wb-pin:hover{filter:brightness(1.1)}',
+      '.wb-pin[data-status="resolved"]{background:var(--dsw-alias-state-success-primary,#16a34a);opacity:.9}',
+      '.wb-pin[data-status="orphaned"]{background:var(--dsw-alias-state-warn-primary,#d97706)}',
+      '.wb-pin[data-selected="true"]{outline:3px solid var(--dsw-alias-bg-document-selection,rgba(77,107,254,.35));outline-offset:1px;z-index:3}',
+      '.wb-editor{position:absolute;z-index:6;max-width:calc(100% - 16px);padding:10px;display:flex;flex-direction:column;gap:7px;border-radius:var(--dsw-radius-lg,10px);border:.5px solid var(--dsw-alias-border-l2,rgba(128,128,128,.3));background:var(--dsw-alias-bg-layer-2,#fff);box-shadow:var(--dsw-elevation-prominent,0 10px 30px rgba(0,0,0,.22));color:var(--dsw-alias-label-primary,#1a1a1a)}',
+      '.wb-editorHead{display:flex;flex-direction:column;gap:2px;min-width:0}',
+      '.wb-editorTitle{font-size:12.5px;font-weight:600}',
+      '.wb-editorAnchor{font-size:11px;color:var(--dsw-alias-label-tertiary,#888);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+      '.wb-textarea{width:100%;min-height:64px;max-height:180px;resize:vertical;padding:7px 8px;border:.5px solid var(--dsw-alias-border-l2,rgba(128,128,128,.35));border-radius:var(--dsw-radius-sm,6px);background:var(--dsw-alias-bg-layer-1,#fff);color:var(--dsw-alias-label-primary,#1a1a1a);font:inherit;font-size:12.5px;line-height:1.5;box-sizing:border-box}',
+      '.wb-textarea:focus{outline:2px solid var(--dsw-alias-brand-primary,#4d6bfe);outline-offset:0}',
+      '.wb-editorFoot{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}',
+      '.wb-hint{font-size:11px;color:var(--dsw-alias-label-tertiary,#888)}',
+      '.wb-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0}',
+      '.wb-drawer{flex:none;display:flex;flex-direction:column;min-height:34px;max-height:48%;border-top:.5px solid var(--dsw-alias-border-l3,rgba(128,128,128,.3));background:var(--dsw-alias-bg-layer-1,#f7f7f8)}',
+      '.wb-drawerHead{flex:none;display:flex;align-items:center;flex-wrap:wrap;gap:2px 6px;padding:4px 8px;min-height:34px}',
+      '.wb-drawerTitle{font-size:12px;font-weight:600;color:var(--dsw-alias-label-primary,#1a1a1a);margin-right:2px;white-space:nowrap}',
+      '.wb-tabs{display:inline-flex;align-items:center;gap:2px;flex-wrap:wrap;min-width:0}',
+      '.wb-tab{appearance:none;display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 8px;border:none;border-radius:999px;background:transparent;color:var(--dsw-alias-label-secondary,#555);font:inherit;font-size:12px;cursor:pointer;white-space:nowrap}',
+      '.wb-tab:hover{background:var(--dsw-alias-interactive-bg-hover,rgba(128,128,128,.14))}',
+      '.wb-tab[aria-selected="true"]{background:var(--dsw-alias-button-ghost-active-fill,rgba(128,128,128,.16));color:var(--dsw-alias-label-primary,#1a1a1a);font-weight:600}',
+      '.wb-tab:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#4d6bfe);outline-offset:1px}',
+      '.wb-tabCount{font-size:10.5px;line-height:1;min-width:16px;padding:2px 5px;border-radius:8px;background:var(--dsw-alias-bg-layer-3,rgba(128,128,128,.18));color:var(--dsw-alias-label-secondary,#555)}',
+      '.wb-drawerBody{flex:1 1 auto;min-height:0;overflow-y:auto;padding:0 8px 8px;display:flex;flex-direction:column;gap:6px;scrollbar-width:thin}',
+      '.wb-card{border:.5px solid var(--dsw-alias-border-l2,rgba(128,128,128,.3));border-radius:var(--dsw-radius-md,8px);background:var(--dsw-alias-bg-layer-2,#fff);padding:7px 9px;display:flex;flex-direction:column;gap:4px;font-size:12px;min-width:0;cursor:pointer}',
+      '.wb-card:hover{border-color:var(--dsw-alias-border-l3,rgba(128,128,128,.5))}',
+      '.wb-card[data-selected="true"]{border-color:var(--dsw-alias-brand-primary,#4d6bfe);box-shadow:inset 0 0 0 1px var(--dsw-alias-brand-primary,#4d6bfe)}',
+      '.wb-card:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#4d6bfe);outline-offset:1px}',
+      '.wb-cardHead{display:flex;align-items:center;gap:6px;min-width:0}',
+      '.wb-badge{flex:none;font-size:10.5px;line-height:1.4;padding:0 5px;border-radius:4px;background:var(--dsw-alias-bg-layer-3,rgba(128,128,128,.18));color:var(--dsw-alias-label-secondary,#555);white-space:nowrap}',
+      '.wb-quote{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dsw-alias-label-secondary,#555)}',
+      '.wb-quoteMuted{color:var(--dsw-alias-label-tertiary,#888);font-style:italic}',
+      '.wb-meta{font-size:11px;color:var(--dsw-alias-label-tertiary,#888);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}',
+      '.wb-bodyText{white-space:pre-wrap;word-break:break-word;color:var(--dsw-alias-label-primary,#1a1a1a);line-height:1.5}',
+      '.wb-bodyText.wb-clamp{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}',
+      '.wb-orphanHint{font-size:11px;color:var(--dsw-alias-state-warn-label,#b45309)}',
+      '.wb-replies{margin:2px 0 0;padding:4px 0 0;border-top:.5px dashed var(--dsw-alias-border-l2,rgba(128,128,128,.3));display:flex;flex-direction:column;gap:4px}',
+      '.wb-reply{font-size:11.5px;min-width:0}',
+      '.wb-replyBody{white-space:pre-wrap;word-break:break-word;color:var(--dsw-alias-label-primary,#1a1a1a)}',
+      '.wb-replyMeta{color:var(--dsw-alias-label-tertiary,#888);font-size:10.5px}',
+      '.wb-actions{display:flex;align-items:center;gap:2px;flex-wrap:wrap;margin-top:1px}',
+      '.wb-linkBtn{appearance:none;border:none;background:transparent;color:var(--dsw-alias-label-secondary,#555);font:inherit;font-size:11.5px;padding:2px 6px;border-radius:var(--dsw-radius-sm,5px);cursor:pointer;white-space:nowrap}',
+      '.wb-linkBtn:hover{background:var(--dsw-alias-interactive-bg-hover,rgba(128,128,128,.14));color:var(--dsw-alias-label-primary,#1a1a1a)}',
+      '.wb-linkBtn[data-danger="true"]:hover{color:var(--dsw-alias-state-error-primary,#d92d20);background:var(--dsw-alias-interactive-bg-hover-danger,rgba(217,45,32,.1))}',
+      '.wb-linkBtn:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#4d6bfe);outline-offset:1px}',
+      '.wb-replyBox{display:flex;flex-direction:column;gap:5px;margin-top:2px}',
+      '.wb-empty{padding:18px 12px;text-align:center;color:var(--dsw-alias-label-tertiary,#888);font-size:12px;line-height:1.6}',
+      '.wb-center{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:24px;text-align:center}',
+      '.wb-centerTitle{font-size:14px;font-weight:600;color:var(--dsw-alias-label-primary,#1a1a1a)}',
+      '.wb-centerText{max-width:460px;font-size:12px;line-height:1.6;color:var(--dsw-alias-label-secondary,#555);word-break:break-word}',
+      '.wb-centerHint{max-width:460px;font-size:11.5px;line-height:1.55;color:var(--dsw-alias-label-tertiary,#888)}',
+      '.wb-path{max-width:100%;font-family:var(--dsw-alias-font-family-code,ui-monospace,SFMono-Regular,Menlo,monospace);font-size:10.5px;color:var(--dsw-alias-label-tertiary,#888);word-break:break-all}',
+      '.wb-spinner{width:22px;height:22px;border-radius:50%;border:2px solid var(--dsw-alias-border-l2,rgba(128,128,128,.3));border-top-color:var(--dsw-alias-brand-primary,#4d6bfe);animation:wb-spin .8s linear infinite}',
+      '@keyframes wb-spin{to{transform:rotate(360deg)}}',
+      '.wb-skeleton{width:min(420px,100%);aspect-ratio:16/9;border-radius:6px;background:linear-gradient(90deg,var(--dsw-alias-bg-skeleton,#ececec) 25%,var(--dsw-alias-bg-layer-2,#f6f6f6) 37%,var(--dsw-alias-bg-skeleton,#ececec) 63%);background-size:400% 100%;animation:wb-shimmer 1.4s ease infinite}',
+      '@keyframes wb-shimmer{0%{background-position:100% 50%}100%{background-position:0 50%}}',
+      '.wb-errorIcon{width:30px;height:30px;border-radius:999px;display:flex;align-items:center;justify-content:center;background:var(--dsw-alias-state-error-secondary,#fdecec);color:var(--dsw-alias-state-error-primary,#d92d20);font-size:16px;font-weight:700}',
+      '.wb-code{display:inline-block;font-family:var(--dsw-alias-font-family-code,ui-monospace,SFMono-Regular,Menlo,monospace);font-size:10.5px;padding:1px 6px;border-radius:4px;background:var(--dsw-alias-bg-layer-3,rgba(128,128,128,.18));color:var(--dsw-alias-label-secondary,#555);word-break:break-all}',
+      '.wb-toast{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);z-index:60;display:flex;align-items:flex-start;gap:8px;max-width:calc(100% - 24px);padding:8px 10px;border-radius:var(--dsw-radius-md,8px);border:.5px solid var(--dsw-alias-border-l2,rgba(128,128,128,.3));background:var(--dsw-alias-bg-overlay,var(--dsw-alias-bg-layer-2,#fff));box-shadow:var(--dsw-elevation-prominent,0 10px 30px rgba(0,0,0,.22));color:var(--dsw-alias-label-primary,#1a1a1a);font-size:12px;line-height:1.5}',
+      '.wb-toast[data-kind="success"]{border-color:var(--dsw-alias-state-success-primary,#16a34a)}',
+      '.wb-toast[data-kind="error"]{border-color:var(--dsw-alias-state-error-primary,#d92d20);color:var(--dsw-alias-state-error-primary,#d92d20)}',
+      '.wb-toastText{flex:1 1 auto;min-width:0;word-break:break-word}',
+      '.wb-toastManual{flex-direction:column;max-height:60%}',
+      '.wb-toastPre{margin:4px 0 0;max-height:180px;overflow:auto;white-space:pre-wrap;word-break:break-word;font-family:var(--dsw-alias-font-family-code,ui-monospace,SFMono-Regular,Menlo,monospace);font-size:11px;color:var(--dsw-alias-label-secondary,#555);background:var(--dsw-alias-bg-layer-1,#f7f7f8);border-radius:var(--dsw-radius-sm,5px);padding:6px 8px}',
+      '.wb-drawer[data-mode="edit"]{max-height:60%}',
+      '.wb-editBar{flex:none;display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px;padding:5px 10px;font-size:11.5px;line-height:1.45;color:var(--dsw-alias-label-secondary,#555);background:var(--dsw-alias-bg-layer-2,#f4f4f5);border-bottom:.5px solid var(--dsw-alias-border-l3,rgba(128,128,128,.3))}',
+      '.wb-editBarLabel{font-weight:600;color:var(--dsw-alias-label-primary,#1a1a1a);white-space:nowrap}',
+      '.wb-editBarSpacer{flex:1 1 auto;min-width:4px}',
+      '.wb-menuWrap{position:relative;display:inline-flex}',
+      '.wb-menu{position:absolute;top:calc(100% + 6px);left:0;z-index:55;min-width:190px;padding:5px;border-radius:var(--dsw-radius-md,8px);border:.5px solid var(--dsw-alias-border-l2,rgba(128,128,128,.3));background:var(--dsw-alias-bg-layer-2,#fff);box-shadow:var(--dsw-elevation-prominent,0 10px 28px rgba(0,0,0,.22));display:flex;flex-direction:column;gap:1px;text-align:left}',
+      '.wb-menuItem{appearance:none;border:none;background:transparent;color:var(--dsw-alias-label-primary,#1a1a1a);font:inherit;font-size:12px;text-align:left;padding:5px 8px;border-radius:var(--dsw-radius-sm,5px);cursor:pointer;white-space:nowrap}',
+      '.wb-menuItem:hover:not([disabled]){background:var(--dsw-alias-interactive-bg-hover,rgba(128,128,128,.14))}',
+      '.wb-menuItem[disabled]{opacity:.45;cursor:default}',
+      '.wb-menuItem[data-danger="true"]:hover:not([disabled]){color:var(--dsw-alias-state-error-primary,#d92d20);background:var(--dsw-alias-interactive-bg-hover-danger,rgba(217,45,32,.1))}',
+      '.wb-menuHint{padding:4px 8px;font-size:10.5px;line-height:1.45;color:var(--dsw-alias-label-tertiary,#888);white-space:normal;max-width:230px}',
+      '.wb-menuSep{height:1px;margin:4px 6px;background:var(--dsw-alias-border-l2,rgba(128,128,128,.25))}',
+      '.wb-section{display:flex;flex-direction:column;gap:6px;padding:8px 0 2px;border-top:.5px solid var(--dsw-alias-border-l2,rgba(128,128,128,.25))}',
+      '.wb-section:first-child{border-top:none;padding-top:2px}',
+      '.wb-sectionTitle{font-size:11.5px;font-weight:600;color:var(--dsw-alias-label-secondary,#555);display:flex;align-items:center;gap:6px;flex-wrap:wrap}',
+      '.wb-fieldGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:6px 8px}',
+      '.wb-field{display:flex;flex-direction:column;gap:2px;min-width:0}',
+      '.wb-fieldLabel{font-size:10.5px;color:var(--dsw-alias-label-tertiary,#888)}',
+      '.wb-input{width:100%;min-width:0;height:26px;padding:0 6px;border:.5px solid var(--dsw-alias-border-l2,rgba(128,128,128,.35));border-radius:var(--dsw-radius-sm,6px);background:var(--dsw-alias-bg-layer-1,#fff);color:var(--dsw-alias-label-primary,#1a1a1a);font:inherit;font-size:12px}',
+      '.wb-input:focus{outline:2px solid var(--dsw-alias-brand-primary,#4d6bfe);outline-offset:0}',
+      '.wb-input[type="number"]{font-variant-numeric:tabular-nums}',
+      '.wb-colorRow{display:flex;align-items:center;gap:6px;min-width:0}',
+      '.wb-colorInput{flex:none;width:30px;height:26px;padding:0;border:.5px solid var(--dsw-alias-border-l2,rgba(128,128,128,.35));border-radius:var(--dsw-radius-sm,6px);background:transparent;cursor:pointer}',
+      '.wb-tableWrap{max-height:190px;overflow:auto;border:.5px solid var(--dsw-alias-border-l2,rgba(128,128,128,.3));border-radius:var(--dsw-radius-sm,6px);scrollbar-width:thin}',
+      '.wb-table{border-collapse:collapse;width:100%;font-size:11.5px}',
+      '.wb-table td{border:.5px solid var(--dsw-alias-border-l2,rgba(128,128,128,.25));padding:2px}',
+      '.wb-table .wb-input{height:24px;border-color:transparent;background:transparent;font-size:11.5px}',
+      '.wb-table .wb-input:focus{border-color:transparent}',
+      '.wb-readonlyBox{padding:8px;border:.5px solid var(--dsw-alias-border-l2,rgba(128,128,128,.3));border-radius:var(--dsw-radius-sm,6px);background:var(--dsw-alias-bg-layer-1,#f7f7f8);color:var(--dsw-alias-label-secondary,#555);font-size:11.5px;line-height:1.55;white-space:pre-wrap;word-break:break-word}',
+      '.wb-chartSeries{display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--dsw-alias-label-secondary,#555)}',
+      '.wb-inlineText{position:absolute;z-index:8;box-sizing:border-box;margin:0;padding:2px 5px;border:1.5px solid var(--dsw-alias-brand-primary,#4d6bfe);border-radius:2px;background:rgba(255,255,255,.97);color:#1a1a1a;line-height:1.3;resize:none;overflow:auto;font-family:inherit;box-shadow:0 4px 18px rgba(0,0,0,.28);white-space:pre-wrap;word-break:break-word}',
+      '.wb-inlineText:focus{outline:none}',
+      '.wb-handle{position:absolute;width:9px;height:9px;margin:-5px 0 0 -5px;padding:0;border:1.5px solid var(--dsw-alias-brand-primary,#4d6bfe);border-radius:2px;background:var(--dsw-alias-bg-base,#fff);z-index:5;pointer-events:auto;box-sizing:border-box}',
+      '.wb-handle[data-dir="nw"]{cursor:nwse-resize}',
+      '.wb-handle[data-dir="se"]{cursor:nwse-resize}',
+      '.wb-handle[data-dir="ne"]{cursor:nesw-resize}',
+      '.wb-handle[data-dir="sw"]{cursor:nesw-resize}',
+      '.wb-handle[data-dir="n"]{cursor:ns-resize}',
+      '.wb-handle[data-dir="s"]{cursor:ns-resize}',
+      '.wb-handle[data-dir="e"]{cursor:ew-resize}',
+      '.wb-handle[data-dir="w"]{cursor:ew-resize}',
+      '.wb-shapeSizeBadge{position:absolute;right:0;top:-18px;font-size:10px;line-height:16px;padding:0 5px;border-radius:3px;background:var(--dsw-alias-brand-primary,#4d6bfe);color:#fff;white-space:nowrap}',
+      '.wb-saveStatus{font-size:10.5px;color:var(--dsw-alias-label-tertiary,#888);white-space:nowrap}',
+      '.wb-inspectorAutoHint{font-size:10.5px;color:var(--dsw-alias-label-tertiary,#888);line-height:1.4}',
+      '.wb-shapeSelReadonly{border-style:dashed;border-color:var(--dsw-alias-state-warn-primary,#d97706);background:rgba(217,119,6,.08)}',
+      '.wb-shapeBadge{position:absolute;right:0;top:-18px;font-size:10px;line-height:16px;padding:0 5px;border-radius:3px;background:var(--dsw-alias-state-warn-primary,#d97706);color:#fff;white-space:nowrap}',
+      '.wb-modalMask{position:absolute;inset:0;z-index:70;display:flex;align-items:center;justify-content:center;padding:16px;background:var(--dsw-alias-bg-mask-2,rgba(0,0,0,.36))}',
+      '.wb-modal{width:min(420px,100%);display:flex;flex-direction:column;gap:10px;padding:16px;border-radius:var(--dsw-radius-lg,10px);border:.5px solid var(--dsw-alias-border-l2,rgba(128,128,128,.3));background:var(--dsw-alias-bg-layer-2,#fff);box-shadow:var(--dsw-elevation-prominent,0 12px 34px rgba(0,0,0,.28));color:var(--dsw-alias-label-primary,#1a1a1a)}',
+      '.wb-modalTitle{font-size:14px;font-weight:600}',
+      '.wb-modalText{font-size:12px;line-height:1.6;color:var(--dsw-alias-label-secondary,#555)}',
+      '.wb-modalActions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}',
+      '.wb-inspectorHead{display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0}',
+      '.wb-inspectorName{font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:42%}',
+      '.wb-inspectorMeta{font-size:10.5px;color:var(--dsw-alias-label-tertiary,#888);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}',
+      '@media (prefers-reduced-motion: reduce){.wb-progress::after,.wb-spinner,.wb-thumbLoading,.wb-skeleton,.wb-miniSpinner{animation:none}}',
+    ].join('\n');
+
+    function injectStyles() {
+      var existing = document.querySelector('style[data-plugin-css="' + STYLE_TAG_ID + '"]');
+      if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
+      var tag = document.createElement('style');
+      tag.dataset.plugin = NS;
+      tag.dataset.pluginCss = STYLE_TAG_ID;
+      tag.textContent = CSS;
+      document.head.appendChild(tag);
+      return function () {
+        if (tag.parentNode) tag.parentNode.removeChild(tag);
+      };
+    }
+
+    // ------------------------------------------------------------------
+    // React hooks：元素宽度 / 可见性 / 页面图片
+    // ------------------------------------------------------------------
+    function useElementWidth(ref) {
+      var state = React.useState(0);
+      var width = state[0];
+      var setWidth = state[1];
+      React.useEffect(function () {
+        var node = ref.current;
+        if (!node) return undefined;
+        function measure() {
+          var next = Math.round(node.clientWidth || 0);
+          setWidth(function (previous) {
+            return Math.abs(previous - next) >= 2 ? next : previous;
+          });
+        }
+        measure();
+        if (typeof ResizeObserver === 'undefined') {
+          window.addEventListener('resize', measure);
+          return function () {
+            window.removeEventListener('resize', measure);
+          };
+        }
+        var observer = new ResizeObserver(measure);
+        observer.observe(node);
+        return function () {
+          observer.disconnect();
+        };
+      }, [ref]);
+      return width;
+    }
+
+    /** 与 useElementWidth 相同，但接收节点值：适合挂载晚于组件首个 effect 的元素（如画布）。 */
+    function useNodeWidth(node) {
+      var state = React.useState(0);
+      var width = state[0];
+      var setWidth = state[1];
+      React.useEffect(function () {
+        if (!node) return undefined;
+        function measure() {
+          var next = Math.round(node.clientWidth || 0);
+          setWidth(function (previous) {
+            return Math.abs(previous - next) >= 2 ? next : previous;
+          });
+        }
+        measure();
+        if (typeof ResizeObserver === 'undefined') {
+          window.addEventListener('resize', measure);
+          return function () {
+            window.removeEventListener('resize', measure);
+          };
+        }
+        var observer = new ResizeObserver(measure);
+        observer.observe(node);
+        return function () {
+          observer.disconnect();
+        };
+      }, [node]);
+      return width;
+    }
+
+    function useInView(ref, eager, rootRef) {
+      var state = React.useState(!!eager);
+      var visible = state[0];
+      var setVisible = state[1];
+      React.useEffect(function () {
+        if (visible) return undefined;
+        var node = ref.current;
+        if (!node) return undefined;
+        if (typeof IntersectionObserver === 'undefined') {
+          setVisible(true);
+          return undefined;
+        }
+        var root = rootRef && rootRef.current ? rootRef.current : null;
+        var observer = new IntersectionObserver(
+          function (entries) {
+            for (var index = 0; index < entries.length; index += 1) {
+              if (entries[index].isIntersecting) {
+                setVisible(true);
+                observer.disconnect();
+                break;
+              }
+            }
+          },
+          { root: root, rootMargin: '600px 0px', threshold: 0 },
+        );
+        observer.observe(node);
+        return function () {
+          observer.disconnect();
+        };
+      }, [ref, eager, rootRef, visible]);
+      return visible;
+    }
+
+    /**
+     * 逐页 PNG 的 Blob URL 缓存：按 deck sha 建缓存，deck 变化/卸载时 abort + revoke。
+     * 返回 images(按页码索引) / ensurePage(幂等触发) / retryPage。
+     */
+    function useSlideImages(sha) {
+      var cacheRef = React.useRef(null);
+      if (sha && (!cacheRef.current || cacheRef.current.sha !== sha)) {
+        cacheRef.current = { sha: sha, urls: new Map(), inflight: new Map(), controller: null, disposed: false };
+      }
+      var cache = cacheRef.current;
+      var state = React.useState({ sha: null, map: EMPTY_MAP });
+      var imageState = state[0];
+      var setImageState = state[1];
+
+      React.useEffect(function () {
+        if (!cache) return undefined;
+        return function () {
+          cache.disposed = true;
+          if (cache.controller) {
+            try {
+              cache.controller.abort();
+            } catch (error) {
+              /* ignore */
+            }
+            cache.controller = null;
+          }
+          cache.urls.forEach(function (url) {
+            try {
+              URL.revokeObjectURL(url);
+            } catch (error) {
+              /* ignore */
+            }
+          });
+          cache.urls.clear();
+          cache.inflight.clear();
+        };
+      }, [cache]);
+
+      var writeImage = React.useCallback(function (num, value) {
+        setImageState(function (previous) {
+          var map = previous.sha === sha ? previous.map : EMPTY_MAP;
+          var next = Object.assign({}, map);
+          next[num] = value;
+          return { sha: sha, map: next };
+        });
+      }, [sha]);
+
+      var ensurePage = React.useCallback(function (num) {
+        if (!cache || !sha || cache.disposed) return;
+        var key = String(num);
+        if (cache.urls.has(key) || cache.inflight.has(key)) return;
+        if (!cache.controller) cache.controller = new AbortController();
+        var signal = cache.controller.signal;
+        cache.inflight.set(key, true);
+        writeImage(num, { status: 'loading' });
+        var url = apiUrl('slide?sha=' + encodeURIComponent(sha) + '&page=' + encodeURIComponent(num));
+        fetch(url, { credentials: 'include', signal: signal })
+          .then(function (response) {
+            if (!response.ok) {
+              var error = new Error('slide HTTP ' + response.status);
+              error.status = response.status;
+              throw error;
+            }
+            return response.blob();
+          })
+          .then(function (blob) {
+            if (cache.disposed || signal.aborted) return;
+            var objectUrl = URL.createObjectURL(blob);
+            cache.urls.set(key, objectUrl);
+            writeImage(num, { status: 'ready', url: objectUrl });
+          })
+          .catch(function (error) {
+            if (cache.disposed || signal.aborted) return;
+            writeImage(num, { status: 'error', status_code: error && error.status });
+          })
+          .then(function () {
+            cache.inflight.delete(key);
+          });
+      }, [cache, sha, writeImage]);
+
+      var retryPage = React.useCallback(function (num) {
+        if (!cache) return;
+        cache.inflight.delete(String(num));
+        var existing = cache.urls.get(String(num));
+        if (existing) {
+          try {
+            URL.revokeObjectURL(existing);
+          } catch (error) {
+            /* ignore */
+          }
+          cache.urls.delete(String(num));
+        }
+        ensurePage(num);
+      }, [cache, ensurePage]);
+
+      var images = imageState.sha === sha ? imageState.map : EMPTY_MAP;
+      return { images: images, ensurePage: ensurePage, retryPage: retryPage };
+    }
+
+    // ------------------------------------------------------------------
+    // 批注辅助
+    // ------------------------------------------------------------------
+    function annotationPoint(annotation, slideWidthEmu, slideHeightEmu) {
+      if (!annotation) return null;
+      var anchor = annotation.anchor || {};
+      if (anchor.pointNorm && Number.isFinite(anchor.pointNorm.x) && Number.isFinite(anchor.pointNorm.y)) {
+        return { x: clamp01(anchor.pointNorm.x), y: clamp01(anchor.pointNorm.y) };
+      }
+      var bbox = anchor.bboxEmu;
+      if (
+        bbox &&
+        Number.isFinite(bbox.left) &&
+        Number.isFinite(bbox.top) &&
+        Number.isFinite(bbox.width) &&
+        Number.isFinite(bbox.height) &&
+        Number.isFinite(slideWidthEmu) &&
+        Number.isFinite(slideHeightEmu) &&
+        slideWidthEmu > 0 &&
+        slideHeightEmu > 0
+      ) {
+        return {
+          x: clamp01((bbox.left + bbox.width / 2) / slideWidthEmu),
+          y: clamp01((bbox.top + bbox.height / 2) / slideHeightEmu),
+        };
+      }
+      return null;
+    }
+
+    function hitShape(slide, pointXEmu, pointYEmu) {
+      if (!slide || !Array.isArray(slide.shapes)) return null;
+      for (var index = slide.shapes.length - 1; index >= 0; index -= 1) {
+        var shape = slide.shapes[index];
+        if (!shape) continue;
+        var left = Number(shape.left);
+        var top = Number(shape.top);
+        var width = Number(shape.width);
+        var height = Number(shape.height);
+        if (![left, top, width, height].every(Number.isFinite)) continue;
+        if (pointXEmu >= left && pointXEmu <= left + width && pointYEmu >= top && pointYEmu <= top + height) {
+          return shape;
+        }
+      }
+      return null;
+    }
+
+    function normRect(x0, y0, x1, y1) {
+      var x = Math.min(x0, x1);
+      var y = Math.min(y0, y1);
+      var w = Math.abs(x1 - x0);
+      var h = Math.abs(y1 - y0);
+      return { x: clamp01(x), y: clamp01(y), w: Math.min(1 - clamp01(x), w), h: Math.min(1 - clamp01(y), h) };
+    }
+
+    function shapeBox(shape, slideWidthEmu, slideHeightEmu) {
+      if (!shape || !slideWidthEmu || !slideHeightEmu) return null;
+      return {
+        left: (Number(shape.left) / slideWidthEmu) * 100 + '%',
+        top: (Number(shape.top) / slideHeightEmu) * 100 + '%',
+        width: (Number(shape.width) / slideWidthEmu) * 100 + '%',
+        height: (Number(shape.height) / slideHeightEmu) * 100 + '%',
+      };
+    }
+
+    function intersects(a, b) {
+      return !(a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y);
+    }
+
+    function shapesIntersecting(slide, rectNorm, slideWidthEmu, slideHeightEmu) {
+      if (!slide || !Array.isArray(slide.shapes)) return [];
+      if (!slideWidthEmu || !slideHeightEmu) return [];
+      var rectEmu = {
+        x: rectNorm.x * slideWidthEmu,
+        y: rectNorm.y * slideHeightEmu,
+        w: rectNorm.w * slideWidthEmu,
+        h: rectNorm.h * slideHeightEmu,
+      };
+      var hits = [];
+      for (var index = 0; index < slide.shapes.length; index += 1) {
+        var shape = slide.shapes[index];
+        if (!shape || !Number.isFinite(Number(shape.left))) continue;
+        var box = { x: Number(shape.left), y: Number(shape.top), w: Number(shape.width), h: Number(shape.height) };
+        if (intersects(rectEmu, box)) hits.push(shape);
+      }
+      return hits;
+    }
+
+    function draftShapesSummary(draft, t) {
+      if (!draft) return '';
+      var shapes = Array.isArray(draft.shapes) ? draft.shapes : [];
+      if (shapes.length === 0) return draft.areaNorm ? t('compose.area') : t('compose.free');
+      if (shapes.length === 1) return t('compose.shape', { name: shapes[0].name || '' });
+      return t('compose.shapesMany', { count: shapes.length, names: shapes.slice(0, 3).map(function (shape) { return shape.name || ''; }).join('、') });
+    }
+
+    function annotationBoxes(annotation, slideWidthEmu, slideHeightEmu) {
+      if (!annotation || !annotation.anchor) return [];
+      var anchor = annotation.anchor;
+      var boxes = [];
+      var related = Array.isArray(anchor.relatedShapes) ? anchor.relatedShapes : [];
+      for (var index = 0; index < related.length; index += 1) {
+        var shape = related[index];
+        if (!shape || !shape.bboxEmu) continue;
+        var box = shapeBox({
+          left: shape.bboxEmu.left, top: shape.bboxEmu.top,
+          width: shape.bboxEmu.width, height: shape.bboxEmu.height,
+        }, slideWidthEmu, slideHeightEmu);
+        if (box) boxes.push({ box: box, name: shape.name || '' });
+      }
+      if (boxes.length === 0 && anchor.bboxEmu) {
+        var areaShape = {
+          left: anchor.bboxEmu.left, top: anchor.bboxEmu.top,
+          width: anchor.bboxEmu.width, height: anchor.bboxEmu.height,
+        };
+        var areaBox = shapeBox(areaShape, slideWidthEmu, slideHeightEmu);
+        if (areaBox) boxes.push({ box: areaBox, name: '', area: true });
+      }
+      return boxes;
+    }
+
+    function annotationQuote(annotation, slides) {
+      var result = { shapeName: '', preview: '' };
+      if (!annotation || !Array.isArray(slides) || !Number.isInteger(annotation.slideIndex)) return result;
+      var slide = slides[annotation.slideIndex];
+      if (!slide || !Array.isArray(slide.shapes)) return result;
+      var anchor = annotation.anchor || {};
+      var related = Array.isArray(anchor.relatedShapes) ? anchor.relatedShapes : [];
+      if (related.length > 1) {
+        var names = related.map(function (shape) { return shape && shape.name ? shape.name : ''; }).filter(Boolean).join('、');
+        result.shapeName = names;
+        result.preview = truncate(names, 32);
+        return result;
+      }
+      if (related.length === 0 && anchor.bboxEmu && !anchor.shapeId) {
+        result.area = true;
+        return result;
+      }
+      if (related.length === 1 && related[0]) {
+        result.shapeName = related[0].name || '';
+        var named = slide.shapes.filter(function (entry) { return entry && entry.name === related[0].name; });
+        if (named.length === 1) result.preview = truncate(named[0].textPreview || '', 28);
+        return result;
+      }
+      var shape = null;
+      if (Number.isInteger(anchor.shapeId)) {
+        for (var index = 0; index < slide.shapes.length; index += 1) {
+          var candidate = slide.shapes[index];
+          if (candidate && candidate.shapeId === anchor.shapeId) {
+            shape = candidate;
+            break;
+          }
+        }
+      }
+      if (!shape && anchor.shapeName) {
+        for (var named = 0; named < slide.shapes.length; named += 1) {
+          if (slide.shapes[named] && slide.shapes[named].name === anchor.shapeName) {
+            shape = slide.shapes[named];
+            break;
+          }
+        }
+      }
+      if (shape) {
+        result.shapeName = shape.name || '';
+        result.preview = truncate(shape.textPreview || '', 28);
+      }
+      return result;
+    }
+
+    function buildSendText(openAnnotations, slides, deckName, sha, t) {
+      var lines = [];
+      lines.push(t('send.header', { name: deckName || 'deck.pptx', count: openAnnotations.length, sha: shaShort(sha) }));
+      openAnnotations.forEach(function (annotation, index) {
+        var quote = annotationQuote(annotation, slides);
+        var page = Number.isInteger(annotation.slideIndex) ? annotation.slideIndex + 1 : '?';
+        var body = String(annotation.body || '').replace(/\s*\n\s*/g, ' ').trim();
+        var quoteText = quote.preview || quote.shapeName;
+        if (quoteText) {
+          lines.push(t('send.lineShape', { index: index + 1, page: page, quote: quoteText, body: body }));
+        } else {
+          lines.push(t('send.lineFree', { index: index + 1, page: page, body: body }));
+        }
+      });
+      lines.push('');
+      lines.push(t('send.footer'));
+      return lines.join('\n');
+    }
+
+    // ------------------------------------------------------------------
+    // 通用小组件
+    // ------------------------------------------------------------------
+    function NoticeBanner(props) {
+      var t = translator(props.lang);
+      return h('div', { className: 'wb-banner', 'data-kind': props.kind || 'info', role: 'status' },
+        h('span', { className: 'wb-bannerIcon', 'aria-hidden': true }, props.kind === 'error' ? '⚠' : 'ⓘ'),
+        h('span', { className: 'wb-bannerText' }, props.text),
+        props.actions && props.actions.length
+          ? h('span', { className: 'wb-bannerActions' },
+            props.actions.map(function (action, index) {
+              return h('button', {
+                key: index,
+                type: 'button',
+                className: 'wb-linkBtn',
+                onClick: action.onClick,
+              }, action.label);
+            }),
+          )
+          : props.onAction
+            ? h('button', {
+              type: 'button',
+              className: 'wb-linkBtn',
+              onClick: props.onAction,
+            }, props.actionLabel || t('error.retry'))
+            : null,
+        props.onDismiss
+          ? h('button', {
+            type: 'button',
+            className: 'wb-linkBtn',
+            'aria-label': t('banner.dismiss'),
+            title: t('banner.dismiss'),
+            onClick: props.onDismiss,
+          }, '×')
+          : null,
+      );
+    }
+
+    function ToastView(props) {
+      var t = translator(props.lang);
+      var toast = props.toast;
+      var manual = toast.kind === 'manual';
+      return h('div', {
+        className: 'wb-toast' + (manual ? ' wb-toastManual' : ''),
+        'data-kind': toast.kind,
+        role: 'status',
+        'aria-live': 'polite',
+      },
+        h('div', { className: 'wb-row', style: { alignItems: 'flex-start', flexWrap: 'nowrap' } },
+          h('div', { className: 'wb-toastText' }, toast.text),
+          h('button', {
+            type: 'button',
+            className: 'wb-linkBtn',
+            'aria-label': t('toast.close'),
+            title: t('toast.close'),
+            onClick: props.onClose,
+          }, '×'),
+        ),
+        manual && toast.payload
+          ? h('pre', { className: 'wb-toastPre', tabIndex: 0 }, toast.payload)
+          : null,
+      );
+    }
+
+    function FontsChip(props) {
+      var t = translator(props.lang);
+      var state = React.useState(false);
+      var open = state[0];
+      var setOpen = state[1];
+      var wrapRef = React.useRef(null);
+      React.useEffect(function () {
+        if (!open) return undefined;
+        function onPointerDown(event) {
+          if (wrapRef.current && !wrapRef.current.contains(event.target)) setOpen(false);
+        }
+        document.addEventListener('pointerdown', onPointerDown, true);
+        return function () {
+          document.removeEventListener('pointerdown', onPointerDown, true);
+        };
+      }, [open]);
+      var fonts = props.fonts || [];
+      if (fonts.length === 0) return null;
+      var label = t('toolbar.missingFonts', { count: fonts.length });
+      var hover = label + '：' + fonts.join('、');
+      return h('span', { className: 'wb-chipWrap', ref: wrapRef },
+        h('button', {
+          type: 'button',
+          className: 'wb-chip wb-chipWarn',
+          'aria-expanded': open ? 'true' : 'false',
+          'aria-label': label,
+          title: hover,
+          onClick: function () {
+            setOpen(function (value) {
+              return !value;
+            });
+          },
+        }, h('span', { 'aria-hidden': true }, '⚠'), h('span', null, label)),
+        open
+          ? h('div', { className: 'wb-popover', role: 'dialog', 'aria-label': t('fonts.title') },
+            h('div', { className: 'wb-popoverHead' },
+              h('strong', null, t('fonts.title')),
+              h('button', {
+                type: 'button',
+                className: 'wb-linkBtn',
+                'aria-label': t('fonts.close'),
+                title: t('fonts.close'),
+                onClick: function () {
+                  setOpen(false);
+                },
+              }, '×'),
+            ),
+            h('p', { className: 'wb-popoverHint' }, t('fonts.hint')),
+            h('ul', { className: 'wb-fontList' },
+              fonts.map(function (font) {
+                return h('li', { key: font, className: 'wb-fontItem' }, font);
+              }),
+            ),
+          )
+          : null,
+      );
+    }
+
+    function Toolbar(props) {
+      var t = translator(props.lang);
+      var page = props.currentPage;
+      var total = props.total;
+      var canBack = page > 1;
+      var canForward = page < (props.pageCount || total);
+      return h('div', { className: 'wb-toolbar', 'data-wb-toolbar': '' },
+        h('div', { className: 'wb-group', role: 'group', 'aria-label': t('toolbar.nav') },
+          h('button', {
+            type: 'button',
+            className: 'wb-btn wb-icon',
+            'aria-label': t('toolbar.prev'),
+            title: t('toolbar.prev'),
+            disabled: !canBack,
+            onClick: props.onPrev,
+          }, h('span', { 'aria-hidden': true }, '◀')),
+          h('span', { className: 'wb-count', 'aria-live': 'polite' }, t('toolbar.page', { page: page, total: total })),
+          h('button', {
+            type: 'button',
+            className: 'wb-btn wb-icon',
+            'aria-label': t('toolbar.next'),
+            title: t('toolbar.next'),
+            disabled: !canForward,
+            onClick: props.onNext,
+          }, h('span', { 'aria-hidden': true }, '▶')),
+        ),
+        h('div', { className: 'wb-group', role: 'group', 'aria-label': t('toolbar.zoom') },
+          h('button', {
+            type: 'button',
+            className: 'wb-btn',
+            'aria-pressed': props.zoom === 'fit' ? 'true' : 'false',
+            'aria-label': t('toolbar.zoomFitTitle'),
+            title: t('toolbar.zoomFitTitle'),
+            onClick: props.onZoomFit,
+          }, t('toolbar.zoomFit')),
+          h('button', {
+            type: 'button',
+            className: 'wb-btn',
+            'aria-pressed': props.zoom === 'actual' ? 'true' : 'false',
+            'aria-label': t('toolbar.zoomActualTitle'),
+            title: t('toolbar.zoomActualTitle'),
+            onClick: props.onZoomActual,
+          }, t('toolbar.zoomActual')),
+        ),
+        props.refreshing
+          ? h('span', { className: 'wb-chip', 'data-info': 'true', title: t('status.refreshing') },
+            h('span', { className: 'wb-miniSpinner', 'aria-hidden': true }),
+            h('span', null, t('status.refreshing')))
+          : null,
+        h('span', { className: 'wb-spacer' }),
+        props.missingFonts && props.missingFonts.length
+          ? h(FontsChip, { fonts: props.missingFonts, lang: props.lang })
+          : null,
+        props.truncated
+          ? h('span', {
+            className: 'wb-chip',
+            'data-info': 'true',
+            title: t('toolbar.truncated', { rendered: props.renderedPages, total: total }),
+          }, t('toolbar.truncatedChip', { rendered: props.renderedPages }))
+          : null,
+        h('button', {
+          type: 'button',
+          className: 'wb-btn wb-icon',
+          'aria-pressed': props.railOpen ? 'true' : 'false',
+          'aria-label': props.railOpen ? t('toolbar.railHide') : t('toolbar.railShow'),
+          title: props.railOpen ? t('toolbar.railHide') : t('toolbar.railShow'),
+          onClick: props.onToggleRail,
+        }, h('span', { 'aria-hidden': true }, '▤')),
+        h('button', {
+          type: 'button',
+          className: 'wb-btn',
+          'aria-pressed': props.annotate ? 'true' : 'false',
+          'aria-label': props.annotate ? t('toolbar.annotateOnTitle') : t('toolbar.annotateTitle'),
+          title: props.annotate ? t('toolbar.annotateOnTitle') : t('toolbar.annotateTitle'),
+          disabled: !props.canAnnotate,
+          onClick: props.onToggleAnnotate,
+        }, h('span', { 'aria-hidden': true }, '✎'), h('span', null, t('toolbar.annotate'))),
+        h('button', {
+          type: 'button',
+          className: 'wb-btn',
+          'aria-pressed': props.edit ? 'true' : 'false',
+          'aria-label': props.edit ? t('toolbar.editOnTitle') : t('toolbar.editTitle'),
+          title: props.edit ? t('toolbar.editOnTitle') : t('toolbar.editTitle'),
+          disabled: !props.canEdit,
+          onClick: props.onToggleEdit,
+        }, h('span', { 'aria-hidden': true }, '✏'), h('span', null, t('toolbar.edit'))),
+        h('button', {
+          type: 'button',
+          className: 'wb-btn wb-primary',
+          disabled: !props.canSend,
+          'aria-label': t('toolbar.send'),
+          title: props.canSend ? t('toolbar.sendTitle') : t('toolbar.sendDisabled'),
+          onClick: props.onSend,
+        }, t('toolbar.send')),
+      );
+    }
+
+    function Thumbnail(props) {
+      var t = translator(props.lang);
+      var page = props.page;
+      var image = props.image;
+      var frameRef = React.useRef(null);
+      var visible = useInView(frameRef, props.eager, props.railRootRef);
+      React.useEffect(function () {
+        if (!visible) return;
+        if (image) return;
+        props.onNeedPage(page.page);
+      }, [visible, image, page.page, props.onNeedPage]);
+      var rect = page.rectangle || {};
+      var aspect = rect.width > 0 && rect.height > 0 ? rect.width / rect.height : 16 / 9;
+      var ready = image && image.status === 'ready';
+      return h('button', {
+        type: 'button',
+        className: 'wb-thumb' + (props.current ? ' isCurrent' : ''),
+        style: { aspectRatio: String(aspect) },
+        ref: frameRef,
+        'aria-label': t('rail.pageAria', { page: page.page }),
+        'aria-current': props.current ? 'page' : undefined,
+        title: props.openCount
+          ? t('rail.pageAria', { page: page.page }) + ' · ' + t('rail.openTitle', { count: props.openCount })
+          : t('rail.pageAria', { page: page.page }),
+        onClick: function () {
+          props.onSelectPage(page.page);
+        },
+      },
+        ready
+          ? h('img', { src: image.url, alt: '', draggable: false })
+          : h('span', { className: 'wb-thumbLoading', 'aria-hidden': true }),
+        h('span', { className: 'wb-thumbNum', 'aria-hidden': true }, page.page),
+        props.openCount ? h('span', { className: 'wb-thumbDot', 'aria-hidden': true }) : null,
+      );
+    }
+
+    function ThumbRail(props) {
+      var t = translator(props.lang);
+      return h('div', { className: 'wb-rail', 'data-wb-rail': '', role: 'list', 'aria-label': t('rail.aria'), ref: props.railRef },
+        props.pages.map(function (page) {
+          return h(Thumbnail, {
+            key: page.page,
+            page: page,
+            image: props.images[page.page],
+            eager: page.page <= EAGER_PAGES,
+            current: page.page === props.currentPage,
+            openCount: props.openCounts[page.page - 1] || 0,
+            lang: props.lang,
+            railRootRef: props.railRef,
+            onNeedPage: props.onNeedPage,
+            onSelectPage: props.onSelectPage,
+          });
+        }),
+      );
+    }
+
+    // ------------------------------------------------------------------
+    // 画布页（memo；批注 pin / 新建批注编辑器都挂在页容器上）
+    // ------------------------------------------------------------------
+    var PageView = React.memo(function PageView(props) {
+      var t = translator(props.lang);
+      var page = props.page;
+      var image = props.image;
+      var frameRef = React.useRef(null);
+      var visible = useInView(frameRef, props.eager, props.scrollRootRef);
+      var dragHook = React.useState(null);
+      var drag = dragHook[0];
+      var setDrag = dragHook[1];
+      var hoverHook = React.useState(null);
+      var hover = hoverHook[0];
+      var setHover = hoverHook[1];
+      var gestureHook = React.useState(null);
+      var gesture = gestureHook[0];
+      var setGesture = gestureHook[1];
+      var gestureActiveRef = React.useRef(false);
+      var suppressClickRef = React.useRef(false);
+      var inlineSkipBlurRef = React.useRef(false);
+
+      React.useEffect(function () {
+        inlineSkipBlurRef.current = false;
+      }, [props.inlineEdit]);
+
+      React.useEffect(function () {
+        if (!visible) return;
+        if (image) return;
+        props.onNeedPage(page.page);
+      }, [visible, image, page.page, props.onNeedPage]);
+
+      var setNode = React.useCallback(function (node) {
+        frameRef.current = node;
+        props.onPageNode(page.page, node);
+      }, [props.onPageNode, page.page]);
+
+      var pageWidth = props.zoom === 'actual' && page.width ? page.width : props.fitWidth;
+      var rect = page.rectangle || {};
+      var aspect = rect.width > 0 && rect.height > 0 ? rect.width / rect.height : (page.width && page.height ? page.width / page.height : 16 / 9);
+      var pageHeight = pageWidth ? pageWidth / aspect : null;
+      var slideWidthEmu = props.slideWidthEmu;
+      var slideHeightEmu = props.slideHeightEmu;
+
+      function localPoint(event) {
+        var node = frameRef.current;
+        if (!node) return { x: 0.5, y: 0.5 };
+        var box = node.getBoundingClientRect();
+        if (!box.width || !box.height) return { x: 0.5, y: 0.5 };
+        return {
+          x: clamp01((event.clientX - box.left) / box.width),
+          y: clamp01((event.clientY - box.top) / box.height),
+        };
+      }
+
+      function hitAt(point) {
+        if (!(props.annotate || props.editMode) || !props.slide) return null;
+        var widthEmu = Number(slideWidthEmu);
+        var heightEmu = Number(slideHeightEmu);
+        if (!Number.isFinite(widthEmu) || !Number.isFinite(heightEmu)) return null;
+        if (props.editMode) return hitEditableShape(props.slide, point.x * widthEmu, point.y * heightEmu);
+        return hitShape(props.slide, point.x * widthEmu, point.y * heightEmu);
+      }
+
+      function pageDeltaPx(from, to) {
+        if (!pageWidth || !pageHeight) return { x: 0, y: 0 };
+        return { x: (to.x - from.x) * pageWidth, y: (to.y - from.y) * pageHeight };
+      }
+
+      function boxFromGesture(current, point) {
+        var start = current.start;
+        var widthEmu = Number(slideWidthEmu);
+        var heightEmu = Number(slideHeightEmu);
+        if (!Number.isFinite(widthEmu) || !Number.isFinite(heightEmu)) return start;
+        var dxEmu = Math.round((point.x - current.x0) * widthEmu);
+        var dyEmu = Math.round((point.y - current.y0) * heightEmu);
+        if (current.mode === 'move') {
+          return {
+            left: clampNumber(start.left + dxEmu, 0, Math.max(0, widthEmu - start.width)),
+            top: clampNumber(start.top + dyEmu, 0, Math.max(0, heightEmu - start.height)),
+            width: start.width,
+            height: start.height,
+          };
+        }
+        var left = start.left;
+        var top = start.top;
+        var right = start.left + start.width;
+        var bottom = start.top + start.height;
+        var dir = current.handle || 'se';
+        if (dir.indexOf('w') >= 0) left = clampNumber(start.left + dxEmu, 0, right - MIN_SHAPE_EMU);
+        if (dir.indexOf('e') >= 0) right = clampNumber(start.left + start.width + dxEmu, left + MIN_SHAPE_EMU, widthEmu);
+        if (dir.indexOf('n') >= 0) top = clampNumber(start.top + dyEmu, 0, bottom - MIN_SHAPE_EMU);
+        if (dir.indexOf('s') >= 0) bottom = clampNumber(start.top + start.height + dyEmu, top + MIN_SHAPE_EMU, heightEmu);
+        return { left: left, top: top, width: right - left, height: bottom - top };
+      }
+
+      function nearestHandle(point, norm) {
+        if (!pageWidth || !pageHeight || !norm) return null;
+        var cx = norm.x + norm.w / 2;
+        var cy = norm.y + norm.h / 2;
+        var edgePx = Math.min(pageWidth * norm.w, pageHeight * norm.h);
+        var threshold = Math.min(9, Math.max(3, edgePx * 0.35));
+        var positions = [
+          ['nw', norm.x, norm.y], ['n', cx, norm.y], ['ne', norm.x + norm.w, norm.y],
+          ['e', norm.x + norm.w, cy], ['se', norm.x + norm.w, norm.y + norm.h],
+          ['s', cx, norm.y + norm.h], ['sw', norm.x, norm.y + norm.h], ['w', norm.x, cy],
+        ];
+        var best = null;
+        var bestDistance = threshold;
+        positions.forEach(function (entry) {
+          var dx = (point.x - entry[1]) * pageWidth;
+          var dy = (point.y - entry[2]) * pageHeight;
+          var distance = Math.sqrt(dx * dx + dy * dy);
+          if (distance < bestDistance) {
+            bestDistance = distance;
+            best = entry[0];
+          }
+        });
+        return best;
+      }
+
+      function startGesture(mode, handle, point, event) {
+        var box = props.selectedShapeBox;
+        if (!box || !box.norm) return;
+        var widthEmu = Number(slideWidthEmu);
+        var heightEmu = Number(slideHeightEmu);
+        if (!Number.isFinite(widthEmu) || !Number.isFinite(heightEmu)) return;
+        var start = {
+          left: Math.round(box.norm.x * widthEmu),
+          top: Math.round(box.norm.y * heightEmu),
+          width: Math.round(box.norm.w * widthEmu),
+          height: Math.round(box.norm.h * heightEmu),
+        };
+        setGesture({ mode: mode, handle: handle, x0: point.x, y0: point.y, start: start, box: start, moved: false });
+        setHover(null);
+        try {
+          if (event.currentTarget && event.currentTarget.setPointerCapture) {
+            event.currentTarget.setPointerCapture(event.pointerId);
+          }
+        } catch (error) {
+          /* ignore */
+        }
+      }
+
+      function finishGesture() {
+        var current = gesture;
+        if (!current) return;
+        setGesture(null);
+        gestureActiveRef.current = false;
+        if (props.onGestureState) props.onGestureState(false);
+        if (!current.moved) return;
+        suppressClickRef.current = true;
+        if (props.onShapeBoxCommit && props.selectedShapeBox) {
+          props.onShapeBoxCommit(current.box, current.mode);
+        }
+      }
+
+      function onPointerDown(event) {
+        if (props.busy) return;
+        if (typeof event.button === 'number' && event.button !== 0) return;
+        if (props.editMode) {
+          if (props.inlineEdit) return;
+          var editTarget = event.target;
+          if (editTarget && editTarget.closest && editTarget.closest('.wb-editor')) return;
+          if (!props.selectedShapeBox || !props.shapeEditable) return;
+          var point = localPoint(event);
+          var norm = props.selectedShapeBox.norm;
+          if (!norm) return;
+          var nearHandle = nearestHandle(point, norm);
+          if (nearHandle) {
+            startGesture('resize', nearHandle, point, event);
+            return;
+          }
+          if (point.x >= norm.x && point.x <= norm.x + norm.w &&
+              point.y >= norm.y && point.y <= norm.y + norm.h) {
+            startGesture('move', 'move', point, event);
+          }
+          return;
+        }
+        if (!props.annotate) return;
+        var target = event.target;
+        if (target && target.closest && target.closest('.wb-pin, .wb-editor')) return;
+        var tapPoint = localPoint(event);
+        setDrag({ x0: tapPoint.x, y0: tapPoint.y, x1: tapPoint.x, y1: tapPoint.y, moved: false, pointerId: event.pointerId });
+        try {
+          if (event.currentTarget && event.currentTarget.setPointerCapture) {
+            event.currentTarget.setPointerCapture(event.pointerId);
+          }
+        } catch (error) {
+          /* ignore */
+        }
+      }
+
+      function onPointerMove(event) {
+        var point = localPoint(event);
+        if (props.editMode && gesture) {
+          var moved = gesture.moved;
+          if (!moved) {
+            var delta = pageDeltaPx({ x: gesture.x0, y: gesture.y0 }, point);
+            if (Math.abs(delta.x) > 3 || Math.abs(delta.y) > 3) moved = true;
+          }
+          var next = Object.assign({}, gesture, { moved: moved });
+          if (moved) next.box = boxFromGesture(gesture, point);
+          if (moved && !gestureActiveRef.current) {
+            gestureActiveRef.current = true;
+            if (props.onGestureState) props.onGestureState(true);
+          }
+          setGesture(next);
+          return;
+        }
+        if (!props.annotate && !props.editMode) return;
+        if (drag) {
+          var dragMoved = drag.moved || Math.abs(point.x - drag.x0) > 0.004 || Math.abs(point.y - drag.y0) > 0.004;
+          setDrag({ x0: drag.x0, y0: drag.y0, x1: point.x, y1: point.y, moved: dragMoved, pointerId: drag.pointerId });
+          return;
+        }
+        var shape = hitAt(point);
+        setHover(function (previous) {
+          var previousId = previous ? previous.shapeId : null;
+          var nextId = shape ? shape.shapeId : null;
+          if (previousId === nextId) return previous;
+          return shape ? { shapeId: shape.shapeId, name: shape.name || '', box: shapeBox(shape, slideWidthEmu, slideHeightEmu) } : null;
+        });
+      }
+
+      function finishPointer(event, canceled) {
+        if (props.editMode && gesture) {
+          finishGesture();
+          return;
+        }
+        if (!drag) return;
+        var currentDrag = drag;
+        var point = localPoint(event);
+        setDrag(null);
+        if (canceled) return;
+        var region = normRect(currentDrag.x0, currentDrag.y0, point.x, point.y);
+        var moved = currentDrag.moved || region.w > 0.006 || region.h > 0.006;
+        if (moved) props.onMarquee(page, region);
+        else props.onPageTap(page, { x: clamp01(point.x), y: clamp01(point.y) });
+      }
+
+      function onPointerUp(event) { finishPointer(event, false); }
+      function onPointerCancel(event) {
+        if (props.editMode && gesture) {
+          setGesture(null);
+          gestureActiveRef.current = false;
+          if (props.onGestureState) props.onGestureState(false);
+          return;
+        }
+        finishPointer(event, true);
+      }
+      function onPointerLeave() {
+        if (!drag && !gesture) setHover(null);
+      }
+
+      var draft = props.draft;
+      var editorStyle = null;
+      if (draft) {
+        var anchor = draft.pointNorm || { x: 0.5, y: 0.5 };
+        var editorWidth = 280;
+        if (pageWidth && pageHeight) {
+          var x = clamp01(anchor.x) * pageWidth;
+          var y = clamp01(anchor.y) * pageHeight;
+          var left = Math.min(Math.max(x - editorWidth / 2, 8), Math.max(8, pageWidth - editorWidth - 8));
+          var top = y + 14;
+          if (top + 214 > pageHeight) top = Math.max(8, y - 228);
+          editorStyle = { left: left + 'px', top: top + 'px', width: editorWidth + 'px' };
+        } else {
+          editorStyle = { left: '50%', top: '50%', transform: 'translate(-50%, -50%)', width: editorWidth + 'px' };
+        }
+      }
+
+      function stop(event) {
+        event.stopPropagation();
+      }
+
+      function onEditorKeyDown(event) {
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          event.stopPropagation();
+          if (!props.busy) props.onCancelDraft();
+          return;
+        }
+        if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+          event.preventDefault();
+          if (!props.busy) props.onSaveDraft(draft);
+        }
+      }
+
+      var placeholder = null;
+      if (!(image && image.status === 'ready')) {
+        var failed = image && image.status === 'error';
+        placeholder = h('div', {
+          className: 'wb-pagePlaceholder',
+          'data-error': failed ? 'true' : undefined,
+          style: {
+            aspectRatio: String(aspect),
+            minHeight: pageHeight ? pageHeight + 'px' : undefined,
+          },
+        },
+          failed
+            ? h(React.Fragment, null,
+              h('span', null, t('page.failed', { page: page.page })),
+              h('button', {
+                type: 'button',
+                className: 'wb-linkBtn',
+                onClick: function (event) {
+                  event.stopPropagation();
+                  props.onRetryPage(page.page);
+                },
+              }, t('page.retry')))
+            : h(React.Fragment, null,
+              h('span', { className: 'wb-miniSpinner', 'aria-hidden': true }),
+              h('span', null, t('page.loading', { page: page.page }))),
+        );
+      }
+
+      var draftBoxes = [];
+      if (draft) {
+        if (draft.areaNorm) {
+          draftBoxes.push({
+            key: 'area',
+            area: true,
+            box: {
+              left: clamp01(draft.areaNorm.x) * 100 + '%',
+              top: clamp01(draft.areaNorm.y) * 100 + '%',
+              width: clamp01(draft.areaNorm.w) * 100 + '%',
+              height: clamp01(draft.areaNorm.h) * 100 + '%',
+            },
+          });
+        } else if (Array.isArray(draft.shapes)) {
+          draft.shapes.forEach(function (shape, index) {
+            var box = shapeBox(shape, slideWidthEmu, slideHeightEmu);
+            if (box) draftBoxes.push({ key: 'sel-' + (shape.shapeId || index), area: false, box: box });
+          });
+        }
+      }
+
+      var savedBoxes = props.selectedAnnotation
+        ? annotationBoxes(props.selectedAnnotation, slideWidthEmu, slideHeightEmu)
+        : [];
+
+      var marqueeStyle = null;
+      if (drag && drag.moved) {
+        marqueeStyle = {
+          left: Math.min(drag.x0, drag.x1) * 100 + '%',
+          top: Math.min(drag.y0, drag.y1) * 100 + '%',
+          width: Math.abs(drag.x1 - drag.x0) * 100 + '%',
+          height: Math.abs(drag.y1 - drag.y0) * 100 + '%',
+        };
+      }
+
+      var inlineShape = null;
+      if (props.inlineEdit && props.slide && Array.isArray(props.slide.shapes)) {
+        for (var inlineIndex = 0; inlineIndex < props.slide.shapes.length; inlineIndex += 1) {
+          var inlineCandidate = props.slide.shapes[inlineIndex];
+          if (inlineCandidate && inlineCandidate.shapeId === props.inlineEdit.shapeId) {
+            inlineShape = inlineCandidate;
+            break;
+          }
+        }
+      }
+      var inlineStyle = null;
+      if (inlineShape && pageWidth && pageHeight && Number(slideWidthEmu) > 0 && Number(slideHeightEmu) > 0) {
+        var inlineFont = shapeFont(inlineShape);
+        var inchPx = pageWidth / (Number(slideWidthEmu) / EMU_PER_INCH);
+        var inlinePt = Number(inlineFont.sizePt);
+        var inlineFontPx = Number.isFinite(inlinePt) && inlinePt > 0
+          ? clampNumber((inlinePt / 72) * inchPx, 9, 48)
+          : 14;
+        inlineStyle = {
+          left: (Number(inlineShape.left) / Number(slideWidthEmu)) * 100 + '%',
+          top: (Number(inlineShape.top) / Number(slideHeightEmu)) * 100 + '%',
+          width: (Number(inlineShape.width) / Number(slideWidthEmu)) * 100 + '%',
+          height: (Number(inlineShape.height) / Number(slideHeightEmu)) * 100 + '%',
+          fontSize: inlineFontPx + 'px',
+        };
+      }
+
+      return h('div', {
+        className: 'wb-page' + (props.annotate ? ' wb-annotate' : props.editMode ? ' wb-editing' : ''),
+        'data-wb-page': page.page,
+        ref: setNode,
+        style: pageWidth ? { width: pageWidth + 'px' } : undefined,
+        onPointerDown: onPointerDown,
+        onPointerMove: onPointerMove,
+        onPointerUp: onPointerUp,
+        onPointerCancel: onPointerCancel,
+        onPointerLeave: onPointerLeave,
+        onClick: props.editMode
+          ? function (event) {
+            if (props.busy || props.inlineEdit) return;
+            if (suppressClickRef.current) {
+              suppressClickRef.current = false;
+              return;
+            }
+            var target = event.target;
+            if (target && target.closest && target.closest('.wb-pin, .wb-editor, .wb-shapeHover, .wb-handle, .wb-inlineText')) return;
+            var point = localPoint(event);
+            var shape = hitAt(point);
+            props.onSelectShape(page.page - 1, shape || null);
+          }
+          : undefined,
+        onDoubleClick: props.editMode
+          ? function (event) {
+            if (props.busy || props.inlineEdit) return;
+            var target = event.target;
+            if (target && target.closest && target.closest('.wb-editor, .wb-pin, .wb-inlineText')) return;
+            var point = localPoint(event);
+            var shape = hitAt(point);
+            if (!shape || !shapeCanInlineEdit(shape)) return;
+            event.preventDefault();
+            if (props.onInlineStart) props.onInlineStart(page.page - 1, shape);
+          }
+          : undefined,
+      },
+        image && image.status === 'ready'
+          ? h('img', {
+            className: 'wb-slide',
+            src: image.url,
+            alt: '',
+            draggable: false,
+            style: { aspectRatio: String(aspect) },
+          })
+          : placeholder,
+        props.editMode ? null : h('div', { className: 'wb-pins' },
+          (props.annotations || EMPTY_LIST).map(function (annotation, index) {
+            var point = annotationPoint(annotation, slideWidthEmu, slideHeightEmu);
+            if (!point) return null;
+            var orphaned = annotation.status === 'orphaned';
+            var label = t(orphaned ? 'pin.orphanLabel' : 'pin.label', {
+              page: page.page,
+              index: index + 1,
+              body: truncate(annotation.body, 60),
+            });
+            return h('button', {
+              key: annotation.id,
+              type: 'button',
+              className: 'wb-pin',
+              'data-wb-pin': annotation.id,
+              'data-status': annotation.status || 'open',
+              'data-selected': props.selectedId === annotation.id ? 'true' : undefined,
+              style: { left: clamp01(point.x) * 100 + '%', top: clamp01(point.y) * 100 + '%' },
+              'aria-label': label,
+              title: label,
+              onPointerDown: stop,
+              onClick: function (event) {
+                event.stopPropagation();
+                props.onSelectAnnotation(annotation.id);
+              },
+            }, String(index + 1));
+          }),
+        ),
+        hover && !drag && !draft
+          ? h('div', { className: 'wb-shapeHover', style: hover.box },
+            h('span', { className: 'wb-shapeName' }, hover.name || t('canvas.shape')))
+          : null,
+        savedBoxes.map(function (entry, index) {
+          return h('div', {
+            key: 'saved-' + index,
+            className: entry.area ? 'wb-areaSel' : 'wb-shapeSel',
+            style: entry.box,
+          }, entry.name ? h('span', { className: 'wb-shapeName' }, entry.name) : null);
+        }),
+        (function () {
+          if (!props.selectedShapeBox) return null;
+          var gestureBox = gesture && gesture.moved ? boxPercentStyle(gesture.box, slideWidthEmu, slideHeightEmu) : null;
+          var selectionStyle = gestureBox || props.selectedShapeBox.box;
+          var readonly = !gestureBox && !!props.selectedShapeBox.readonly;
+          var children = [
+            h('span', { key: 'name', className: 'wb-shapeName' }, props.selectedShapeBox.name || t('canvas.shape')),
+          ];
+          if (readonly) children.push(h('span', { key: 'readonly', className: 'wb-shapeBadge' }, t('edit.readonly')));
+          if (gestureBox && gesture) {
+            children.push(h('span', { key: 'size', className: 'wb-shapeSizeBadge' },
+              t('edit.sizeLive', { w: emuToInches(gesture.box.width), h: emuToInches(gesture.box.height) })));
+          }
+          return h('div', {
+            className: 'wb-shapeSel' + (readonly ? ' wb-shapeSelReadonly' : ''),
+            style: selectionStyle,
+            'data-wb-shape-selected': '',
+          }, children);
+        })(),
+        props.editMode && props.shapeEditable && props.selectedShapeBox && !props.inlineEdit
+          ? ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'].map(function (dir) {
+            var baseBox = gesture && gesture.moved
+              ? boxPercentStyle(gesture.box, slideWidthEmu, slideHeightEmu)
+              : props.selectedShapeBox.box;
+            if (!baseBox) return null;
+            var pos = handlePositionStyle(dir, baseBox);
+            return h('button', {
+              key: 'handle-' + dir,
+              type: 'button',
+              className: 'wb-handle',
+              'data-wb-handle': dir,
+              style: { left: pos.left, top: pos.top },
+              'aria-label': t('edit.resizeHandle'),
+              title: t('edit.resizeHandle'),
+            });
+          })
+          : null,
+        draftBoxes.map(function (entry) {
+          return h('div', {
+            key: entry.key,
+            className: entry.area ? 'wb-areaSel' : 'wb-shapeSel',
+            style: entry.box,
+          });
+        }),
+        marqueeStyle ? h('div', { className: 'wb-marquee', style: marqueeStyle }) : null,
+        draft
+          ? h('div', {
+            className: 'wb-editor',
+            style: editorStyle,
+            role: 'dialog',
+            'aria-label': t('compose.title', { page: page.page }),
+            onPointerDown: stop,
+            onClick: stop,
+            onMouseDown: stop,
+          },
+            h('div', { className: 'wb-editorHead' },
+              h('strong', { className: 'wb-editorTitle' }, t('compose.title', { page: page.page })),
+              h('span', { className: 'wb-editorAnchor' }, draftShapesSummary(draft, t)),
+            ),
+            h('textarea', {
+              className: 'wb-textarea',
+              value: draft.body || '',
+              rows: 3,
+              autoFocus: true,
+              placeholder: t('compose.placeholder'),
+              'aria-label': t('compose.placeholder'),
+              onChange: function (event) {
+                props.onDraftChange(event.target.value);
+              },
+              onKeyDown: onEditorKeyDown,
+            }),
+            h('div', { className: 'wb-editorFoot' },
+              h('span', { className: 'wb-hint' }, t('compose.hint')),
+              h('div', { className: 'wb-row' },
+                h('button', {
+                  type: 'button',
+                  className: 'wb-btn',
+                  onClick: function () {
+                    props.onCancelDraft();
+                  },
+                }, t('compose.cancel')),
+                h('button', {
+                  type: 'button',
+                  className: 'wb-btn wb-primary',
+                  disabled: !!props.busy || !String(draft.body || '').trim(),
+                  onClick: function () {
+                    props.onSaveDraft(draft);
+                  },
+                }, props.busy ? t('compose.saving') : t('compose.save')),
+              ),
+            ),
+          )
+          : null,
+        props.inlineEdit
+          ? h('textarea', {
+            className: 'wb-inlineText',
+            style: inlineStyle || { left: '20%', top: '20%', width: '60%', height: '20%', fontSize: '16px' },
+            value: props.inlineEdit.text,
+            autoFocus: true,
+            spellCheck: false,
+            'aria-label': t('edit.inlineAria'),
+            title: t('edit.inlineHint'),
+            onFocus: function (event) {
+              var node = event.currentTarget;
+              try {
+                var length = String(node.value || '').length;
+                node.setSelectionRange(length, length);
+              } catch (error) {
+                /* ignore */
+              }
+            },
+            onChange: function (event) {
+              if (props.onInlineChange) props.onInlineChange(event.target.value);
+            },
+            onBlur: function () {
+              if (inlineSkipBlurRef.current) {
+                inlineSkipBlurRef.current = false;
+                return;
+              }
+              if (props.onInlineCommit) props.onInlineCommit();
+            },
+            onKeyDown: function (event) {
+              if (event.key === 'Escape') {
+                event.preventDefault();
+                event.stopPropagation();
+                inlineSkipBlurRef.current = true;
+                if (props.onInlineCancel) props.onInlineCancel();
+                return;
+              }
+              if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+                event.preventDefault();
+                event.stopPropagation();
+                inlineSkipBlurRef.current = true;
+                if (props.onInlineCommit) props.onInlineCommit();
+              }
+            },
+            onPointerDown: stop,
+            onClick: stop,
+            onDoubleClick: stop,
+          })
+          : null,
+      );
+    });
+
+    // ------------------------------------------------------------------
+    // 批注卡片 / 抽屉
+    // ------------------------------------------------------------------
+    function AnnotationCard(props) {
+      var t = translator(props.lang);
+      var annotation = props.annotation;
+      var state = React.useState(false);
+      var confirm = state[0];
+      var setConfirm = state[1];
+      var replyState = React.useState(false);
+      var replying = replyState[0];
+      var setReplying = replyState[1];
+      var textState = React.useState('');
+      var replyText = textState[0];
+      var setReplyText = textState[1];
+      var status = annotation.status || 'open';
+
+      function select() {
+        props.onSelect(annotation.id);
+      }
+
+      function submitReply() {
+        var body = String(replyText || '').trim();
+        if (!body || props.busy) return;
+        var result = props.onReply(annotation, body);
+        if (result && typeof result.then === 'function') {
+          result.then(function (data) {
+            if (data) {
+              setReplying(false);
+              setReplyText('');
+            }
+          });
+        }
+      }
+
+      function onReplyKeyDown(event) {
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          setReplying(false);
+        } else if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+          event.preventDefault();
+          submitReply();
+        }
+      }
+
+      function actionButton(label, handler, options) {
+        return h('button', {
+          type: 'button',
+          className: 'wb-linkBtn',
+          'data-danger': options && options.danger ? 'true' : undefined,
+          disabled: props.busy,
+          onClick: function (event) {
+            event.stopPropagation();
+            handler();
+          },
+        }, label);
+      }
+
+      var quote = props.quote || { shapeName: '', preview: '' };
+      var author = annotation.author && annotation.author.name ? annotation.author.name : '';
+      var replies = Array.isArray(annotation.replies) ? annotation.replies : [];
+
+      return h('div', {
+        className: 'wb-card',
+        'data-wb-card': annotation.id,
+        'data-status': status,
+        'data-selected': props.selected ? 'true' : undefined,
+        role: 'listitem',
+        tabIndex: 0,
+        onClick: select,
+        onKeyDown: function (event) {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            select();
+          }
+        },
+      },
+        h('div', { className: 'wb-cardHead' },
+          h('span', { className: 'wb-badge' }, t('annotation.page', { page: Number.isInteger(annotation.slideIndex) ? annotation.slideIndex + 1 : '?' })),
+          quote.preview
+            ? h('span', { className: 'wb-quote', title: quote.preview }, '「' + quote.preview + '」')
+            : quote.area
+              ? h('span', { className: 'wb-quote wb-quoteMuted' }, t('annotation.areaAnchor'))
+              : h('span', { className: 'wb-quote wb-quoteMuted' }, t('annotation.freeAnchor')),
+          h('span', { className: 'wb-meta' }, (author ? author + ' · ' : '') + formatTime(annotation.createdAt)),
+        ),
+        h('div', { className: 'wb-bodyText' + (props.selected ? '' : ' wb-clamp') }, annotation.body),
+        status === 'orphaned' ? h('div', { className: 'wb-orphanHint' }, t('annotation.orphanedHint')) : null,
+        replies.length
+          ? h('div', { className: 'wb-replies' },
+            replies.map(function (reply) {
+              var replyAuthor = reply.author && reply.author.name ? reply.author.name : '';
+              return h('div', { key: reply.id, className: 'wb-reply' },
+                h('div', { className: 'wb-replyMeta' }, (replyAuthor ? replyAuthor + ' · ' : '') + formatTime(reply.createdAt)),
+                h('div', { className: 'wb-replyBody' }, reply.body),
+              );
+            }),
+          )
+          : null,
+        replying
+          ? h('div', { className: 'wb-replyBox', onClick: function (event) { event.stopPropagation(); } },
+            h('textarea', {
+              className: 'wb-textarea',
+              rows: 2,
+              autoFocus: true,
+              value: replyText,
+              placeholder: t('annotation.replyPlaceholder'),
+              'aria-label': t('annotation.replyPlaceholder'),
+              onChange: function (event) {
+                setReplyText(event.target.value);
+              },
+              onKeyDown: onReplyKeyDown,
+            }),
+            h('div', { className: 'wb-actions' },
+              h('button', {
+                type: 'button',
+                className: 'wb-btn',
+                onClick: function (event) {
+                  event.stopPropagation();
+                  setReplying(false);
+                  setReplyText('');
+                },
+              }, t('annotation.replyCancel')),
+              h('button', {
+                type: 'button',
+                className: 'wb-btn wb-primary',
+                disabled: props.busy || !String(replyText || '').trim(),
+                onClick: function (event) {
+                  event.stopPropagation();
+                  submitReply();
+                },
+              }, t('annotation.replySubmit')),
+            ),
+          )
+          : h('div', { className: 'wb-actions' },
+            status === 'resolved'
+              ? actionButton(t('annotation.reopen'), function () { props.onReopen(annotation); })
+              : actionButton(t('annotation.resolve'), function () { props.onResolve(annotation); }),
+            actionButton(t('annotation.reply'), function () {
+              setReplying(true);
+            }),
+            confirm
+              ? h(React.Fragment, null,
+                actionButton(t('annotation.deleteConfirm'), function () {
+                  var result = props.onDelete(annotation);
+                  if (result && typeof result.then === 'function') {
+                    result.then(function (data) {
+                      if (data) setConfirm(false);
+                    });
+                  }
+                }, { danger: true }),
+                actionButton(t('annotation.cancel'), function () {
+                  setConfirm(false);
+                }))
+              : actionButton(t('annotation.delete'), function () {
+                setConfirm(true);
+              }, { danger: true }),
+          ),
+      );
+    }
+
+    function AnnotationDrawer(props) {
+      var t = translator(props.lang);
+      var filter = props.filter;
+      var items = props.annotations.filter(function (annotation) {
+        return (annotation.status || 'open') === filter;
+      });
+      var filterButton = function (status, label, count) {
+        return h('button', {
+          key: status,
+          type: 'button',
+          className: 'wb-tab',
+          role: 'tab',
+          'aria-selected': filter === status ? 'true' : 'false',
+          onClick: function () {
+            props.onFilter(status);
+          },
+        },
+          h('span', null, label),
+          h('span', { className: 'wb-tabCount' }, String(count)),
+        );
+      };
+      var emptyText = filter === 'resolved'
+        ? t('drawer.emptyResolved')
+        : filter === 'orphaned'
+          ? t('drawer.emptyOrphaned')
+          : t('drawer.empty');
+      return h('div', { className: 'wb-drawer', 'data-wb-drawer': '', 'data-open': props.open ? 'true' : 'false' },
+        h('div', { className: 'wb-drawerHead' },
+          h('span', { className: 'wb-drawerTitle' }, t('drawer.title')),
+          h('div', { className: 'wb-tabs', role: 'tablist', 'aria-label': t('drawer.title') },
+            filterButton('open', t('drawer.filterOpen'), props.counts.open || 0),
+            filterButton('resolved', t('drawer.filterResolved'), props.counts.resolved || 0),
+            filterButton('orphaned', t('drawer.filterOrphaned'), props.counts.orphaned || 0),
+          ),
+          h('span', { className: 'wb-spacer' }),
+          h('button', {
+            type: 'button',
+            className: 'wb-btn wb-icon',
+            'aria-label': props.open ? t('drawer.collapse') : t('drawer.expand'),
+            title: props.open ? t('drawer.collapse') : t('drawer.expand'),
+            'aria-expanded': props.open ? 'true' : 'false',
+            onClick: props.onToggleOpen,
+          }, h('span', { 'aria-hidden': true }, props.open ? '▾' : '▴')),
+        ),
+        props.open
+          ? h('div', { className: 'wb-drawerBody', role: 'tabpanel' },
+            items.length === 0
+              ? h('div', { className: 'wb-empty' }, emptyText)
+              : items.map(function (annotation) {
+                var quote = annotationQuote(annotation, props.slides);
+                return h(AnnotationCard, {
+                  key: annotation.id,
+                  annotation: annotation,
+                  quote: quote,
+                  selected: props.selectedId === annotation.id,
+                  busy: props.busy,
+                  lang: props.lang,
+                  onSelect: props.onSelect,
+                  onResolve: props.onResolve,
+                  onReopen: props.onReopen,
+                  onDelete: props.onDelete,
+                  onReply: props.onReply,
+                });
+              }),
+          )
+          : null,
+      );
+    }
+
+
+    // ------------------------------------------------------------------
+    // 编辑工具条（页面操作 / 撤销重做 / 保存）
+    // ------------------------------------------------------------------
+    function EditBar(props) {
+      var t = translator(props.lang);
+      var menuHook = React.useState(false);
+      var menuOpen = menuHook[0];
+      var setMenuOpen = menuHook[1];
+      var confirmHook = React.useState(false);
+      var deleteConfirm = confirmHook[0];
+      var setDeleteConfirm = confirmHook[1];
+      var wrapRef = React.useRef(null);
+      var pending = (props.pendingCount || 0) + (props.formDirty || 0);
+      var page = props.currentPage;
+      var pageCount = props.pageCount;
+      var history = props.history || {};
+      var busy = !!props.saving;
+      var pageOpsLocked = pending > 0;
+      var pageOpsDisabled = busy || props.readonly;
+      var canUndo = history.canUndo === true && pending === 0 && !busy;
+      var canRedo = history.canRedo === true && pending === 0 && !busy;
+      var canSave = pending > 0 && !busy && !props.readonly;
+
+      React.useEffect(function () {
+        if (!menuOpen) return undefined;
+        function onPointerDown(event) {
+          if (wrapRef.current && !wrapRef.current.contains(event.target)) {
+            setMenuOpen(false);
+            setDeleteConfirm(false);
+          }
+        }
+        document.addEventListener('pointerdown', onPointerDown, true);
+        return function () {
+          document.removeEventListener('pointerdown', onPointerDown, true);
+        };
+      }, [menuOpen]);
+      React.useEffect(function () {
+        if (!menuOpen) setDeleteConfirm(false);
+      }, [menuOpen]);
+
+      function runPageOp(op) {
+        setMenuOpen(false);
+        setDeleteConfirm(false);
+        props.onPageAction(op);
+      }
+
+      function menuItem(key, label, handler, options) {
+        var settings = options || {};
+        return h('button', {
+          key: key,
+          type: 'button',
+          role: 'menuitem',
+          className: 'wb-menuItem',
+          'data-danger': settings.danger ? 'true' : undefined,
+          disabled: !!settings.disabled,
+          onClick: handler,
+        }, label);
+      }
+
+      var menu = menuOpen
+        ? h('div', { className: 'wb-menu', role: 'menu', 'aria-label': t('edit.pageMenu') },
+          pageOpsLocked
+            ? h('div', { key: 'locked', className: 'wb-menuHint' }, t('edit.pageOpBlocked'))
+            : null,
+          menuItem('dup', t('edit.duplicateSlide'), function () { runPageOp({ op: 'duplicateSlide', slideIndex: page - 1 }); }, { disabled: pageOpsLocked }),
+          menuItem('up', t('edit.moveUp'), function () { runPageOp({ op: 'moveSlide', slideIndex: page - 1, toIndex: page - 2 }); }, { disabled: pageOpsLocked || page <= 1 }),
+          menuItem('down', t('edit.moveDown'), function () { runPageOp({ op: 'moveSlide', slideIndex: page - 1, toIndex: page }); }, { disabled: pageOpsLocked || page >= pageCount }),
+          menuItem('insert', t('edit.insertSlide'), function () { runPageOp({ op: 'insertSlide', afterIndex: page - 1 }); }, { disabled: pageOpsLocked }),
+          h('div', { key: 'sep', className: 'wb-menuSep' }),
+          deleteConfirm
+            ? menuItem('del-confirm', t('edit.deleteSlideConfirm', { page: page }), function () { runPageOp({ op: 'deleteSlide', slideIndex: page - 1 }); }, { danger: true, disabled: pageOpsLocked })
+            : menuItem('del', t('edit.deleteSlide'), function () {
+              setDeleteConfirm(true);
+            }, { danger: true, disabled: pageOpsLocked || pageCount <= 1 }),
+        )
+        : null;
+
+      var saveTitle = canSave
+        ? t('edit.save') + ' · ' + t('edit.pendingOps', { count: pending })
+        : t('edit.noChanges');
+
+      return h('div', { className: 'wb-editBar', 'data-wb-editbar': '', role: 'toolbar', 'aria-label': t('edit.title') },
+        h('span', { className: 'wb-editBarLabel' }, t('edit.hint')),
+        h('button', {
+          type: 'button',
+          className: 'wb-btn',
+          'aria-pressed': props.autosave ? 'true' : 'false',
+          'aria-label': t('edit.autoSave'),
+          title: props.autosave ? t('edit.autoSaveOnTitle') : t('edit.autoSaveOffTitle'),
+          onClick: props.onToggleAutosave,
+        }, h('span', { 'aria-hidden': true }, '⏱'), h('span', null, t('edit.autoSave'))),
+        props.saveStatus
+          ? h('span', { className: 'wb-saveStatus', 'aria-live': 'polite' }, props.saveStatus)
+          : null,
+        h('span', { className: 'wb-editBarSpacer' }),
+        h('span', { className: 'wb-menuWrap', ref: wrapRef },
+          h('button', {
+            type: 'button',
+            className: 'wb-btn',
+            'aria-haspopup': 'menu',
+            'aria-expanded': menuOpen ? 'true' : 'false',
+            'aria-label': t('edit.pageMenu'),
+            title: pageOpsDisabled && pending > 0 ? t('edit.pageOpBlocked') : t('edit.pageMenu'),
+            disabled: pageOpsDisabled,
+            onClick: function () {
+              setMenuOpen(function (value) {
+                return !value;
+              });
+            },
+          }, t('edit.pageMenu'), ' ▾'),
+          menu,
+        ),
+        h('button', {
+          type: 'button',
+          className: 'wb-btn wb-icon',
+          'aria-label': t('edit.undo'),
+          title: canUndo ? t('edit.undo') + (history.version ? ' · ' + t('edit.version', { version: history.cursor }) : '') : t('edit.undoBlocked'),
+          disabled: !canUndo,
+          onClick: props.onUndo,
+        }, h('span', { 'aria-hidden': true }, '↶')),
+        h('button', {
+          type: 'button',
+          className: 'wb-btn wb-icon',
+          'aria-label': t('edit.redo'),
+          title: canRedo ? t('edit.redo') : t('edit.noHistory'),
+          disabled: !canRedo,
+          onClick: props.onRedo,
+        }, h('span', { 'aria-hidden': true }, '↷')),
+        h('span', { className: 'wb-editBarSpacer' }),
+        pending
+          ? h('span', { className: 'wb-chip', 'data-info': 'true', title: t('edit.pendingOps', { count: pending }) },
+            t('edit.pending', { count: pending }))
+          : null,
+        h('button', {
+          type: 'button',
+          className: 'wb-btn',
+          'aria-label': t('edit.openNative'),
+          title: t('edit.openNativeTitle'),
+          disabled: busy || !!props.nativeBusy || props.readonly,
+          onClick: props.onOpenNative,
+        }, h('span', { 'aria-hidden': true }, '↗'), h('span', null, props.nativeBusy ? t('edit.openNativeOpening') : t('edit.openNative'))),
+        h('button', {
+          type: 'button',
+          className: 'wb-btn',
+          'aria-label': t('edit.exit'),
+          title: t('edit.exit'),
+          disabled: busy,
+          onClick: props.onExit,
+        }, t('edit.exit')),
+        h('button', {
+          type: 'button',
+          className: 'wb-btn wb-primary',
+          'aria-label': t('edit.save'),
+          title: saveTitle,
+          disabled: !canSave,
+          onClick: props.onSave,
+        }, props.saving ? t('edit.saving') : t('edit.save')),
+      );
+    }
+
+    // ------------------------------------------------------------------
+    // 属性面板（编辑模式底部抽屉）
+    // ------------------------------------------------------------------
+    function ShapeInspector(props) {
+      var t = translator(props.lang);
+      var formHook = React.useState(null);
+      var form = formHook[0];
+      var setForm = formHook[1];
+      var notesHook = React.useState('');
+      var notesDraft = notesHook[0];
+      var setNotesDraft = notesHook[1];
+      var shape = props.shape;
+
+      React.useEffect(function () {
+        setForm(shape ? shapeForm(shape) : null);
+        setNotesDraft(props.notes === undefined || props.notes === null ? '' : String(props.notes));
+      }, [props.resetKey]);
+
+      var diffOps = React.useMemo(function () {
+        if (props.readonly) return [];
+        if (shape) return shapeFormOps(shape, form, props.slideIndex);
+        return notesFormOp(props.slideIndex, notesDraft, props.notes);
+      }, [shape, form, notesDraft, props.slideIndex, props.notes, props.readonly]);
+
+      props.diffRef.current = function () {
+        return diffOps;
+      };
+
+      React.useEffect(function () {
+        props.onFormDirty(diffOps.length);
+        return function () {
+          props.onFormDirty(0);
+        };
+      }, [diffOps.length]);
+
+      function updateField(field, value) {
+        setForm(function (previous) {
+          if (!previous) return previous;
+          var next = Object.assign({}, previous);
+          next[field] = value;
+          return next;
+        });
+      }
+
+      function updateCell(row, col, value) {
+        setForm(function (previous) {
+          if (!previous) return previous;
+          var cells = (previous.cells || []).map(function (entry) {
+            return Array.isArray(entry) ? entry.slice() : [];
+          });
+          while (cells.length <= row) cells.push([]);
+          while (cells[row].length <= col) cells[row].push('');
+          cells[row][col] = value;
+          return Object.assign({}, previous, { cells: cells });
+        });
+      }
+
+      function flushAutoDraft() {
+        if (props.saving || props.readonly || diffOps.length === 0) return;
+        props.onAutoDraft(diffOps);
+      }
+
+      React.useEffect(function () {
+        if (props.saving || props.readonly || diffOps.length === 0) return undefined;
+        var timer = setTimeout(function () {
+          props.onAutoDraft(diffOps);
+        }, 300);
+        return function () {
+          clearTimeout(timer);
+        };
+      }, [diffOps]);
+
+      var head = h('div', { className: 'wb-drawerHead' },
+        h('span', { className: 'wb-drawerTitle' }, t('edit.title')),
+        props.pendingCount
+          ? h('span', { className: 'wb-tabCount', title: t('edit.pendingOps', { count: props.pendingCount }) }, String(props.pendingCount))
+          : null,
+        h('span', { className: 'wb-spacer' }),
+        h('button', {
+          type: 'button',
+          className: 'wb-btn wb-icon',
+          'aria-label': props.open ? t('drawer.collapse') : t('drawer.expand'),
+          title: props.open ? t('drawer.collapse') : t('drawer.expand'),
+          'aria-expanded': props.open ? 'true' : 'false',
+          onClick: props.onToggleOpen,
+        }, h('span', { 'aria-hidden': true }, props.open ? '▾' : '▴')),
+      );
+
+      if (!props.open) {
+        return h('div', { className: 'wb-drawer', 'data-mode': 'edit', 'data-open': 'false', 'data-wb-inspector': '' }, head);
+      }
+
+      var body = [];
+      if (shape) {
+        var editable = isShapeEditable(shape);
+        var hasTable = !!(shape.hasTable && shape.table && Array.isArray(shape.table.cells));
+        var hasChart = !!(shape.hasChart && shape.chart);
+        body.push(h('div', { key: 'head', className: 'wb-inspectorHead' },
+          h('span', { className: 'wb-inspectorName', title: shape.name || '' }, shape.name || t('canvas.shape')),
+          shape.type ? h('span', { className: 'wb-chip', 'data-info': 'true', title: String(shape.type) }, String(shape.type)) : null,
+          h('span', { className: 'wb-chip', 'data-info': 'true' }, editable || hasTable ? t('edit.editable') : t('edit.readonly')),
+        ));
+        if (hasChart) {
+          var chart = shape.chart || {};
+          var series = Array.isArray(chart.series) ? chart.series : [];
+          body.push(h('div', { key: 'chart', className: 'wb-section' },
+            h('span', { className: 'wb-sectionTitle' }, t('edit.chart')),
+            h('div', { className: 'wb-readonlyBox' },
+              h('div', null, (Array.isArray(chart.categories) ? chart.categories : []).join(' · ')),
+              h('div', { className: 'wb-chartSeries' },
+                series.map(function (entry, index) {
+                  return h('div', { key: index },
+                    (entry && entry.name ? entry.name + '：' : '') +
+                    (entry && Array.isArray(entry.values) ? entry.values.join(', ') : ''));
+                }),
+              ),
+            ),
+          ));
+        }
+        if (hasTable) {
+          var table = shape.table;
+          var rows = Math.min(Math.max(Number(table.rows) || table.cells.length || 1, 1), 12);
+          var cols = Math.min(Math.max(Number(table.cols) || (table.cells[0] ? table.cells[0].length : 1), 1), 8);
+          var bodyRows = [];
+          for (var rowIndex = 0; rowIndex < rows; rowIndex += 1) {
+            var rowCells = [];
+            for (var colIndex = 0; colIndex < cols; colIndex += 1) {
+              rowCells.push(h('td', { key: colIndex },
+                h('input', {
+                  className: 'wb-input',
+                  value: form && form.cells && form.cells[rowIndex] && form.cells[rowIndex][colIndex] !== undefined
+                    ? form.cells[rowIndex][colIndex]
+                    : '',
+                  'aria-label': t('edit.tableSize', { rows: rows, cols: cols }) + ' ' + (rowIndex + 1) + '/' + (colIndex + 1),
+                  onBlur: flushAutoDraft,
+                  onChange: (function (r, c) {
+                    return function (event) {
+                      updateCell(r, c, event.target.value);
+                    };
+                  })(rowIndex, colIndex),
+                }),
+              ));
+            }
+            bodyRows.push(h('tr', { key: rowIndex }, rowCells));
+          }
+          body.push(h('div', { key: 'table', className: 'wb-section' },
+            h('span', { className: 'wb-sectionTitle' }, t('edit.table'), h('span', { className: 'wb-hint' }, t('edit.tableSize', { rows: rows, cols: cols }))),
+            h('div', { className: 'wb-tableWrap' },
+              h('table', { className: 'wb-table' }, h('tbody', null, bodyRows)),
+            ),
+          ));
+        }
+        if (shape.hasPicture) {
+          body.push(h('div', { key: 'picture', className: 'wb-section' },
+            h('div', { className: 'wb-readonlyBox' }, t('edit.readonlyShape', { type: shape.type || 'picture' })),
+          ));
+        }
+        if (editable && !hasChart && !shape.hasPicture) {
+          body.push(h('div', { key: 'text', className: 'wb-section' },
+            h('span', { className: 'wb-sectionTitle' }, t('edit.text'), h('span', { className: 'wb-hint' }, t('edit.textHint'))),
+            h('textarea', {
+              className: 'wb-textarea',
+              rows: 4,
+              value: form ? form.text : '',
+              maxLength: 4000,
+              onBlur: flushAutoDraft,
+              'aria-label': t('edit.text'),
+              onChange: function (event) {
+                updateField('text', event.target.value);
+              },
+            }),
+          ));
+          body.push(h('div', { key: 'font', className: 'wb-section' },
+            h('span', { className: 'wb-sectionTitle' }, t('edit.font')),
+            h('div', { className: 'wb-fieldGrid' },
+              h('label', { className: 'wb-field' },
+                h('span', { className: 'wb-fieldLabel' }, t('edit.fontSize') + '（' + t('edit.pt') + '）'),
+                h('input', {
+                  className: 'wb-input',
+                  type: 'number',
+                  step: '0.5',
+                  min: '1',
+                  max: '400',
+                  value: form ? form.sizePt : '',
+                  onBlur: flushAutoDraft,
+                  'aria-label': t('edit.fontSize'),
+                  onChange: function (event) {
+                    updateField('sizePt', event.target.value);
+                  },
+                }),
+              ),
+              h('div', { className: 'wb-field' },
+                h('span', { className: 'wb-fieldLabel' }, t('edit.bold') + ' / ' + t('edit.italic')),
+                h('div', { className: 'wb-row' },
+                  h('button', {
+                    type: 'button',
+                    className: 'wb-btn',
+                    'aria-pressed': form && form.bold ? 'true' : 'false',
+                    'aria-label': t('edit.bold'),
+                    title: t('edit.bold'),
+                    onClick: function () {
+                      updateField('bold', !(form && form.bold));
+                    },
+                  }, h('strong', null, 'B')),
+                  h('button', {
+                    type: 'button',
+                    className: 'wb-btn',
+                    'aria-pressed': form && form.italic ? 'true' : 'false',
+                    'aria-label': t('edit.italic'),
+                    title: t('edit.italic'),
+                    onClick: function () {
+                      updateField('italic', !(form && form.italic));
+                    },
+                  }, h('em', null, 'I')),
+                ),
+              ),
+              h('label', { className: 'wb-field' },
+                h('span', { className: 'wb-fieldLabel' }, t('edit.color')),
+                h('div', { className: 'wb-colorRow' },
+                  h('input', {
+                    className: 'wb-colorInput',
+                    type: 'color',
+                    value: form && normalizeHexColor(form.color) ? '#' + normalizeHexColor(form.color) : '#000000',
+                    'aria-label': t('edit.color'),
+                    onChange: function (event) {
+                      updateField('color', normalizeHexColor(event.target.value));
+                    },
+                  }),
+                  h('input', {
+                    className: 'wb-input',
+                    value: form ? form.color : '',
+                    maxLength: 7,
+                    onBlur: flushAutoDraft,
+                    placeholder: t('edit.colorInherited'),
+                    title: t('edit.colorInherited'),
+                    'aria-label': t('edit.color') + ' hex',
+                    onChange: function (event) {
+                      updateField('color', event.target.value);
+                    },
+                  }),
+                ),
+              ),
+            ),
+          ));
+          body.push(h('div', { key: 'geometry', className: 'wb-section' },
+            h('span', { className: 'wb-sectionTitle' }, t('edit.geometry')),
+            h('div', { className: 'wb-fieldGrid' },
+              h('label', { className: 'wb-field' },
+                h('span', { className: 'wb-fieldLabel' }, t('edit.left') + '（in）'),
+                h('input', { className: 'wb-input', type: 'number', step: '0.01', value: form ? form.left : '', 'aria-label': t('edit.left'), onBlur: flushAutoDraft, onChange: function (event) { updateField('left', event.target.value); } }),
+              ),
+              h('label', { className: 'wb-field' },
+                h('span', { className: 'wb-fieldLabel' }, t('edit.top') + '（in）'),
+                h('input', { className: 'wb-input', type: 'number', step: '0.01', value: form ? form.top : '', 'aria-label': t('edit.top'), onBlur: flushAutoDraft, onChange: function (event) { updateField('top', event.target.value); } }),
+              ),
+              h('label', { className: 'wb-field' },
+                h('span', { className: 'wb-fieldLabel' }, t('edit.width') + '（in）'),
+                h('input', { className: 'wb-input', type: 'number', step: '0.01', value: form ? form.width : '', 'aria-label': t('edit.width'), onBlur: flushAutoDraft, onChange: function (event) { updateField('width', event.target.value); } }),
+              ),
+              h('label', { className: 'wb-field' },
+                h('span', { className: 'wb-fieldLabel' }, t('edit.height') + '（in）'),
+                h('input', { className: 'wb-input', type: 'number', step: '0.01', value: form ? form.height : '', 'aria-label': t('edit.height'), onBlur: flushAutoDraft, onChange: function (event) { updateField('height', event.target.value); } }),
+              ),
+            ),
+          ));
+        }
+        if (!editable && !hasTable && !hasChart && !shape.hasPicture) {
+          body.push(h('div', { key: 'readonly', className: 'wb-section' },
+            h('div', { className: 'wb-readonlyBox' }, t('edit.readonlyShape', { type: shape.type || t('canvas.shape') })),
+          ));
+        }
+        if (hasTable) {
+          // 表格形状没有可编辑文本，但允许改位置/大小
+          body.push(h('div', { key: 'table-geometry', className: 'wb-section' },
+            h('span', { className: 'wb-sectionTitle' }, t('edit.geometry')),
+            h('div', { className: 'wb-fieldGrid' },
+              h('label', { className: 'wb-field' },
+                h('span', { className: 'wb-fieldLabel' }, t('edit.left') + '（in）'),
+                h('input', { className: 'wb-input', type: 'number', step: '0.01', value: form ? form.left : '', 'aria-label': t('edit.left'), onBlur: flushAutoDraft, onChange: function (event) { updateField('left', event.target.value); } }),
+              ),
+              h('label', { className: 'wb-field' },
+                h('span', { className: 'wb-fieldLabel' }, t('edit.top') + '（in）'),
+                h('input', { className: 'wb-input', type: 'number', step: '0.01', value: form ? form.top : '', 'aria-label': t('edit.top'), onBlur: flushAutoDraft, onChange: function (event) { updateField('top', event.target.value); } }),
+              ),
+              h('label', { className: 'wb-field' },
+                h('span', { className: 'wb-fieldLabel' }, t('edit.width') + '（in）'),
+                h('input', { className: 'wb-input', type: 'number', step: '0.01', value: form ? form.width : '', 'aria-label': t('edit.width'), onBlur: flushAutoDraft, onChange: function (event) { updateField('width', event.target.value); } }),
+              ),
+              h('label', { className: 'wb-field' },
+                h('span', { className: 'wb-fieldLabel' }, t('edit.height') + '（in）'),
+                h('input', { className: 'wb-input', type: 'number', step: '0.01', value: form ? form.height : '', 'aria-label': t('edit.height'), onBlur: flushAutoDraft, onChange: function (event) { updateField('height', event.target.value); } }),
+              ),
+            ),
+          ));
+        }
+      } else {
+        body.push(h('div', { key: 'notes', className: 'wb-section' },
+          h('span', { className: 'wb-sectionTitle' }, t('edit.notesFor', { page: (Number.isInteger(props.slideIndex) ? props.slideIndex : 0) + 1 })),
+          h('textarea', {
+            className: 'wb-textarea',
+            rows: 4,
+            value: notesDraft,
+            maxLength: 10000,
+            onBlur: flushAutoDraft,
+            'aria-label': t('edit.notes'),
+            onChange: function (event) {
+              setNotesDraft(event.target.value);
+            },
+          }),
+          h('span', { className: 'wb-hint' }, t('edit.notesHint') + ' · ' + t('edit.selectHint')),
+        ));
+      }
+
+      body.push(h('div', { key: 'actions', className: 'wb-row', style: { justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' } },
+        h('span', { className: 'wb-inspectorAutoHint' },
+          t('edit.autoDraftHint'),
+          diffOps.length ? ' · ' + t('edit.applyCount', { count: diffOps.length }) : ''),
+        h('div', { className: 'wb-row' },
+          props.pendingCount
+            ? h('span', { className: 'wb-chip', 'data-info': 'true', title: t('edit.pendingOps', { count: props.pendingCount }) },
+              t('edit.pending', { count: props.pendingCount }))
+            : null,
+          props.pendingCount
+            ? h('button', {
+              type: 'button',
+              className: 'wb-linkBtn',
+              disabled: !!props.saving,
+              onClick: props.onClearDraft,
+            }, t('edit.clearDraft'))
+            : null,
+        ),
+      ));
+
+      return h('div', { className: 'wb-drawer', 'data-mode': 'edit', 'data-open': 'true', 'data-wb-inspector': '' },
+        head,
+        h('div', { className: 'wb-drawerBody', role: 'group', 'aria-label': t('edit.title') }, body),
+      );
+    }
+
+    // ------------------------------------------------------------------
+    // 未保存修改确认框
+    // ------------------------------------------------------------------
+    function DirtyDialog(props) {
+      var t = translator(props.lang);
+      var dialogRef = React.useRef(null);
+      React.useEffect(function () {
+        var node = dialogRef.current;
+        if (node) {
+          var first = node.querySelector('button');
+          if (first && typeof first.focus === 'function') {
+            try {
+              first.focus({ preventScroll: true });
+            } catch (error) {
+              try { first.focus(); } catch (error2) { /* ignore */ }
+            }
+          }
+        }
+        function onKeyDown(event) {
+          if (event.key === 'Escape') {
+            event.preventDefault();
+            event.stopPropagation();
+            props.onCancel();
+          }
+        }
+        document.addEventListener('keydown', onKeyDown, true);
+        return function () {
+          document.removeEventListener('keydown', onKeyDown, true);
+        };
+      }, []);
+      return h('div', { className: 'wb-modalMask' },
+        h('div', { className: 'wb-modal', ref: dialogRef, role: 'dialog', 'aria-modal': 'true', 'aria-label': t('edit.dirtyTitle') },
+          h('div', { className: 'wb-modalTitle' }, t('edit.dirtyTitle')),
+          h('div', { className: 'wb-modalText' }, t('edit.dirtyBody', { count: props.count })),
+          h('div', { className: 'wb-modalActions' },
+            h('button', { type: 'button', className: 'wb-btn', disabled: !!props.saving, onClick: props.onCancel }, t('edit.dirtyCancel')),
+            h('button', { type: 'button', className: 'wb-btn', disabled: !!props.saving, onClick: props.onDiscard }, t('edit.dirtyDiscard')),
+            h('button', { type: 'button', className: 'wb-btn wb-primary', disabled: !!props.saving, onClick: props.onSave }, props.saving ? t('edit.saving') : t('edit.dirtySave')),
+          ),
+        ),
+      );
+    }
+
+    // ------------------------------------------------------------------
+    // 主组件
+    // ------------------------------------------------------------------
+    function WorkbenchBody(props) {
+      useLocaleRevision();
+
+      var tabInfo = props.useTabInfo ? props.useTabInfo() : null;
+      var tabSignal = tabInfo && tabInfo.tab ? tabInfo.tab.signal : null;
+
+      var path = React.useMemo(function () {
+        return decodeFilePath(props.resourceAddress);
+      }, [props.resourceAddress]);
+      var sessionId = props.sessionId || sessionIdFromAddress(props.resourceAddress);
+      var content = props.content;
+      var revision = content && content.kind === 'renderer' ? content.revision : undefined;
+
+      var deckStateHook = React.useState({ status: 'loading', deck: null, slides: [], error: null, refreshing: false });
+      var deckState = deckStateHook[0];
+      var setDeckState = deckStateHook[1];
+      var annotationsHook = React.useState(EMPTY_LIST);
+      var annotations = annotationsHook[0];
+      var setAnnotations = annotationsHook[1];
+      var repairHook = React.useState(null);
+      var repairNotice = repairHook[0];
+      var setRepairNotice = repairHook[1];
+      var dismissedRepairHook = React.useState(EMPTY_MAP);
+      var dismissedRepairs = dismissedRepairHook[0];
+      var setDismissedRepairs = dismissedRepairHook[1];
+      var dismissedRefreshHook = React.useState(null);
+      var dismissedRefresh = dismissedRefreshHook[0];
+      var setDismissedRefresh = dismissedRefreshHook[1];
+      var retryHook = React.useState(0);
+      var retryToken = retryHook[0];
+      var setRetryToken = retryHook[1];
+      var currentPageHook = React.useState(1);
+      var currentPage = currentPageHook[0];
+      var setCurrentPage = currentPageHook[1];
+      var selectedHook = React.useState(null);
+      var selectedId = selectedHook[0];
+      var setSelectedId = selectedHook[1];
+      var filterHook = React.useState('open');
+      var filter = filterHook[0];
+      var setFilter = filterHook[1];
+      var annotateHook = React.useState(false);
+      var annotate = annotateHook[0];
+      var setAnnotate = annotateHook[1];
+      var draftHook = React.useState(null);
+      var draft = draftHook[0];
+      var setDraft = draftHook[1];
+      var busyHook = React.useState(false);
+      var busyOp = busyHook[0];
+      var setBusyOp = busyHook[1];
+      var toastHook = React.useState(null);
+      var toast = toastHook[0];
+      var setToast = toastHook[1];
+      var zoomHook = React.useState('fit');
+      var zoom = zoomHook[0];
+      var setZoom = zoomHook[1];
+      var railPrefHook = React.useState(null);
+      var railPref = railPrefHook[0];
+      var setRailPref = railPrefHook[1];
+      var drawerPrefHook = React.useState(null);
+      var drawerPref = drawerPrefHook[0];
+      var setDrawerPref = drawerPrefHook[1];
+      var editModeHook = React.useState(false);
+      var editMode = editModeHook[0];
+      var setEditMode = editModeHook[1];
+      var selectedShapeHook = React.useState(null);
+      var selectedShape = selectedShapeHook[0];
+      var setSelectedShape = selectedShapeHook[1];
+      var pendingOpsHook = React.useState(EMPTY_LIST);
+      var pendingOps = pendingOpsHook[0];
+      var setPendingOps = pendingOpsHook[1];
+      var historyHook = React.useState(null);
+      var historyState = historyHook[0];
+      var setHistory = historyHook[1];
+      var savingHook = React.useState(false);
+      var saving = savingHook[0];
+      var setSaving = savingHook[1];
+      var conflictHook = React.useState(null);
+      var conflict = conflictHook[0];
+      var setConflict = conflictHook[1];
+      var dirtyDialogHook = React.useState(null);
+      var dirtyDialog = dirtyDialogHook[0];
+      var setDirtyDialog = dirtyDialogHook[1];
+      var formDirtyHook = React.useState(0);
+      var formDirtyCount = formDirtyHook[0];
+      var setFormDirtyCount = formDirtyHook[1];
+      var inlineEditHook = React.useState(null);
+      var inlineEdit = inlineEditHook[0];
+      var setInlineEdit = inlineEditHook[1];
+      var canvasGestureHook = React.useState(false);
+      var canvasGesture = canvasGestureHook[0];
+      var setCanvasGesture = canvasGestureHook[1];
+      var autosaveHook = React.useState(readAutosavePref);
+      var autosave = autosaveHook[0];
+      var setAutosave = autosaveHook[1];
+      var lastSavedHook = React.useState(null);
+      var lastSavedAt = lastSavedHook[0];
+      var setLastSavedAt = lastSavedHook[1];
+      var nativeBusyHook = React.useState(false);
+      var nativeBusy = nativeBusyHook[0];
+      var setNativeBusy = nativeBusyHook[1];
+      var resetNonceHook = React.useState(0);
+      var resetNonce = resetNonceHook[0];
+      var setResetNonce = resetNonceHook[1];
+      var canvasNodeHook = React.useState(null);
+      var canvasNode = canvasNodeHook[0];
+      var setCanvasNode = canvasNodeHook[1];
+
+      var rootRef = React.useRef(null);
+      var canvasRef = React.useRef(null);
+      var railRef = React.useRef(null);
+      var pageElsRef = React.useRef(new Map());
+      var scrollTickRef = React.useRef(false);
+      var scrollIntentRef = React.useRef(null);
+      var busyRef = React.useRef(false);
+      var toastIdRef = React.useRef(0);
+      var contentRef = React.useRef(content);
+      var sessionIdRef = React.useRef(sessionId);
+      var pathRef = React.useRef(path);
+      var deckRef = React.useRef(deckState.deck);
+      var slidesRef = React.useRef(deckState.slides);
+      var annotationsRef = React.useRef(annotations);
+      var inputActionsRef = React.useRef(props.inputActions);
+      var pendingOpsRef = React.useRef(EMPTY_LIST);
+      var editModeRef = React.useRef(false);
+      var selectedShapeRef = React.useRef(null);
+      var historyRef = React.useRef(null);
+      var formDiffRef = React.useRef(null);
+      var formDirtyRef = React.useRef(0);
+      var saveAllRef = React.useRef(null);
+      var requestExitRef = React.useRef(null);
+      var autoSaveBlockedRef = React.useRef(false);
+      var viewSlidesRef = React.useRef(EMPTY_LIST);
+      var inlineEditRef = React.useRef(null);
+
+      contentRef.current = content;
+      sessionIdRef.current = sessionId;
+      pathRef.current = path;
+      deckRef.current = deckState.deck;
+      slidesRef.current = deckState.slides;
+      annotationsRef.current = annotations;
+      inputActionsRef.current = props.inputActions;
+      pendingOpsRef.current = pendingOps;
+      editModeRef.current = editMode;
+      selectedShapeRef.current = selectedShape;
+      historyRef.current = historyState;
+      formDirtyRef.current = formDirtyCount;
+      inlineEditRef.current = inlineEdit;
+
+      var slides = deckState.slides;
+      var deck = deckState.deck;
+      var sha = deck ? deck.sha256 : null;
+      var slidesImages = useSlideImages(sha);
+      var images = slidesImages.images;
+      var ensurePage = slidesImages.ensurePage;
+      var retryPage = slidesImages.retryPage;
+
+      var rootWidth = useElementWidth(rootRef);
+      var canvasWidth = useNodeWidth(canvasNode);
+      var railOpen = railPref === null ? rootWidth === 0 || rootWidth >= RAIL_HIDE_WIDTH : railPref;
+      var drawerOpen = drawerPref === null ? rootWidth === 0 || rootWidth >= DRAWER_HIDE_WIDTH : drawerPref;
+
+      var lang = language();
+      var t = translator(lang);
+
+      // ---- deck 加载（revision 变化保留旧内容并静默刷新） ----
+      React.useEffect(function () {
+        if (!path) {
+          setDeckState({ status: 'error', deck: null, slides: [], refreshing: false, error: { code: 'missing-path', message: tr('error.noPath') } });
+          return undefined;
+        }
+        if (!sessionId) {
+          setDeckState({ status: 'error', deck: null, slides: [], refreshing: false, error: { code: 'missing-session', message: tr('error.noSession') } });
+          return undefined;
+        }
+        if (tabSignal && tabSignal.aborted) return undefined;
+        var controller = new AbortController();
+        function onTabAbort() {
+          controller.abort();
+        }
+        if (tabSignal && typeof tabSignal.addEventListener === 'function') {
+          tabSignal.addEventListener('abort', onTabAbort);
+        }
+        setDeckState(function (previous) {
+          if (previous.deck) return Object.assign({}, previous, { refreshing: true, error: null });
+          return { status: 'loading', deck: null, slides: [], refreshing: false, error: null };
+        });
+        function fail(error) {
+          if (!error || error.code === 'aborted' || controller.signal.aborted) return;
+          var keepDeck = !!deckRef.current;
+          setDeckState(function (previous) {
+            if (previous.deck) {
+              return Object.assign({}, previous, { status: 'ready', refreshing: false, error: error });
+            }
+            return { status: 'error', deck: null, slides: [], refreshing: false, error: error };
+          });
+          if (!keepDeck) {
+            var current = contentRef.current;
+            if (current && typeof current.failed === 'function') {
+              try {
+                current.failed();
+              } catch (error2) {
+                /* ignore */
+              }
+            }
+          }
+        }
+        jsonFetch(
+          'deck?sessionId=' + encodeURIComponent(sessionId) + '&path=' + encodeURIComponent(path),
+          { signal: controller.signal },
+        ).then(function (result) {
+          if (controller.signal.aborted) return;
+          if (!result.ok || !result.data || result.data.ok !== true) {
+            fail(normalizeError(result));
+            return;
+          }
+          var data = result.data;
+          var nextDeck = data.deck || {};
+          var nextSlides = Array.isArray(data.slides) ? data.slides : [];
+          setDeckState({ status: 'ready', deck: nextDeck, slides: nextSlides, refreshing: false, error: null });
+          setAnnotations(Array.isArray(data.annotations) ? data.annotations : EMPTY_LIST);
+          var repair = data.annotationsRepair || EMPTY_MAP;
+          var repaired = Number(repair.repaired) || 0;
+          var orphaned = Number(repair.orphaned) || 0;
+          if (repaired + orphaned > 0) {
+            setRepairNotice({ key: String(nextDeck.sha256 || ''), repaired: repaired, orphaned: orphaned });
+          } else {
+            setRepairNotice(null);
+          }
+          var nextHistory = extractHistory(data);
+          if (nextHistory) setHistory(nextHistory);
+          var previousDeck = deckRef.current;
+          if (
+            previousDeck &&
+            nextDeck.sha256 &&
+            previousDeck.sha256 !== nextDeck.sha256 &&
+            pendingOpsRef.current.length > 0
+          ) {
+            setConflict({ code: 'stale', message: tr('edit.conflict'), currentSha: nextDeck.sha256, conflictCopy: null });
+          }
+          var currentSelection = selectedShapeRef.current;
+          if (currentSelection && !findShapeAt(nextSlides, currentSelection.slideIndex, currentSelection.shapeId)) {
+            setSelectedShape(null);
+          }
+          var current = contentRef.current;
+          if (current && typeof current.loaded === 'function') {
+            try {
+              current.loaded('deck-' + String(nextDeck.sha256 || '').slice(0, 12));
+            } catch (error) {
+              /* ignore */
+            }
+          }
+        }).catch(function (error) {
+          fail(normalizeError(error));
+        });
+        return function () {
+          if (tabSignal && typeof tabSignal.removeEventListener === 'function') {
+            tabSignal.removeEventListener('abort', onTabAbort);
+          }
+          controller.abort();
+        };
+      }, [path, sessionId, revision, retryToken, tabSignal]);
+
+      // ---- 全局 keydown：Esc 退出草稿/批注/编辑模式 ----
+      React.useEffect(function () {
+        if (!draft && !annotate && !editMode) return undefined;
+        function onKeyDown(event) {
+          if (event.key !== 'Escape' || busyRef.current) return;
+          if (dirtyDialog || saving) return;
+          var active = document.activeElement;
+          var tag = active && active.tagName ? String(active.tagName).toLowerCase() : '';
+          if (tag === 'textarea' || tag === 'input') return;
+          if (draft) {
+            setDraft(null);
+          } else if (annotate) {
+            setAnnotate(false);
+          } else if (editMode && requestExitRef.current) {
+            requestExitRef.current(null);
+          }
+        }
+        document.addEventListener('keydown', onKeyDown, true);
+        return function () {
+          document.removeEventListener('keydown', onKeyDown, true);
+        };
+      }, [draft, annotate, editMode, dirtyDialog, saving]);
+
+      // ---- toast 自动消失 ----
+      React.useEffect(function () {
+        if (!toast || toast.kind === 'manual') return undefined;
+        var id = toast.id;
+        var timer = setTimeout(function () {
+          setToast(function (current) {
+            return current && current.id === id ? null : current;
+          });
+        }, 3600);
+        return function () {
+          clearTimeout(timer);
+        };
+      }, [toast]);
+
+      // ---- deck 刷新后页码兜底 ----
+      React.useEffect(function () {
+        var count = deckState.deck && Array.isArray(deckState.deck.pages) ? deckState.deck.pages.length : 0;
+        if (count > 0 && currentPage > count) setCurrentPage(count);
+      }, [deckState.deck, currentPage]);
+
+      // ---- 编辑模式：history 惰性补拉（deck.history 缺失时） ----
+      React.useEffect(function () {
+        if (!editMode || historyRef.current) return undefined;
+        var currentDeck = deckRef.current;
+        var sid = sessionIdRef.current;
+        var deckPath = currentDeck && currentDeck.path ? currentDeck.path : pathRef.current;
+        if (!currentDeck || !sid || !deckPath) return undefined;
+        var cancelled = false;
+        jsonFetch('history?sessionId=' + encodeURIComponent(sid) + '&path=' + encodeURIComponent(deckPath))
+          .then(function (result) {
+            if (cancelled || !result.ok || !result.data || result.data.ok !== true) return;
+            var next = extractHistory(result.data) || {
+              version: Number(result.data.version) || 0,
+              cursor: Number(result.data.cursor) || 0,
+              canUndo: result.data.canUndo === true,
+              canRedo: result.data.canRedo === true,
+            };
+            setHistory(next);
+          })
+          .catch(function () {
+            /* 按钮保持禁用 */
+          });
+        return function () {
+          cancelled = true;
+        };
+      }, [editMode, historyState, sha]);
+
+      // ---- ⌘/Ctrl+S 保存 ----
+      React.useEffect(function () {
+        function onKeyDown(event) {
+          if (!editModeRef.current) return;
+          if (!(event.metaKey || event.ctrlKey) || event.altKey) return;
+          if (event.key !== 's' && event.key !== 'S') return;
+          event.preventDefault();
+          event.stopPropagation();
+          if (saveAllRef.current) saveAllRef.current({});
+        }
+        document.addEventListener('keydown', onKeyDown, true);
+        return function () {
+          document.removeEventListener('keydown', onKeyDown, true);
+        };
+      }, []);
+
+      // ---- 自动保存：pending 变化后 1500ms 空闲静默保存 ----
+      React.useEffect(function () {
+        if (!editMode || !autosave) return undefined;
+        if (saving || busyOp || conflict || inlineEdit || canvasGesture || dirtyDialog) return undefined;
+        if (pendingOps.length === 0) return undefined;
+        if (autoSaveBlockedRef.current) return undefined;
+        var timer = setTimeout(function () {
+          if (saveAllRef.current) saveAllRef.current({ silent: true, auto: true });
+        }, 1500);
+        return function () {
+          clearTimeout(timer);
+        };
+      }, [editMode, autosave, saving, busyOp, conflict, inlineEdit, canvasGesture, dirtyDialog, pendingOps]);
+
+      var byId = React.useMemo(function () {
+        var map = new Map();
+        for (var index = 0; index < annotations.length; index += 1) {
+          var annotation = annotations[index];
+          if (annotation && annotation.id) map.set(annotation.id, annotation);
+        }
+        return map;
+      }, [annotations]);
+      var annotationsRefMap = React.useRef(byId);
+      annotationsRefMap.current = byId;
+
+      var annotationsByPage = React.useMemo(function () {
+        var map = {};
+        for (var index = 0; index < annotations.length; index += 1) {
+          var annotation = annotations[index];
+          if (annotation && Number.isInteger(annotation.slideIndex)) {
+            if (!map[annotation.slideIndex]) map[annotation.slideIndex] = [];
+            map[annotation.slideIndex].push(annotation);
+          }
+        }
+        return map;
+      }, [annotations]);
+
+      var openCountsByPage = React.useMemo(function () {
+        var map = {};
+        for (var index = 0; index < annotations.length; index += 1) {
+          var annotation = annotations[index];
+          if (annotation && annotation.status === 'open' && Number.isInteger(annotation.slideIndex)) {
+            map[annotation.slideIndex] = (map[annotation.slideIndex] || 0) + 1;
+          }
+        }
+        return map;
+      }, [annotations]);
+
+      var counts = React.useMemo(function () {
+        var result = { open: 0, resolved: 0, orphaned: 0 };
+        for (var index = 0; index < annotations.length; index += 1) {
+          var annotation = annotations[index];
+          var status = annotation && annotation.status ? annotation.status : 'open';
+          if (result[status] === undefined) result[status] = 0;
+          result[status] += 1;
+        }
+        return result;
+      }, [annotations]);
+
+      var pages = deck && Array.isArray(deck.pages) ? deck.pages : EMPTY_LIST;
+      var total = pages.length;
+      var renderedPages = Number(deck && deck.renderedPages) || total;
+      var slideCount = Number(deck && deck.slideCount) || total;
+      var truncated = !!(deck && deck.truncated);
+      var missingFonts = deck && Array.isArray(deck.missingFonts) ? deck.missingFonts : EMPTY_LIST;
+      var writeAllowed = !deck || deck.writeAllowed !== false;
+      var slideWidthEmu = deck ? Number(deck.slideWidthEmu) : NaN;
+      var slideHeightEmu = deck ? Number(deck.slideHeightEmu) : NaN;
+      var fitWidth = canvasWidth > 0 ? Math.max(160, canvasWidth - 24) : null;
+      var openCount = counts.open || 0;
+
+      // ---- 编辑派生状态（pendingOps 叠加到 inventory 上） ----
+      var pendingView = React.useMemo(function () {
+        return buildPendingView(slides, pendingOps);
+      }, [slides, pendingOps]);
+      var viewSlides = pendingView.slides;
+      var viewNotes = pendingView.notes;
+      viewSlidesRef.current = viewSlides;
+      var selectedShapeView = editMode && selectedShape
+        ? findViewShape(viewSlides, selectedShape.slideIndex, selectedShape.shapeId)
+        : null;
+      var selectedShapeReadonly = false;
+      if (selectedShapeView) {
+        selectedShapeReadonly = !isShapeEditable(selectedShapeView) &&
+          !(selectedShapeView.hasTable && selectedShapeView.table);
+      }
+      var selectedShapeBox = null;
+      if (editMode && selectedShapeView && Number.isFinite(slideWidthEmu) && Number.isFinite(slideHeightEmu)) {
+        var selectedBoxStyle = shapeBox(selectedShapeView, slideWidthEmu, slideHeightEmu);
+        if (selectedBoxStyle) {
+          selectedShapeBox = {
+            box: selectedBoxStyle,
+            norm: {
+              x: Number(selectedShapeView.left) / slideWidthEmu,
+              y: Number(selectedShapeView.top) / slideHeightEmu,
+              w: Number(selectedShapeView.width) / slideWidthEmu,
+              h: Number(selectedShapeView.height) / slideHeightEmu,
+            },
+            name: selectedShapeView.name || '',
+            readonly: selectedShapeReadonly,
+          };
+        }
+      }
+      var selectedShapeEditable = selectedShapeView ? isShapeEditable(selectedShapeView) : false;
+      var currentSlideIndex = Math.min(Math.max(0, currentPage - 1), Math.max(0, viewSlides.length - 1));
+      var currentSlideView = viewSlides[currentSlideIndex] || null;
+      var currentSlideNotes = currentSlideView && typeof currentSlideView.notes === 'string' ? currentSlideView.notes : '';
+      var currentNotes = viewNotes.has(currentSlideIndex) ? viewNotes.get(currentSlideIndex) : currentSlideNotes;
+      var pendingCount = pendingOps.length;
+      var formDirty = formDirtyCount;
+      var dirtyCount = pendingCount + (editMode ? formDirty : 0);
+      var canEdit = writeAllowed && !!deck;
+      var canUndo = !!(historyState && historyState.canUndo);
+      var canRedo = !!(historyState && historyState.canRedo);
+      var resetKey = [
+        sha || '',
+        currentSlideIndex,
+        selectedShape ? selectedShape.shapeId : 'notes',
+        resetNonce,
+      ].join('|');
+      var saveStatusText = saving
+        ? t('edit.saveSaving')
+        : lastSavedAt
+          ? t('edit.saveSavedAt', { time: formatClock(lastSavedAt) })
+          : '';
+
+      // ---- toast / 回调 ----
+      var showToast = React.useCallback(function (kind, text, payload) {
+        toastIdRef.current += 1;
+        setToast({ id: toastIdRef.current, kind: kind, text: text, payload: payload });
+      }, []);
+
+      var runOp = React.useCallback(function (payload) {
+        if (busyRef.current) return Promise.resolve(null);
+        var currentDeck = deckRef.current;
+        var deckPath = currentDeck && currentDeck.path ? currentDeck.path : pathRef.current;
+        var sid = sessionIdRef.current;
+        if (!sid || !deckPath) return Promise.resolve(null);
+        if (currentDeck && currentDeck.writeAllowed === false) {
+          showToast('error', tr('compose.noWrite'));
+          return Promise.resolve(null);
+        }
+        busyRef.current = true;
+        setBusyOp(true);
+        var requestBody = Object.assign(
+          { sessionId: sid, path: deckPath, author: { id: 'local', name: tr('author.me') } },
+          payload,
+        );
+        return jsonFetch('annotations', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(requestBody),
+        }).then(function (result) {
+          if (!result.ok || !result.data || result.data.ok !== true) throw normalizeError(result);
+          var data = result.data;
+          setAnnotations(Array.isArray(data.annotations) ? data.annotations : EMPTY_LIST);
+          var repair = data.annotationsRepair || EMPTY_MAP;
+          var repaired = Number(repair.repaired) || 0;
+          var orphaned = Number(repair.orphaned) || 0;
+          if (repaired + orphaned > 0) {
+            setRepairNotice({ key: String(data.deckSha || '') + '@' + Date.now(), repaired: repaired, orphaned: orphaned });
+          }
+          return data;
+        }).catch(function (error) {
+          var normalized = normalizeError(error);
+          if (normalized.code === 'outside-workspace') showToast('error', tr('compose.noWrite'));
+          else if (normalized.code === 'session-not-live') showToast('error', tr('error.session'));
+          else showToast('error', normalized.message || tr('error.generic'));
+          return null;
+        }).then(function (value) {
+          busyRef.current = false;
+          setBusyOp(false);
+          return value;
+        });
+      }, [showToast]);
+
+      var retryDeck = React.useCallback(function () {
+        setRetryToken(function (value) {
+          return value + 1;
+        });
+        var current = contentRef.current;
+        if (current && typeof current.reload === 'function') {
+          try {
+            current.reload();
+          } catch (error) {
+            /* ignore */
+          }
+        }
+      }, []);
+
+      var scrollportRefProp = React.useRef(null);
+      scrollportRefProp.current = props.scrollportRef;
+      var setCanvasRef = React.useCallback(function (node) {
+        canvasRef.current = node;
+        setCanvasNode(node);
+        var scrollport = scrollportRefProp.current;
+        if (typeof scrollport === 'function') {
+          try {
+            scrollport(node);
+          } catch (error) {
+            /* ignore */
+          }
+        }
+      }, []);
+
+      var scrollToPage = React.useCallback(function (page, smooth) {
+        var container = canvasRef.current;
+        var node = pageElsRef.current.get(page);
+        if (!container || !node) return;
+        var apply = function () {
+          var nodeRect = node.getBoundingClientRect();
+          var containerRect = container.getBoundingClientRect();
+          var target = container.scrollTop + (nodeRect.top - containerRect.top) - 8;
+          if (!Number.isFinite(target)) return;
+          target = Math.max(0, target);
+          try {
+            container.scrollTop = target;
+          } catch (error) {
+            /* ignore */
+          }
+          if (smooth) {
+            try {
+              container.scrollTo({ top: target, behavior: 'smooth' });
+            } catch (error2) {
+              /* ignore */
+            }
+          }
+        };
+        // The host may restore its recorded scroll offset while the click's React
+        // commit is applied. Defer the actual scroll to after that commit (two
+        // frames) so thumbnail navigation reliably moves the canvas.
+        if (typeof window.requestAnimationFrame === 'function') {
+          window.requestAnimationFrame(function () {
+            window.requestAnimationFrame(apply);
+          });
+        } else {
+          setTimeout(apply, 0);
+        }
+      }, []);
+
+      var selectPage = React.useCallback(function (page) {
+        scrollIntentRef.current = { page: page, at: Date.now() };
+        if (editModeRef.current) setSelectedShape(null);
+        setCurrentPage(page);
+        scrollToPage(page, true);
+      }, [scrollToPage]);
+
+      var handleCanvasScroll = React.useCallback(function (event) {
+        if (scrollTickRef.current) return;
+        scrollTickRef.current = true;
+        var node = event.currentTarget;
+        var schedule = window.requestAnimationFrame || function (callback) { return setTimeout(callback, 16); };
+        schedule(function () {
+          scrollTickRef.current = false;
+          var intent = scrollIntentRef.current;
+          if (intent && Date.now() - intent.at < 1500) {
+            setCurrentPage(function (previous) {
+              return previous === intent.page ? previous : intent.page;
+            });
+            return;
+          }
+          if (intent) scrollIntentRef.current = null;
+          var containerRect = node.getBoundingClientRect();
+          var best = 1;
+          var bestVisible = -Infinity;
+          pageElsRef.current.forEach(function (element, page) {
+            if (!element) return;
+            var rect = element.getBoundingClientRect();
+            var visible = Math.min(rect.bottom, containerRect.bottom) - Math.max(rect.top, containerRect.top);
+            if (visible > bestVisible) {
+              bestVisible = visible;
+              best = page;
+            }
+          });
+          if (!Number.isFinite(bestVisible) || bestVisible <= 0) return;
+          setCurrentPage(function (previous) {
+            return previous === best ? previous : best;
+          });
+        });
+      }, []);
+
+      var registerPageNode = React.useCallback(function (page, node) {
+        if (node) pageElsRef.current.set(page, node);
+      }, []);
+
+      var selectAnnotation = React.useCallback(function (id) {
+        var annotation = annotationsRefMap.current.get(id);
+        if (!annotation) return;
+        setSelectedId(id);
+        setDrawerPref(true);
+        if (annotation.status) setFilter(annotation.status);
+        if (annotation.status !== 'orphaned' && Number.isInteger(annotation.slideIndex)) {
+          scrollToPage(annotation.slideIndex + 1, true);
+        }
+      }, [scrollToPage]);
+
+      var handlePageTap = React.useCallback(function (page, point) {
+        if (!annotate || busyRef.current) return;
+        var currentDeck = deckRef.current;
+        if (!currentDeck || currentDeck.writeAllowed === false) return;
+        var slide = slidesRef.current[page.page - 1];
+        var widthEmu = Number(currentDeck.slideWidthEmu);
+        var heightEmu = Number(currentDeck.slideHeightEmu);
+        var shape = slide && Number.isFinite(widthEmu) && Number.isFinite(heightEmu)
+          ? hitShape(slide, point.x * widthEmu, point.y * heightEmu)
+          : null;
+        setSelectedId(null);
+        setDraft({
+          page: page.page,
+          slideIndex: page.page - 1,
+          pointNorm: { x: point.x, y: point.y },
+          shapeIds: shape && Number.isInteger(shape.shapeId) ? [shape.shapeId] : [],
+          shapes: shape ? [shape] : [],
+          areaNorm: null,
+          body: '',
+        });
+      }, [annotate]);
+
+      var handlePageMarquee = React.useCallback(function (page, rectNorm) {
+        if (!annotate || busyRef.current) return;
+        var currentDeck = deckRef.current;
+        if (!currentDeck || currentDeck.writeAllowed === false) return;
+        var slide = slidesRef.current[page.page - 1];
+        var widthEmu = Number(currentDeck.slideWidthEmu);
+        var heightEmu = Number(currentDeck.slideHeightEmu);
+        var hits = slide && Number.isFinite(widthEmu) && Number.isFinite(heightEmu)
+          ? shapesIntersecting(slide, rectNorm, widthEmu, heightEmu)
+          : [];
+        setSelectedId(null);
+        setDraft({
+          page: page.page,
+          slideIndex: page.page - 1,
+          pointNorm: { x: clamp01(rectNorm.x + rectNorm.w / 2), y: clamp01(rectNorm.y + rectNorm.h / 2) },
+          shapeIds: hits.map(function (shape) { return shape.shapeId; }).filter(function (value) { return Number.isInteger(value); }),
+          shapes: hits,
+          areaNorm: hits.length === 0 ? rectNorm : null,
+          body: '',
+        });
+      }, [annotate]);
+
+      var changeDraftBody = React.useCallback(function (value) {
+        setDraft(function (previous) {
+          if (!previous) return previous;
+          return Object.assign({}, previous, { body: value });
+        });
+      }, []);
+
+      var cancelDraft = React.useCallback(function () {
+        setDraft(null);
+      }, []);
+
+      var saveDraft = React.useCallback(function (draftValue) {
+        if (!draftValue || busyRef.current) return;
+        var body = String(draftValue.body || '').trim();
+        if (!body) {
+          showToast('error', tr('compose.empty'));
+          return;
+        }
+        if (!Number.isInteger(draftValue.slideIndex) || draftValue.slideIndex < 0) return;
+        var payload = { op: 'create', slideIndex: draftValue.slideIndex, pointNorm: draftValue.pointNorm, body: body };
+        if (Array.isArray(draftValue.shapeIds) && draftValue.shapeIds.length > 0) {
+          payload.shapeIds = draftValue.shapeIds.filter(function (value) { return Number.isInteger(value); });
+        } else if (draftValue.areaNorm) {
+          payload.bboxNorm = draftValue.areaNorm;
+        }
+        var slideIndex = draftValue.slideIndex;
+        runOp(payload).then(function (data) {
+          if (!data) return;
+          setDraft(null);
+          var created = null;
+          var list = Array.isArray(data.annotations) ? data.annotations : [];
+          for (var index = list.length - 1; index >= 0; index -= 1) {
+            if (list[index] && list[index].body === body && list[index].slideIndex === slideIndex) {
+              created = list[index];
+              break;
+            }
+          }
+          if (created) {
+            setSelectedId(created.id);
+            setFilter('open');
+            setDrawerPref(true);
+          }
+          showToast('success', tr('compose.saved'));
+        });
+      }, [runOp, showToast]);
+
+      var resolveAnnotation = React.useCallback(function (annotation) {
+        if (!annotation) return Promise.resolve(null);
+        return runOp({ op: 'resolve', id: annotation.id }).then(function (data) {
+          if (!data) return null;
+          setFilter('resolved');
+          showToast('success', tr('annotation.resolvedToast'));
+          return data;
+        });
+      }, [runOp, showToast]);
+
+      var reopenAnnotation = React.useCallback(function (annotation) {
+        if (!annotation) return Promise.resolve(null);
+        return runOp({ op: 'reopen', id: annotation.id }).then(function (data) {
+          if (!data) return null;
+          setFilter('open');
+          showToast('success', tr('annotation.reopenedToast'));
+          return data;
+        });
+      }, [runOp, showToast]);
+
+      var deleteAnnotation = React.useCallback(function (annotation) {
+        if (!annotation) return Promise.resolve(null);
+        return runOp({ op: 'delete', id: annotation.id }).then(function (data) {
+          if (!data) return null;
+          if (selectedId === annotation.id) setSelectedId(null);
+          showToast('success', tr('annotation.deletedToast'));
+          return data;
+        });
+      }, [runOp, selectedId, showToast]);
+
+      var replyAnnotation = React.useCallback(function (annotation, body) {
+        if (!annotation) return Promise.resolve(null);
+        return runOp({ op: 'reply', id: annotation.id, body: body }).then(function (data) {
+          if (data) showToast('success', tr('annotation.repliedToast'));
+          return data;
+        });
+      }, [runOp, showToast]);
+
+      var sendAnnotations = React.useCallback(function () {
+        var currentDeck = deckRef.current;
+        var openList = annotationsRef.current.filter(function (annotation) {
+          return annotation && annotation.status === 'open';
+        });
+        if (!currentDeck || openList.length === 0) {
+          showToast('error', tr('send.none'));
+          return;
+        }
+        var text = buildSendText(
+          openList,
+          slidesRef.current,
+          basename(currentDeck.path || pathRef.current || 'deck.pptx'),
+          currentDeck.sha256 || '',
+          tr,
+        );
+        var inputActions = inputActionsRef.current;
+        var inserted = false;
+        try {
+          if (inputActions && typeof inputActions.captureInsertion === 'function' && typeof inputActions.insertText === 'function') {
+            var span = inputActions.captureInsertion();
+            inserted = inputActions.insertText(text, span) !== false;
+          }
+        } catch (error) {
+          inserted = false;
+        }
+        if (inserted) {
+          showToast('success', tr('send.inserted'));
+          return;
+        }
+        function showManual() {
+          toastIdRef.current += 1;
+          setToast({ id: toastIdRef.current, kind: 'manual', text: tr('send.manual'), payload: text });
+        }
+        if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+          try {
+            navigator.clipboard.writeText(text).then(function () {
+              showToast('success', tr('send.copied'));
+            }, showManual);
+          } catch (error) {
+            showManual();
+          }
+        } else {
+          showManual();
+        }
+      }, [showToast]);
+
+      var closeToast = React.useCallback(function () {
+        setToast(null);
+      }, []);
+
+      var handleSelectShape = React.useCallback(function (slideIndex, shape) {
+        if (!Number.isInteger(slideIndex)) return;
+        setCurrentPage(slideIndex + 1);
+        if (!shape || !Number.isInteger(shape.shapeId)) {
+          setSelectedShape(null);
+          return;
+        }
+        setSelectedShape({ slideIndex: slideIndex, shapeId: shape.shapeId });
+        setDrawerPref(true);
+      }, []);
+
+      function notifyDeckLoaded(deckValue) {
+        var current = contentRef.current;
+        if (current && typeof current.loaded === 'function' && deckValue) {
+          try {
+            current.loaded('deck-' + String(deckValue.sha256 || '').slice(0, 12));
+          } catch (error) {
+            /* ignore */
+          }
+        }
+      }
+
+      function adoptEditResponse(data) {
+        if (!data || !data.deck) return false;
+        var nextDeck = data.deck;
+        var nextSlides = Array.isArray(data.slides) ? data.slides : [];
+        setDeckState({ status: 'ready', deck: nextDeck, slides: nextSlides, refreshing: false, error: null });
+        setAnnotations(Array.isArray(data.annotations) ? data.annotations : EMPTY_LIST);
+        var repair = data.annotationsRepair || EMPTY_MAP;
+        var repaired = Number(repair.repaired) || 0;
+        var orphaned = Number(repair.orphaned) || 0;
+        if (repaired + orphaned > 0) {
+          setRepairNotice({ key: String(nextDeck.sha256 || '') + '@' + Date.now(), repaired: repaired, orphaned: orphaned });
+        }
+        var nextHistory = extractHistory(data);
+        if (nextHistory) setHistory(nextHistory);
+        pendingOpsRef.current = EMPTY_LIST;
+        setPendingOps(EMPTY_LIST);
+        setConflict(null);
+        autoSaveBlockedRef.current = false;
+        var selection = selectedShapeRef.current;
+        if (selection && !findShapeAt(nextSlides, selection.slideIndex, selection.shapeId)) {
+          setSelectedShape(null);
+        }
+        setDraft(null);
+        notifyDeckLoaded(nextDeck);
+        return true;
+      }
+
+      function handleEditError(error) {
+        if (!error) return;
+        if (error.code === 'stale') {
+          setConflict({
+            code: 'stale',
+            message: error.message || tr('edit.conflict'),
+            currentSha: error.currentSha,
+            conflictCopy: error.conflictCopy || null,
+          });
+          showToast('error', tr('edit.conflictTitle'));
+          return;
+        }
+        showToast('error', editErrorText(error, t));
+      }
+
+      function saveAll(options) {
+        var settings = options || {};
+        if (!settings.auto) autoSaveBlockedRef.current = false;
+        if (!editModeRef.current || busyRef.current) return Promise.resolve(false);
+        var currentDeck = deckRef.current;
+        var sid = sessionIdRef.current;
+        var deckPath = currentDeck && currentDeck.path ? currentDeck.path : pathRef.current;
+        if (!currentDeck || !sid || !deckPath) return Promise.resolve(false);
+        if (currentDeck.writeAllowed === false) {
+          showToast('error', t('edit.previewOnly'));
+          return Promise.resolve(false);
+        }
+        var extra = formDiffRef.current ? formDiffRef.current() || [] : [];
+        var ops = pendingOpsRef.current.concat(extra);
+        if (ops.length === 0) {
+          if (!settings.silent) showToast('success', t('edit.noChanges'));
+          if (settings.onSuccess) settings.onSuccess();
+          return Promise.resolve(true);
+        }
+        if (ops.length > 100) {
+          showToast('error', t('edit.failed', { message: '> 100 ops' }));
+          return Promise.resolve(false);
+        }
+        busyRef.current = true;
+        setSaving(true);
+        return jsonFetch('edit', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            sessionId: sid,
+            path: deckPath,
+            baseSha: currentDeck.sha256,
+            ops: ops,
+          }),
+        }).then(function (result) {
+          if (!result.ok || !result.data || result.data.ok !== true) throw normalizeError(result);
+          if (!adoptEditResponse(result.data)) {
+            throw normalizeError({ code: 'edit-failed', message: t('edit.unknown') });
+          }
+          setLastSavedAt(Date.now());
+          if (!settings.silent) showToast('success', t('edit.saved'));
+          if (settings.onSuccess) settings.onSuccess();
+          return true;
+        }).catch(function (error) {
+          if (settings.auto) autoSaveBlockedRef.current = true;
+          handleEditError(error && error.code ? error : normalizeError(error));
+          return false;
+        }).then(function (value) {
+          busyRef.current = false;
+          setSaving(false);
+          return value;
+        });
+      }
+      saveAllRef.current = saveAll;
+
+      function undoRedo(kind) {
+        if (busyRef.current || !editModeRef.current) return;
+        if (pendingOpsRef.current.length > 0) {
+          showToast('error', t('edit.undoBlocked'));
+          return;
+        }
+        var currentDeck = deckRef.current;
+        var sid = sessionIdRef.current;
+        var deckPath = currentDeck && currentDeck.path ? currentDeck.path : pathRef.current;
+        if (!currentDeck || !sid || !deckPath) return;
+        busyRef.current = true;
+        setSaving(true);
+        jsonFetch(kind, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ sessionId: sid, path: deckPath }),
+        }).then(function (result) {
+          if (!result.ok || !result.data || result.data.ok !== true) throw normalizeError(result);
+          if (!adoptEditResponse(result.data)) {
+            throw normalizeError({ code: 'edit-failed', message: t('edit.unknown') });
+          }
+          showToast('success', kind === 'undo' ? t('edit.undoDone') : t('edit.redoDone'));
+        }).catch(function (error) {
+          handleEditError(error && error.code ? error : normalizeError(error));
+        }).then(function () {
+          busyRef.current = false;
+          setSaving(false);
+        });
+      }
+
+      function runPageOp(op) {
+        if (busyRef.current || !editModeRef.current || !op) return;
+        if (pendingOpsRef.current.length > 0) {
+          showToast('error', t('edit.pageOpBlocked'));
+          return;
+        }
+        var currentDeck = deckRef.current;
+        var sid = sessionIdRef.current;
+        var deckPath = currentDeck && currentDeck.path ? currentDeck.path : pathRef.current;
+        if (!currentDeck || !sid || !deckPath) return;
+        if (currentDeck.writeAllowed === false) {
+          showToast('error', t('edit.previewOnly'));
+          return;
+        }
+        busyRef.current = true;
+        setSaving(true);
+        var pageBefore = currentPage;
+        jsonFetch('edit', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            sessionId: sid,
+            path: deckPath,
+            baseSha: currentDeck.sha256,
+            ops: [op],
+          }),
+        }).then(function (result) {
+          if (!result.ok || !result.data || result.data.ok !== true) throw normalizeError(result);
+          if (!adoptEditResponse(result.data)) {
+            throw normalizeError({ code: 'edit-failed', message: t('edit.unknown') });
+          }
+          var nextPage = pageBefore;
+          if (op.op === 'duplicateSlide' || op.op === 'insertSlide') nextPage = pageBefore + 1;
+          else if (op.op === 'moveSlide' && Number.isInteger(op.toIndex)) nextPage = op.toIndex + 1;
+          setSelectedShape(null);
+          setCurrentPage(nextPage);
+          showToast('success', t('edit.pageOpDone'));
+        }).catch(function (error) {
+          handleEditError(error && error.code ? error : normalizeError(error));
+        }).then(function () {
+          busyRef.current = false;
+          setSaving(false);
+        });
+      }
+
+      function appendPendingOps(ops) {
+        if (!Array.isArray(ops) || ops.length === 0) return;
+        var merged = mergePendingOps(pendingOpsRef.current, ops);
+        pendingOpsRef.current = merged;
+        autoSaveBlockedRef.current = false;
+        setPendingOps(merged);
+      }
+
+      function handleInlineStart(slideIndex, shape) {
+        if (!editModeRef.current || !shape || !shapeCanInlineEdit(shape)) return;
+        setSelectedShape({ slideIndex: slideIndex, shapeId: shape.shapeId });
+        setDrawerPref(true);
+        var text = shapeFullText(shape);
+        setInlineEdit({
+          slideIndex: slideIndex,
+          shapeId: shape.shapeId,
+          text: text,
+          original: text,
+        });
+      }
+
+      function handleInlineChange(value) {
+        setInlineEdit(function (previous) {
+          return previous ? Object.assign({}, previous, { text: value }) : previous;
+        });
+      }
+
+      function handleInlineCommit() {
+        var current = inlineEditRef.current;
+        if (!current) return;
+        setInlineEdit(null);
+        var text = String(current.text === undefined || current.text === null ? '' : current.text);
+        if (text === current.original) return;
+        appendPendingOps([{ op: 'setText', slideIndex: current.slideIndex, shapeId: current.shapeId, text: text }]);
+        setResetNonce(function (value) {
+          return value + 1;
+        });
+      }
+
+      function handleInlineCancel() {
+        setInlineEdit(null);
+      }
+
+      function handleShapeBoxCommit(box, mode) {
+        if (!box || !editModeRef.current) return;
+        var selection = selectedShapeRef.current;
+        if (!selection) return;
+        var current = findViewShape(viewSlidesRef.current, selection.slideIndex, selection.shapeId);
+        if (!current) return;
+        var shapeOp = { op: 'setShapeBox', slideIndex: selection.slideIndex, shapeId: selection.shapeId };
+        var changed = false;
+        ['left', 'top', 'width', 'height'].forEach(function (field) {
+          var value = Math.round(Number(box[field]));
+          if (!Number.isFinite(value) || value < 0) return;
+          if (value !== Math.round(Number(current[field]))) {
+            shapeOp[field] = value;
+            changed = true;
+          }
+        });
+        if (!changed) return;
+        if (shapeOp.width !== undefined && shapeOp.width < MIN_SHAPE_EMU) shapeOp.width = MIN_SHAPE_EMU;
+        if (shapeOp.height !== undefined && shapeOp.height < MIN_SHAPE_EMU) shapeOp.height = MIN_SHAPE_EMU;
+        appendPendingOps([shapeOp]);
+        setResetNonce(function (value) {
+          return value + 1;
+        });
+      }
+
+      function handleGestureState(active) {
+        setCanvasGesture(!!active);
+      }
+
+      function toggleAutosave() {
+        setAutosave(function (previous) {
+          var next = !previous;
+          writeAutosavePref(next);
+          return next;
+        });
+      }
+
+      function openNative() {
+        if (nativeBusy || busyRef.current) return;
+        var currentDeck = deckRef.current;
+        var sid = sessionIdRef.current;
+        var deckPath = currentDeck && currentDeck.path ? currentDeck.path : pathRef.current;
+        if (!currentDeck || !sid || !deckPath) return;
+        if (currentDeck.writeAllowed === false) {
+          showToast('error', t('edit.previewOnly'));
+          return;
+        }
+        function post() {
+          setNativeBusy(true);
+          busyRef.current = true;
+          jsonFetch('open-native', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ sessionId: sid, path: deckPath }),
+          }).then(function (result) {
+            if (!result.ok || !result.data || result.data.ok !== true) throw normalizeError(result);
+            showToast('success', t('edit.openNativeDone'));
+          }).catch(function (error) {
+            var normalized = error && error.code ? error : normalizeError(error);
+            if (normalized.code === 'http-404' || normalized.code === 'not-implemented') {
+              showToast('error', t('edit.openNativeUnsupported'));
+            } else {
+              showToast('error', t('edit.openNativeFailed', { message: normalized.message || t('edit.unknown') }));
+            }
+          }).then(function () {
+            busyRef.current = false;
+            setNativeBusy(false);
+          });
+        }
+        var extra = formDiffRef.current ? formDiffRef.current() || [] : [];
+        var ops = pendingOpsRef.current.concat(extra);
+        if (ops.length > 0) {
+          saveAll({ silent: true, onSuccess: post });
+        } else {
+          post();
+        }
+      }
+
+      function clearDraft() {
+        pendingOpsRef.current = EMPTY_LIST;
+        setPendingOps(EMPTY_LIST);
+        setConflict(null);
+        autoSaveBlockedRef.current = false;
+        setResetNonce(function (value) {
+          return value + 1;
+        });
+        showToast('success', t('edit.draftCleared'));
+      }
+
+      function reloadDiscardingDraft() {
+        setConflict(null);
+        pendingOpsRef.current = EMPTY_LIST;
+        setPendingOps(EMPTY_LIST);
+        setSelectedShape(null);
+        setInlineEdit(null);
+        autoSaveBlockedRef.current = false;
+        retryDeck();
+      }
+
+      function doExitEdit() {
+        setEditMode(false);
+        setSelectedShape(null);
+        setInlineEdit(null);
+        setCanvasGesture(false);
+        pendingOpsRef.current = EMPTY_LIST;
+        setPendingOps(EMPTY_LIST);
+        setConflict(null);
+        setDirtyDialog(null);
+        autoSaveBlockedRef.current = false;
+      }
+
+      function requestExitEdit(followUp) {
+        var formOps = formDiffRef.current ? formDiffRef.current() || [] : [];
+        var total = pendingOpsRef.current.length + formOps.length;
+        if (total > 0) {
+          setDirtyDialog({ count: total, followUp: followUp || null });
+          return;
+        }
+        doExitEdit();
+        if (typeof followUp === 'function') followUp();
+      }
+      requestExitRef.current = requestExitEdit;
+
+      function enterEditMode() {
+        if (editModeRef.current) return;
+        var currentDeck = deckRef.current;
+        if (!currentDeck) return;
+        if (currentDeck.writeAllowed === false) {
+          showToast('error', t('edit.previewOnly'));
+          return;
+        }
+        if (draft && String(draft.body || '').trim()) {
+          showToast('error', t('edit.finishAnnotation'));
+          return;
+        }
+        setAnnotate(false);
+        setDraft(null);
+        setSelectedShape(null);
+        setPendingOps(EMPTY_LIST);
+        setConflict(null);
+        setEditMode(true);
+        setDrawerPref(true);
+      }
+
+      function toggleEditMode() {
+        if (editModeRef.current) requestExitEdit(null);
+        else enterEditMode();
+      }
+
+      function toggleAnnotateMode() {
+        if (annotate) {
+          setAnnotate(false);
+          setDraft(null);
+          return;
+        }
+        if (editModeRef.current) {
+          requestExitEdit(function () {
+            setAnnotate(true);
+          });
+          return;
+        }
+        setAnnotate(true);
+      }
+
+      function dirtySaveAndExit() {
+        var followUp = dirtyDialog && typeof dirtyDialog.followUp === 'function' ? dirtyDialog.followUp : null;
+        saveAll({
+          onSuccess: function () {
+            doExitEdit();
+            if (followUp) followUp();
+          },
+        });
+      }
+
+      function dirtyDiscardAndExit() {
+        var followUp = dirtyDialog && typeof dirtyDialog.followUp === 'function' ? dirtyDialog.followUp : null;
+        doExitEdit();
+        if (followUp) followUp();
+      }
+
+      function dirtyCancel() {
+        setDirtyDialog(null);
+      }
+
+      // ---- 渲染 ----
+      var repairKey = repairNotice ? repairNotice.key : null;
+      var repairVisible = !!repairNotice && (repairNotice.repaired + repairNotice.orphaned > 0) &&
+        !(repairKey && dismissedRepairs[repairKey]);
+      var refreshError = deckState.error;
+      var refreshErrorKey = refreshError ? String(refreshError.code) + ':' + String(refreshError.message) : null;
+      var refreshErrorVisible = !!refreshError && !!deck && dismissedRefresh !== refreshErrorKey;
+
+      var loadingView = h('div', { className: 'wb-root', 'data-ppt-workbench': 'body', 'data-state': 'loading', ref: rootRef },
+        h('div', { className: 'wb-center' },
+          h('div', { className: 'wb-spinner', 'aria-hidden': true }),
+          h('div', { className: 'wb-centerTitle' }, t('status.loading')),
+          h('div', { className: 'wb-centerText' }, t('status.loadingHint')),
+          h('div', { className: 'wb-skeleton', 'aria-hidden': true }),
+          h('div', { className: 'wb-skeleton', 'aria-hidden': true, style: { width: 'min(340px, 100%)' } }),
+          h('div', { className: 'wb-path' }, path || String(props.resourceAddress || '')),
+        ),
+      );
+
+      if (deckState.status !== 'ready' || !deck) {
+        if (deckState.status === 'error' && deckState.error) {
+          var loadError = deckState.error;
+          return h('div', { className: 'wb-root', 'data-ppt-workbench': 'body', 'data-state': 'error', ref: rootRef },
+            h('div', { className: 'wb-center' },
+              h('div', { className: 'wb-errorIcon', 'aria-hidden': true }, '!'),
+              h('div', { className: 'wb-centerTitle' }, t('error.title')),
+              h('div', { className: 'wb-centerText' }, loadError.message || t('error.generic')),
+              h('div', { className: 'wb-centerHint' }, errorHint(loadError, t)),
+              h('div', { className: 'wb-row', style: { justifyContent: 'center' } },
+                h('span', { className: 'wb-code' }, t('error.code', { code: loadError.code || 'unknown' })),
+              ),
+              h('button', {
+                type: 'button',
+                className: 'wb-btn wb-primary',
+                onClick: retryDeck,
+              }, t('error.retry')),
+              h('div', { className: 'wb-path' }, path || ''),
+            ),
+          );
+        }
+        return loadingView;
+      }
+
+      var banners = [];
+      if (conflict) {
+        banners.push(h(NoticeBanner, {
+          key: 'edit-conflict',
+          kind: 'error',
+          text: t('edit.conflict') +
+            (conflict.currentSha ? ' ' + t('edit.version', { version: shaShort(conflict.currentSha) }) : '') +
+            (conflict.conflictCopy ? ' ' + t('edit.conflictCopy', { name: String(conflict.conflictCopy).split('/').pop() }) : ''),
+          lang: lang,
+          actions: [{ key: 'reload', label: t('edit.reload'), onClick: reloadDiscardingDraft }],
+          onDismiss: function () {
+            setConflict(null);
+          },
+        }));
+      }
+      if (repairVisible) {
+        var repairText = repairNotice.orphaned > 0 && repairNotice.repaired > 0
+          ? t('banner.repair', { repaired: repairNotice.repaired, orphaned: repairNotice.orphaned })
+          : repairNotice.orphaned > 0
+            ? t('banner.repairOrphanedOnly', { orphaned: repairNotice.orphaned })
+            : t('banner.repairedOnly', { repaired: repairNotice.repaired });
+        banners.push(h(NoticeBanner, {
+          key: 'repair',
+          kind: 'warn',
+          text: repairText,
+          lang: lang,
+          onDismiss: function () {
+            setDismissedRepairs(function (previous) {
+              var next = Object.assign({}, previous);
+              next[repairKey] = true;
+              return next;
+            });
+          },
+        }));
+      }
+      if (refreshErrorVisible) {
+        banners.push(h(NoticeBanner, {
+          key: 'refresh-error',
+          kind: 'error',
+          text: t('banner.refreshFailed', { message: refreshError.message || refreshError.code || '' }),
+          lang: lang,
+          actionLabel: t('error.retry'),
+          onAction: retryDeck,
+          onDismiss: function () {
+            setDismissedRefresh(refreshErrorKey);
+          },
+        }));
+      }
+      if (deck.writeAllowed === false) {
+        banners.push(h(NoticeBanner, {
+          key: 'outside',
+          kind: 'warn',
+          text: t('banner.outside'),
+          lang: lang,
+        }));
+      }
+
+      var currentPageClamped = Math.min(Math.max(1, currentPage), Math.max(1, total));
+      var draftPage = draft ? draft.page : null;
+      var truncatedNote = truncated && slideCount > renderedPages
+        ? h('div', { className: 'wb-pageTruncated' },
+          t('canvas.truncatedNote', { rendered: renderedPages, rest: slideCount - renderedPages }))
+        : null;
+
+      return h('div', { className: 'wb-root', 'data-ppt-workbench': 'body', 'data-state': 'ready', ref: rootRef },
+        deckState.refreshing || saving ? h('div', { className: 'wb-progress', 'aria-hidden': true }) : null,
+        banners,
+        h(Toolbar, {
+          lang: lang,
+          currentPage: currentPageClamped,
+          total: Math.max(1, slideCount),
+          pageCount: Math.max(1, total),
+          refreshing: !!deckState.refreshing || saving,
+          zoom: zoom,
+          annotate: annotate,
+          edit: editMode,
+          canAnnotate: writeAllowed && !busyOp && !saving,
+          canEdit: canEdit && !saving && !busyOp,
+          canSend: openCount > 0 && !busyOp,
+
+          missingFonts: missingFonts,
+          truncated: truncated,
+          renderedPages: renderedPages,
+          railOpen: railOpen,
+          onPrev: function () {
+            if (currentPageClamped > 1) selectPage(currentPageClamped - 1);
+          },
+          onNext: function () {
+            if (currentPageClamped < total) selectPage(currentPageClamped + 1);
+          },
+          onZoomFit: function () {
+            setZoom('fit');
+          },
+          onZoomActual: function () {
+            setZoom('actual');
+          },
+          onToggleAnnotate: toggleAnnotateMode,
+          onToggleEdit: toggleEditMode,
+          onToggleRail: function () {
+            setRailPref(!railOpen);
+          },
+          onSend: sendAnnotations,
+        }),
+        editMode
+          ? h(EditBar, {
+            lang: lang,
+            currentPage: currentPageClamped,
+            pageCount: Math.max(1, total),
+            history: historyState,
+            pendingCount: pendingCount,
+            formDirty: formDirty,
+            saving: saving,
+            readonly: !writeAllowed,
+            autosave: autosave,
+            saveStatus: saveStatusText,
+            nativeBusy: nativeBusy,
+            onToggleAutosave: toggleAutosave,
+            onOpenNative: openNative,
+            onPageAction: runPageOp,
+            onUndo: function () {
+              undoRedo('undo');
+            },
+            onRedo: function () {
+              undoRedo('redo');
+            },
+            onSave: function () {
+              saveAll({});
+            },
+            onExit: function () {
+              requestExitEdit(null);
+            },
+          })
+          : annotate
+            ? h('div', { className: 'wb-annotateHint' },
+              h('span', null, tr('annotate.hint')),
+            )
+            : null,
+        h('div', { className: 'wb-main' },
+          railOpen
+            ? h(ThumbRail, {
+              lang: lang,
+              pages: pages,
+              images: images,
+              currentPage: currentPageClamped,
+              openCounts: openCountsByPage,
+              railRef: railRef,
+              onNeedPage: ensurePage,
+              onSelectPage: selectPage,
+            })
+            : null,
+          h('div', {
+            className: 'wb-canvas' + (annotate ? ' wb-annotating' : editMode ? ' wb-editing' : ''),
+            ref: setCanvasRef,
+            'data-wb-canvas': '',
+            role: 'region',
+            'aria-label': t('canvas.aria'),
+            tabIndex: 0,
+            onScroll: handleCanvasScroll,
+            onKeyDown: function (event) {
+              if (event.key === 'PageDown') {
+                event.preventDefault();
+                if (currentPageClamped < total) selectPage(currentPageClamped + 1);
+              } else if (event.key === 'PageUp') {
+                event.preventDefault();
+                if (currentPageClamped > 1) selectPage(currentPageClamped - 1);
+              } else if (event.key === 'Home') {
+                event.preventDefault();
+                selectPage(1);
+              } else if (event.key === 'End') {
+                event.preventDefault();
+                if (total > 0) selectPage(total);
+              }
+            },
+          },
+            pages.length === 0
+              ? h('div', { className: 'wb-empty' }, t('canvas.empty'))
+              : h('div', { className: 'wb-pages' },
+                pages.map(function (page) {
+                  return h(PageView, {
+                    key: (sha || 'deck') + ':' + page.page,
+                    page: page,
+                    image: images[page.page],
+                    zoom: zoom,
+                    fitWidth: fitWidth,
+                    eager: page.page <= EAGER_PAGES,
+                    lang: lang,
+                    busy: busyOp,
+                    annotations: annotationsByPage[page.page - 1] || EMPTY_LIST,
+                    selectedId: selectedId,
+                    slideWidthEmu: slideWidthEmu,
+                    slideHeightEmu: slideHeightEmu,
+                    draft: draftPage === page.page ? draft : null,
+                    scrollRootRef: canvasRef,
+                    onPageNode: registerPageNode,
+                    onNeedPage: ensurePage,
+                    onRetryPage: retryPage,
+                    annotate: annotate,
+                    editMode: editMode,
+                    slide: viewSlides[page.page - 1] || slides[page.page - 1],
+                    selectedShapeBox: selectedShapeView && selectedShape && selectedShape.slideIndex === page.page - 1
+                      ? selectedShapeBox
+                      : null,
+                    onSelectShape: handleSelectShape,
+                    shapeEditable: selectedShapeEditable,
+                    inlineEdit: inlineEdit && inlineEdit.slideIndex === page.page - 1 ? inlineEdit : null,
+                    onInlineStart: handleInlineStart,
+                    onInlineChange: handleInlineChange,
+                    onInlineCommit: handleInlineCommit,
+                    onInlineCancel: handleInlineCancel,
+                    onShapeBoxCommit: handleShapeBoxCommit,
+                    onGestureState: handleGestureState,
+                    selectedAnnotation: (annotationsByPage[page.page - 1] || []).filter(function (annotation) { return annotation.id === selectedId; })[0] || null,
+                    onPageTap: handlePageTap,
+                    onMarquee: handlePageMarquee,
+                    onSelectAnnotation: selectAnnotation,
+                    onDraftChange: changeDraftBody,
+                    onCancelDraft: cancelDraft,
+                    onSaveDraft: saveDraft,
+                  });
+                }),
+                truncatedNote,
+              ),
+          ),
+        ),
+        editMode
+          ? h(ShapeInspector, {
+            lang: lang,
+            open: drawerOpen,
+            onToggleOpen: function () {
+              setDrawerPref(!drawerOpen);
+            },
+            shape: selectedShapeView,
+            slideIndex: currentSlideIndex,
+            notes: currentNotes,
+            resetKey: resetKey,
+            pendingCount: pendingCount,
+            saving: saving,
+            readonly: !writeAllowed,
+            diffRef: formDiffRef,
+            onFormDirty: setFormDirtyCount,
+            onAutoDraft: appendPendingOps,
+            onClearDraft: clearDraft,
+          })
+          : h(AnnotationDrawer, {
+            lang: lang,
+            annotations: annotations,
+            slides: slides,
+            counts: counts,
+            filter: filter,
+            selectedId: selectedId,
+            busy: busyOp,
+            open: drawerOpen,
+            onFilter: setFilter,
+            onToggleOpen: function () {
+              setDrawerPref(!drawerOpen);
+            },
+            onSelect: selectAnnotation,
+            onResolve: resolveAnnotation,
+            onReopen: reopenAnnotation,
+            onDelete: deleteAnnotation,
+            onReply: replyAnnotation,
+          }),
+        dirtyDialog
+          ? h(DirtyDialog, {
+            lang: lang,
+            count: dirtyDialog.count,
+            saving: saving,
+            onCancel: dirtyCancel,
+            onDiscard: dirtyDiscardAndExit,
+            onSave: dirtySaveAndExit,
+          })
+          : null,
+        toast ? h(ToastView, { toast: toast, lang: lang, onClose: closeToast }) : null,
+      );
+    }
+
+    // ------------------------------------------------------------------
+    // 注册
+    // ------------------------------------------------------------------
+    return {
+      inject: ['slots', 'locale', 'documentPreviews'],
+      apply: function (ctx) {
+        runtime.locale = ctx.locale;
+
+        ctx.effect(function () {
+          var dispose = null;
+          try {
+            dispose = ctx.locale.register(NS, { zh: ZH, en: EN });
+          } catch (error) {
+            dispose = null;
+          }
+          return function () {
+            try {
+              if (typeof dispose === 'function') dispose();
+            } catch (error) {
+              /* ignore */
+            }
+          };
+        }, 'dsh-ppt-workbench: dictionaries');
+
+        ctx.effect(function () {
+          return injectStyles();
+        }, 'dsh-ppt-workbench: styles');
+
+        ctx.effect(function () {
+          return ctx.documentPreviews.register({
+            id: RENDERER_ID,
+            extensions: ['pptx'],
+            binaryExtensions: ['pptx'],
+            priority: 'extension',
+            title: function () {
+              return tr('viewer.title');
+            },
+            loading: 'renderer',
+            wrap: false,
+          });
+        }, 'dsh-ppt-workbench: renderer metadata');
+
+        ctx.effect(function () {
+          return ctx.slots.inject('sidebar.right.tab.document', function () {
+            return ctx.slots.register(
+              { name: 'sidebar.right.tab.document', key: RENDERER_ID, locale: NS },
+              WorkbenchBody,
+            );
+          });
+        }, 'dsh-ppt-workbench: renderer body');
+      },
+    };
+  },
+});

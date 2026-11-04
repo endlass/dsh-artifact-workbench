@@ -1,0 +1,5 @@
+# dsh-ppt-workbench 挂载声明
+# P0：保留右侧栏文档预览宿主，给 .pptx 叠加工作台 renderer。
+- insert:
+    - id: dsh-ppt-workbench
+      name: dsh-ppt-workbench

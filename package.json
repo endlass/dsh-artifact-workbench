@@ -1,0 +1,51 @@
+{
+  "name": "dsh-ppt-workbench",
+  "version": "0.3.0",
+  "private": true,
+  "description": "PPT 交互式工作台：在右侧栏文档预览中浏览、批注 dsh 生成的 .pptx，并把批注发回给 dsh",
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "lib/",
+    "test/",
+    "locale/*.json",
+    "icon.svg",
+    "cordis.patch.yml",
+    "README.md",
+    "CONTRACT.md",
+    "EDIT-CONTRACT.md",
+    "lib/edit_ops.py",
+    "EDIT-UX-CONTRACT.md",
+    "ROADMAP.md"
+  ],
+  "engines": {
+    "node": ">=22",
+    "dsh": ">=0.2.0-rc.2 <0.3.0"
+  },
+  "scripts": {
+    "check": "node --check index.js && node --check client.js",
+    "test": "node test/host-smoke.mjs && node test/annotation-multi.mjs && node test/annotation-concurrency.mjs && node test/edit-smoke.mjs && node test/edit-http.mjs"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-sidebar-documentpreview",
+        "@deepseek-ai/dsh-client-ui-sidebar-right"
+      ]
+    }
+  }
+}
