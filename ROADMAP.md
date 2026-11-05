@@ -86,8 +86,13 @@ interface ArtifactAdapter {
 4. H5 页面脚本：默认禁止；图表型报告走打印 PDF。
 5. 是否保留内置 PDF/HTML 预览作为可切换入口。
 
-## 5. 当前进度
+## 5. 当前进度（2026-11-05 P2.0/P2.1）
 
-- 已完成：PPTX 浏览/批注/结构化编辑/直接编辑/自动保存/冲突与历史；阶段总结与规划已归档（docs 中心 + 飞书）；灵感池 IDEA-025 已更新范围。
-- 未开始：P2.0 骨架、PDF、H5、流程图、发布工程。
-- 现有插件仍是 v0.3.0，本规划不改变当前版本行为。
+- 已完成：PPTX 全部 P0/P1/P1.1 能力；`lib/artifacts/` adapter registry（pptx/pdf）；批注 schema v2 + v1 迁移；PDF 页图渲染、page anchor、只读保护、Client PDF 只读批注模式；CHANGELOG/PUBLISHING/P2 契约。
+- 测试：Host 7 个 test（含 PDF）、Client harness test-p2 41 + P1.1 46 + P1 69 + P0/缩略图全过。
+- P2.2 H5 报告：已完成 `.html/.htm` → 本机 Chrome headless PDF 快照 → PDF 页批注；真实 H5 动态交互不保留。
+- P2.3/P3 流程图：drawio 多页渲染（≤30 页）+ 外部编辑；Mermaid 页图批注 + 面板内源码编辑（CAS + 原子写 + 回滚）。
+- P4.1 已完成：drawio 内嵌编辑器（vendor Apache-2.0 webapp、同源 webServer、拖拽编辑/保存）。
+- 未做：H5 iframe 批注（P4.2）、发布（包名/许可证待定）、PDF 文本摘录。
+- P4.2 已完成：drawio 节点级批注（cell id 锚点、面板、发送 dsh）。
+- 当前版本 v0.9.0。

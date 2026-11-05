@@ -41,7 +41,7 @@ try {
     ),
   );
   const raced = await loadAnnotationFile(deck, sha);
-  assert.equal(raced.schema, 'dsh-ppt-annotation@1');
+  assert.equal(raced.schema, 'dsh-artifact-annotation@2');
   console.log('[ok] concurrent writeJsonFile x40');
 
   // 2) 并发 readAnnotations 修复写：全部 resolve，无 ENOENT

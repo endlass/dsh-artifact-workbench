@@ -226,6 +226,103 @@ window.__ModuleLoader__.load({
       'edit.notSupported': '当前 Host 尚未提供编辑能力（/edit 不可用）。',
       'edit.finishAnnotation': '有未保存的批注内容，请先保存或取消。',
       'edit.previewOnly': '该文件不在会话工作区内，只能预览。',
+      'toolbar.pdfBadge': 'PDF · 只读批注',
+      'toolbar.htmlBadge': 'H5 · 只读批注',
+      'toolbar.drawioBadge': 'drawio · 只读批注',
+      'toolbar.mermaidBadge': 'Mermaid · 只读批注',
+      'toolbar.editSource': '编辑源码',
+      'toolbar.editSourceTitle': '编辑 Mermaid 源码并重新渲染',
+      'drawio.loading': '正在加载编辑器…',
+      'drawio.saving': '保存中…',
+      'drawio.saved': '已保存',
+      'drawio.savedAt': '已保存 {time}',
+      'drawio.loadFailed': '加载编辑器失败：{message}',
+      'drawio.saveFailed': '保存失败：{message}',
+      'drawio.editorBadge': 'drawio 编辑器',
+      'drawio.annotate': '批注',
+      'drawio.annotateTitle': '选中节点后添加批注',
+      'drawio.panelTitle': '节点批注',
+      'drawio.panelClose': '关闭批注面板',
+      'drawio.noSelection': '请先在画布中选中节点',
+      'drawio.selected': '已选中：{label}',
+      'drawio.selectedId': '节点 {id}',
+      'drawio.placeholder': '写下对这个节点的修改意见…',
+      'drawio.add': '添加批注',
+      'drawio.adding': '正在添加…',
+      'drawio.empty': '还没有节点批注。选中节点后可添加。',
+      'drawio.selectHint': '点击条目会在编辑器中定位节点',
+      'drawio.noLabel': '未命名节点',
+      'drawio.orphaned': '节点可能已被删除',
+      'drawio.annotationSaved': '批注已添加。',
+      'drawio.annotationFailed': '添加批注失败：{message}',
+      'drawio.sendTitle': '发送未解决的节点批注给 dsh',
+      'send.drawioHeader': '请按以下节点批注修改 `{name}`（共 {count} 条）：',
+      'send.drawioLine': '{index}. 节点「{label}」(cell {cellId}): {body}',
+
+      'html.badge': 'H5 · 原页批注',
+      'html.annotateMode': '批注模式',
+      'html.annotateOn': '退出批注模式，恢复页面交互',
+      'html.annotateOff': '开启批注模式：点击页面元素添加批注',
+      'html.panelTitle': '网页批注',
+      'html.panelClose': '关闭批注面板',
+      'html.panelShow': '打开批注面板',
+      'html.loading': '正在加载页面…',
+      'html.loadFailed': '加载页面失败：{message}',
+      'html.retry': '重试',
+      'html.noDraft': '在批注模式下点击页面元素',
+      'html.draft': '已选元素：{target}',
+      'html.placeholder': '写下对这个元素的修改意见…',
+      'html.add': '添加批注',
+      'html.adding': '正在添加…',
+      'html.empty': '还没有网页批注。开启批注模式后点击元素即可添加。',
+      'html.selectHint': '点击条目会滚动到对应位置',
+      'html.wholePage': '页面整体',
+      'html.annotationSaved': '批注已添加。',
+      'html.sendTitle': '发送未解决的网页批注给 dsh',
+      'send.htmlHeader': '请按以下网页元素批注修改 `{name}`（共 {count} 条）：',
+      'send.htmlLine': '{index}. 网页元素「{target}」: {body}',
+      'drawio.selectedMany': '已选中 {count} 个元素（{label} 等）',
+      'drawio.wholeDiagram': '整张图（未选中元素）',
+      'drawio.groupCount': '{count} 个元素',
+      'drawio.stale': '文件已被外部修改，保存被拒绝；编辑器内容仍在，可重新加载后再保存。',
+      'drawio.reload': '重新加载文件',
+      'drawio.editorTitle': 'drawio 编辑器',
+      'drawio.retry': '重试',
+      'source.title': 'Mermaid 源码',
+      'source.aria': 'Mermaid 源码编辑器',
+      'source.placeholder': '在这里编辑 Mermaid 源码…',
+      'source.loading': '正在加载源码…',
+      'source.save': '保存源码',
+      'source.saving': '保存中…',
+      'source.saved': '源码已保存，正在刷新渲染。',
+      'source.cancel': '取消',
+      'source.close': '关闭源码面板',
+      'source.dirty': '有未保存修改',
+      'source.hint': '⌘/Ctrl+S 保存 · 取消会丢弃未保存修改',
+      'source.saveFailed': '保存失败：{message}',
+      'source.loadFailed': '无法加载源码：{message}',
+      'source.notSupported': '当前文件不支持源码编辑。',
+      'source.stale': '源码已被外部修改，本地文本未丢失；重新加载会丢弃本地修改。',
+      'source.staleTitle': '源码冲突',
+      'source.reload': '重新加载源码',
+      'source.discardTitle': '放弃未保存的源码修改？',
+      'source.discardBody': '关闭面板会丢失当前未保存的文本。',
+      'source.discard': '放弃并关闭',
+      'source.keepEditing': '继续编辑',
+
+      'toolbar.openDrawio': '在 draw.io 中编辑',
+      'toolbar.openDrawioTitle': '用 draw.io 打开流程图，保存后工作台会刷新',
+      'toolbar.openDrawioDone': '已在 draw.io 打开，保存后会刷新。',
+      'toolbar.openNativeFailed': '无法打开外部编辑器：{message}',
+      'annotate.hintPdf': '批注模式：点击页面添加位置批注 · 拖拽框选区域 · Esc 退出',
+      'compose.pdfPoint': '页面位置批注',
+      'compose.pdfArea': '页面区域批注',
+      'annotation.pdfPoint': '页面位置',
+      'annotation.pdfArea': '页面区域',
+      'send.pdfQuote': '原文摘录：「{quote}」',
+      'send.linePdfPoint': '{index}. 第 {page} 页（页面位置 {x}%、{y}%）：{body}',
+      'send.linePdfArea': '{index}. 第 {page} 页（页面区域 {x1}%–{x2}%、{y1}%–{y2}%）：{body}',
+      'edit.pdfReadonly': 'PDF 为只读批注模式，不能编辑。',
       'edit.unknown': '未知错误',
       'edit.draftCleared': '已清空草稿。',
       'edit.saveSaving': '保存中…',
@@ -436,6 +533,103 @@ window.__ModuleLoader__.load({
       'edit.notSupported': 'Editing is not available in this Host yet (/edit is missing).',
       'edit.finishAnnotation': 'Finish or cancel the annotation draft first.',
       'edit.previewOnly': 'This file is outside the session workspace; preview only.',
+      'toolbar.pdfBadge': 'PDF · annotations only',
+      'toolbar.htmlBadge': 'H5 · annotations only',
+      'toolbar.drawioBadge': 'drawio · annotations only',
+      'toolbar.mermaidBadge': 'Mermaid · annotations only',
+      'toolbar.editSource': 'Edit source',
+      'toolbar.editSourceTitle': 'Edit the Mermaid source and re-render',
+      'drawio.loading': 'Loading editor…',
+      'drawio.saving': 'Saving…',
+      'drawio.saved': 'Saved',
+      'drawio.savedAt': 'Saved {time}',
+      'drawio.loadFailed': 'Could not load the editor: {message}',
+      'drawio.saveFailed': 'Save failed: {message}',
+      'drawio.editorBadge': 'drawio editor',
+      'drawio.annotate': 'Annotate',
+      'drawio.annotateTitle': 'Select a node, then add an annotation',
+      'drawio.panelTitle': 'Node annotations',
+      'drawio.panelClose': 'Close annotations panel',
+      'drawio.noSelection': 'Select a node on the canvas first',
+      'drawio.selected': 'Selected: {label}',
+      'drawio.selectedId': 'Node {id}',
+      'drawio.placeholder': 'What should change about this node…',
+      'drawio.add': 'Add annotation',
+      'drawio.adding': 'Adding…',
+      'drawio.empty': 'No node annotations yet. Select a node to add one.',
+      'drawio.selectHint': 'Click an entry to locate the node in the editor',
+      'drawio.noLabel': 'Unnamed node',
+      'drawio.orphaned': 'The node may have been deleted',
+      'drawio.annotationSaved': 'Annotation added.',
+      'drawio.annotationFailed': 'Could not add the annotation: {message}',
+      'drawio.sendTitle': 'Send open node annotations to dsh',
+      'send.drawioHeader': 'Please update `{name}` according to these node annotations ({count} total):',
+      'send.drawioLine': '{index}. Node "{label}" (cell {cellId}): {body}',
+
+      'html.badge': 'H5 · page annotations',
+      'html.annotateMode': 'Annotate',
+      'html.annotateOn': 'Exit annotation mode and restore page interaction',
+      'html.annotateOff': 'Turn on annotation mode and click a page element',
+      'html.panelTitle': 'Page annotations',
+      'html.panelClose': 'Close annotations panel',
+      'html.panelShow': 'Open annotations panel',
+      'html.loading': 'Loading page…',
+      'html.loadFailed': 'Could not load the page: {message}',
+      'html.retry': 'Retry',
+      'html.noDraft': 'Click a page element in annotation mode',
+      'html.draft': 'Selected element: {target}',
+      'html.placeholder': 'What should change about this element…',
+      'html.add': 'Add annotation',
+      'html.adding': 'Adding…',
+      'html.empty': 'No page annotations yet. Turn on annotation mode and click an element.',
+      'html.selectHint': 'Click an entry to scroll to its position',
+      'html.wholePage': 'Whole page',
+      'html.annotationSaved': 'Annotation added.',
+      'html.sendTitle': 'Send open page annotations to dsh',
+      'send.htmlHeader': 'Please update `{name}` according to these page annotations ({count} total):',
+      'send.htmlLine': '{index}. Page element "{target}": {body}',
+      'drawio.selectedMany': '{count} elements selected ({label} etc.)',
+      'drawio.wholeDiagram': 'Whole diagram (no selection)',
+      'drawio.groupCount': '{count} elements',
+      'drawio.stale': 'The file changed on disk and the save was rejected. Your editor content is kept; reload before saving.',
+      'drawio.reload': 'Reload file',
+      'drawio.editorTitle': 'drawio editor',
+      'drawio.retry': 'Retry',
+      'source.title': 'Mermaid source',
+      'source.aria': 'Mermaid source editor',
+      'source.placeholder': 'Edit the Mermaid source here…',
+      'source.loading': 'Loading source…',
+      'source.save': 'Save source',
+      'source.saving': 'Saving…',
+      'source.saved': 'Source saved; re-rendering.',
+      'source.cancel': 'Cancel',
+      'source.close': 'Close source panel',
+      'source.dirty': 'Unsaved changes',
+      'source.hint': '⌘/Ctrl+S saves · Cancel discards unsaved changes',
+      'source.saveFailed': 'Save failed: {message}',
+      'source.loadFailed': 'Could not load the source: {message}',
+      'source.notSupported': 'Source editing is not available for this file.',
+      'source.stale': 'The source changed outside this panel; your text is kept locally. Reloading discards local changes.',
+      'source.staleTitle': 'Source conflict',
+      'source.reload': 'Reload source',
+      'source.discardTitle': 'Discard unsaved source changes?',
+      'source.discardBody': 'Closing the panel will lose the unsaved text.',
+      'source.discard': 'Discard & close',
+      'source.keepEditing': 'Keep editing',
+
+      'toolbar.openDrawio': 'Edit in draw.io',
+      'toolbar.openDrawioTitle': 'Open the diagram in draw.io; save there and the workbench refreshes',
+      'toolbar.openDrawioDone': 'Opened in draw.io; save there and the workbench refreshes.',
+      'toolbar.openNativeFailed': 'Could not open the external editor: {message}',
+      'annotate.hintPdf': 'Annotation mode: click the page to add a point note · drag to select an area · Esc to exit',
+      'compose.pdfPoint': 'Page point annotation',
+      'compose.pdfArea': 'Page area annotation',
+      'annotation.pdfPoint': 'Page point',
+      'annotation.pdfArea': 'Page area',
+      'send.pdfQuote': 'Quote: "{quote}"',
+      'send.linePdfPoint': '{index}. Page {page} (point {x}%, {y}%): {body}',
+      'send.linePdfArea': '{index}. Page {page} (area {x1}%–{x2}%, {y1}%–{y2}%): {body}',
+      'edit.pdfReadonly': 'PDF is annotations-only and cannot be edited.',
       'edit.unknown': 'Unknown error',
       'edit.draftCleared': 'Draft cleared.',
       'edit.saveSaving': 'Saving…',
@@ -540,6 +734,17 @@ window.__ModuleLoader__.load({
         return new URL(API_PREFIX + path, document.baseURI).href;
       } catch (error) {
         return '/' + API_PREFIX + path;
+      }
+    }
+
+    function drawioEditorUrl() {
+      var lang = String(language()).indexOf('zh') === 0 ? 'zh' : 'en';
+      var relative = 'plugins/dsh-ppt-workbench/editor/index.html?embed=1&proto=json&spin=1&lang=' + lang +
+        '&noSaveBtn=0&noExitBtn=1&saveAndExit=0';
+      try {
+        return new URL(relative, document.baseURI).href;
+      } catch (error) {
+        return '/' + relative;
       }
     }
 
@@ -1247,6 +1452,38 @@ window.__ModuleLoader__.load({
       '.wb-shapeSizeBadge{position:absolute;right:0;top:-18px;font-size:10px;line-height:16px;padding:0 5px;border-radius:3px;background:var(--dsw-alias-brand-primary,#4d6bfe);color:#fff;white-space:nowrap}',
       '.wb-saveStatus{font-size:10.5px;color:var(--dsw-alias-label-tertiary,#888);white-space:nowrap}',
       '.wb-inspectorAutoHint{font-size:10.5px;color:var(--dsw-alias-label-tertiary,#888);line-height:1.4}',
+      '.wb-drawioView{display:flex;flex-direction:column;width:100%;height:100%;min-height:0;background:var(--dsw-alias-bg-base,#fff)}',
+      '.wb-htmlView{display:flex;flex-direction:column;width:100%;height:100%;min-height:0;background:var(--dsw-alias-bg-base,#fff)}',
+      '.wb-htmlBar{flex:none;display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0;min-height:34px;padding:4px 10px;border-bottom:.5px solid var(--dsw-alias-border-l3,rgba(128,128,128,.3));font-size:11.5px;color:var(--dsw-alias-label-secondary,#555)}',
+      '.wb-htmlName{font-family:var(--dsw-alias-font-family-code,ui-monospace,SFMono-Regular,Menlo,monospace);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:46%;color:var(--dsw-alias-label-tertiary,#888)}',
+      '.wb-htmlContent{position:relative;flex:1 1 auto;min-height:0;display:flex;background:#fff}',
+      '.wb-htmlFrame{flex:1 1 auto;display:block;width:100%;height:100%;min-height:0;border:0;background:#fff}',
+      '.wb-htmlLoading{position:absolute;inset:0;z-index:6;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--dsw-alias-bg-base,#fff);color:var(--dsw-alias-label-secondary,#666);font-size:12px}',
+      '.wb-htmlPins{position:absolute;inset:0;z-index:8;overflow:hidden;pointer-events:none}',
+      '.wb-htmlPin{position:absolute;transform:translate(-50%,-50%);pointer-events:auto;display:flex;align-items:center;justify-content:center;width:22px;height:22px;padding:0;border-radius:999px;border:1px solid var(--dsw-alias-state-info-primary,#2f5bea);background:var(--dsw-alias-bg-layer-2,#fff);color:var(--dsw-alias-state-info-primary,#2f5bea);font-size:11px;line-height:1;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.22)}',
+      '.wb-htmlPin[data-selected="true"]{background:var(--dsw-alias-state-info-primary,#2f5bea);color:#fff}',
+      '.wb-htmlPanel{position:absolute;top:8px;right:10px;bottom:10px;z-index:20;width:min(320px,78%);display:flex;flex-direction:column;min-height:0;overflow:hidden;border-radius:var(--dsw-radius-lg,10px);border:.5px solid var(--dsw-alias-border-l2,rgba(128,128,128,.3));background:var(--dsw-alias-bg-layer-2,#fff);box-shadow:var(--dsw-elevation-prominent,0 10px 28px rgba(0,0,0,.22));color:var(--dsw-alias-label-primary,#1a1a1a);font-size:12px}',
+      '.wb-htmlPanelHead{flex:none;display:flex;align-items:center;gap:6px;padding:8px 10px;border-bottom:.5px solid var(--dsw-alias-border-l2,rgba(128,128,128,.25))}',
+      '.wb-htmlPanelBody{flex:1 1 auto;min-height:0;overflow-y:auto;padding:8px 10px;display:flex;flex-direction:column;gap:8px;scrollbar-width:thin}',
+      '.wb-htmlSelection{padding:6px 8px;border-radius:var(--dsw-radius-sm,6px);border:.5px solid var(--dsw-alias-border-l2,rgba(128,128,128,.3));background:var(--dsw-alias-bg-layer-1,#f7f7f8);color:var(--dsw-alias-label-secondary,#555);font-size:11.5px;line-height:1.5;word-break:break-word}',
+      '.wb-htmlFooter{flex:none;display:flex;align-items:center;gap:8px;padding:8px 10px;border-top:.5px solid var(--dsw-alias-border-l2,rgba(128,128,128,.25))}',
+      '.wb-drawioView{position:relative}',
+      '.wb-drawioPanel{position:absolute;top:44px;right:10px;bottom:12px;z-index:20;width:min(320px,78%);display:flex;flex-direction:column;min-height:0;overflow:hidden;border-radius:var(--dsw-radius-lg,10px);border:.5px solid var(--dsw-alias-border-l2,rgba(128,128,128,.3));background:var(--dsw-alias-bg-layer-2,#fff);box-shadow:var(--dsw-elevation-prominent,0 10px 28px rgba(0,0,0,.22));color:var(--dsw-alias-label-primary,#1a1a1a);font-size:12px}',
+      '.wb-drawioPanelHead{flex:none;display:flex;align-items:center;gap:6px;padding:8px 10px;border-bottom:.5px solid var(--dsw-alias-border-l2,rgba(128,128,128,.25))}',
+      '.wb-drawioPanelBody{flex:1 1 auto;min-height:0;overflow-y:auto;padding:8px 10px;display:flex;flex-direction:column;gap:8px;scrollbar-width:thin}',
+      '.wb-drawioSelection{padding:6px 8px;border-radius:var(--dsw-radius-sm,6px);border:.5px solid var(--dsw-alias-border-l2,rgba(128,128,128,.3));background:var(--dsw-alias-bg-layer-1,#f7f7f8);color:var(--dsw-alias-label-secondary,#555);font-size:11.5px;line-height:1.5;word-break:break-word}',
+      '.wb-drawioFooter{flex:none;display:flex;align-items:center;gap:8px;padding:8px 10px;border-top:.5px solid var(--dsw-alias-border-l2,rgba(128,128,128,.25))}',
+      '.wb-drawioBar{flex:none;display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0;min-height:34px;padding:4px 10px;border-bottom:.5px solid var(--dsw-alias-border-l3,rgba(128,128,128,.3));font-size:11.5px;color:var(--dsw-alias-label-secondary,#555)}',
+      '.wb-drawioName{font-family:var(--dsw-alias-font-family-code,ui-monospace,SFMono-Regular,Menlo,monospace);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:46%;color:var(--dsw-alias-label-tertiary,#888)}',
+      '.wb-drawioError{flex:none;display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 10px;border-bottom:.5px solid var(--dsw-alias-state-error-primary,rgba(217,45,32,.4));background:var(--dsw-alias-state-error-secondary,#fdecec);color:var(--dsw-alias-state-error-primary,#d92d20);font-size:11.5px;line-height:1.5}',
+      '.wb-drawioFrame{flex:1 1 auto;display:block;width:100%;min-height:0;border:0;background:#fff}',
+      '.wb-drawer[data-mode="source"]{max-height:62%}',
+      '.wb-sourceText{min-height:200px;max-height:44vh;white-space:pre;font-family:var(--dsw-alias-font-family-code,ui-monospace,SFMono-Regular,Menlo,monospace);font-size:12px;line-height:1.55;tab-size:2}',
+      '.wb-sourceMeta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:11px;color:var(--dsw-alias-label-tertiary,#888);min-width:0;line-height:1.5}',
+      '.wb-sourcePath{font-family:var(--dsw-alias-font-family-code,ui-monospace,SFMono-Regular,Menlo,monospace);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}',
+      '.wb-sourceError{padding:6px 8px;border-radius:var(--dsw-radius-sm,6px);border:.5px solid var(--dsw-alias-state-error-primary,rgba(217,45,32,.5));background:var(--dsw-alias-state-error-secondary,#fdecec);color:var(--dsw-alias-state-error-primary,#d92d20);font-size:11.5px;line-height:1.5;display:flex;align-items:center;gap:8px;flex-wrap:wrap}',
+      '.wb-sourceStale{padding:6px 8px;border-radius:var(--dsw-radius-sm,6px);border:.5px solid var(--dsw-alias-state-warn-secondary,rgba(217,119,6,.45));background:var(--dsw-alias-state-warn-tertiary,#fff7e6);color:var(--dsw-alias-label-primary,#1a1a1a);font-size:11.5px;line-height:1.5;display:flex;align-items:center;gap:8px;flex-wrap:wrap}',
+      '.wb-pointSel{position:absolute;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:999px;border:2px solid var(--dsw-alias-brand-primary,#4d6bfe);background:rgba(77,107,254,.14);pointer-events:none;z-index:3}',
       '.wb-shapeSelReadonly{border-style:dashed;border-color:var(--dsw-alias-state-warn-primary,#d97706);background:rgba(217,119,6,.08)}',
       '.wb-shapeBadge{position:absolute;right:0;top:-18px;font-size:10px;line-height:16px;padding:0 5px;border-radius:3px;background:var(--dsw-alias-state-warn-primary,#d97706);color:#fff;white-space:nowrap}',
       '.wb-modalMask{position:absolute;inset:0;z-index:70;display:flex;align-items:center;justify-content:center;padding:16px;background:var(--dsw-alias-bg-mask-2,rgba(0,0,0,.36))}',
@@ -1469,11 +1706,25 @@ window.__ModuleLoader__.load({
     // ------------------------------------------------------------------
     // 批注辅助
     // ------------------------------------------------------------------
+    function isPdfAnnotation(annotation) {
+      if (!annotation) return false;
+      var anchor = annotation.anchor || {};
+      return annotation.format === 'pdf' || anchor.kind === 'pdf-page';
+    }
+
     function annotationPoint(annotation, slideWidthEmu, slideHeightEmu) {
       if (!annotation) return null;
       var anchor = annotation.anchor || {};
       if (anchor.pointNorm && Number.isFinite(anchor.pointNorm.x) && Number.isFinite(anchor.pointNorm.y)) {
         return { x: clamp01(anchor.pointNorm.x), y: clamp01(anchor.pointNorm.y) };
+      }
+      var rectNorm = anchor.rectNorm;
+      if (rectNorm && Number.isFinite(rectNorm.x) && Number.isFinite(rectNorm.y) &&
+          Number.isFinite(rectNorm.w) && Number.isFinite(rectNorm.h)) {
+        return {
+          x: clamp01(rectNorm.x + rectNorm.w / 2),
+          y: clamp01(rectNorm.y + rectNorm.h / 2),
+        };
       }
       var bbox = anchor.bboxEmu;
       if (
@@ -1555,6 +1806,7 @@ window.__ModuleLoader__.load({
 
     function draftShapesSummary(draft, t) {
       if (!draft) return '';
+      if (draft.pdf) return draft.areaNorm ? t('compose.pdfArea') : t('compose.pdfPoint');
       var shapes = Array.isArray(draft.shapes) ? draft.shapes : [];
       if (shapes.length === 0) return draft.areaNorm ? t('compose.area') : t('compose.free');
       if (shapes.length === 1) return t('compose.shape', { name: shapes[0].name || '' });
@@ -1564,6 +1816,32 @@ window.__ModuleLoader__.load({
     function annotationBoxes(annotation, slideWidthEmu, slideHeightEmu) {
       if (!annotation || !annotation.anchor) return [];
       var anchor = annotation.anchor;
+      if (isPdfAnnotation(annotation)) {
+        var pdfRect = anchor.rectNorm;
+        if (pdfRect && Number.isFinite(pdfRect.x) && Number.isFinite(pdfRect.y) &&
+            Number.isFinite(pdfRect.w) && Number.isFinite(pdfRect.h)) {
+          return [{
+            area: true,
+            box: {
+              left: clamp01(pdfRect.x) * 100 + '%',
+              top: clamp01(pdfRect.y) * 100 + '%',
+              width: clamp01(pdfRect.w) * 100 + '%',
+              height: clamp01(pdfRect.h) * 100 + '%',
+            },
+          }];
+        }
+        var pdfPoint = anchor.pointNorm;
+        if (pdfPoint && Number.isFinite(pdfPoint.x) && Number.isFinite(pdfPoint.y)) {
+          return [{
+            point: true,
+            box: {
+              left: clamp01(pdfPoint.x) * 100 + '%',
+              top: clamp01(pdfPoint.y) * 100 + '%',
+            },
+          }];
+        }
+        return [];
+      }
       var boxes = [];
       var related = Array.isArray(anchor.relatedShapes) ? anchor.relatedShapes : [];
       for (var index = 0; index < related.length; index += 1) {
@@ -1588,7 +1866,15 @@ window.__ModuleLoader__.load({
 
     function annotationQuote(annotation, slides) {
       var result = { shapeName: '', preview: '' };
-      if (!annotation || !Array.isArray(slides) || !Number.isInteger(annotation.slideIndex)) return result;
+      if (!annotation) return result;
+      if (isPdfAnnotation(annotation)) {
+        var pdfAnchor = annotation.anchor || {};
+        result.pdf = true;
+        result.area = !!(pdfAnchor.rectNorm && Number.isFinite(pdfAnchor.rectNorm.w));
+        result.preview = truncate(pdfAnchor.textQuote || '', 28);
+        return result;
+      }
+      if (!Array.isArray(slides) || !Number.isInteger(annotation.slideIndex)) return result;
       var slide = slides[annotation.slideIndex];
       if (!slide || !Array.isArray(slide.shapes)) return result;
       var anchor = annotation.anchor || {};
@@ -1638,9 +1924,37 @@ window.__ModuleLoader__.load({
       var lines = [];
       lines.push(t('send.header', { name: deckName || 'deck.pptx', count: openAnnotations.length, sha: shaShort(sha) }));
       openAnnotations.forEach(function (annotation, index) {
-        var quote = annotationQuote(annotation, slides);
         var page = Number.isInteger(annotation.slideIndex) ? annotation.slideIndex + 1 : '?';
         var body = String(annotation.body || '').replace(/\s*\n\s*/g, ' ').trim();
+        if (isPdfAnnotation(annotation)) {
+          var anchor = annotation.anchor || {};
+          var quoteText = truncate(anchor.textQuote || '', 40);
+          var pdfBody = quoteText ? t('send.pdfQuote', { quote: quoteText }) + '；' + body : body;
+          var rect = anchor.rectNorm;
+          if (rect && Number.isFinite(rect.x) && Number.isFinite(rect.y) &&
+              Number.isFinite(rect.w) && Number.isFinite(rect.h)) {
+            lines.push(t('send.linePdfArea', {
+              index: index + 1,
+              page: page,
+              x1: Math.round(clamp01(rect.x) * 100),
+              x2: Math.round(clamp01(rect.x + rect.w) * 100),
+              y1: Math.round(clamp01(rect.y) * 100),
+              y2: Math.round(clamp01(rect.y + rect.h) * 100),
+              body: pdfBody,
+            }));
+          } else {
+            var point = anchor.pointNorm || {};
+            lines.push(t('send.linePdfPoint', {
+              index: index + 1,
+              page: page,
+              x: Math.round(clamp01(point.x) * 100),
+              y: Math.round(clamp01(point.y) * 100),
+              body: pdfBody,
+            }));
+          }
+          return;
+        }
+        var quote = annotationQuote(annotation, slides);
         var quoteText = quote.preview || quote.shapeName;
         if (quoteText) {
           lines.push(t('send.lineShape', { index: index + 1, page: page, quote: quoteText, body: body }));
@@ -1824,6 +2138,27 @@ window.__ModuleLoader__.load({
             h('span', { className: 'wb-miniSpinner', 'aria-hidden': true }),
             h('span', null, t('status.refreshing')))
           : null,
+        props.format === 'pdf'
+          ? h('span', {
+            className: 'wb-chip',
+            'data-info': 'true',
+            title: t(props.sourceFormat === 'html'
+              ? 'toolbar.htmlBadge'
+              : props.sourceFormat === 'drawio'
+                ? 'toolbar.drawioBadge'
+                : props.sourceFormat === 'mermaid'
+                  ? 'toolbar.mermaidBadge'
+                  : 'toolbar.pdfBadge'),
+            'data-pdf-badge': '',
+            'data-source-format': props.sourceFormat || 'pdf',
+          }, t(props.sourceFormat === 'html'
+            ? 'toolbar.htmlBadge'
+            : props.sourceFormat === 'drawio'
+              ? 'toolbar.drawioBadge'
+              : props.sourceFormat === 'mermaid'
+                ? 'toolbar.mermaidBadge'
+                : 'toolbar.pdfBadge'))
+          : null,
         h('span', { className: 'wb-spacer' }),
         props.missingFonts && props.missingFonts.length
           ? h(FontsChip, { fonts: props.missingFonts, lang: props.lang })
@@ -1852,15 +2187,37 @@ window.__ModuleLoader__.load({
           disabled: !props.canAnnotate,
           onClick: props.onToggleAnnotate,
         }, h('span', { 'aria-hidden': true }, '✎'), h('span', null, t('toolbar.annotate'))),
-        h('button', {
-          type: 'button',
-          className: 'wb-btn',
-          'aria-pressed': props.edit ? 'true' : 'false',
-          'aria-label': props.edit ? t('toolbar.editOnTitle') : t('toolbar.editTitle'),
-          title: props.edit ? t('toolbar.editOnTitle') : t('toolbar.editTitle'),
-          disabled: !props.canEdit,
-          onClick: props.onToggleEdit,
-        }, h('span', { 'aria-hidden': true }, '✏'), h('span', null, t('toolbar.edit'))),
+        props.showEdit
+          ? h('button', {
+            type: 'button',
+            className: 'wb-btn',
+            'aria-pressed': props.edit ? 'true' : 'false',
+            'aria-label': props.edit ? t('toolbar.editOnTitle') : t('toolbar.editTitle'),
+            title: props.edit ? t('toolbar.editOnTitle') : t('toolbar.editTitle'),
+            disabled: !props.canEdit,
+            onClick: props.onToggleEdit,
+          }, h('span', { 'aria-hidden': true }, '✏'), h('span', null, t('toolbar.edit')))
+          : null,
+        props.sourceFormat === 'mermaid' && props.onOpenSource
+          ? h('button', {
+            type: 'button',
+            className: 'wb-btn',
+            'aria-pressed': props.sourceOpen ? 'true' : 'false',
+            'aria-label': t('toolbar.editSource'),
+            title: t('toolbar.editSourceTitle'),
+            onClick: props.onOpenSource,
+          }, h('span', { 'aria-hidden': true }, '</>'), h('span', null, t('toolbar.editSource')))
+          : null,
+        props.sourceFormat === 'drawio' && props.onOpenNative
+          ? h('button', {
+            type: 'button',
+            className: 'wb-btn',
+            'aria-label': t('toolbar.openDrawio'),
+            title: t('toolbar.openDrawioTitle'),
+            disabled: !!props.nativeBusy,
+            onClick: props.onOpenNative,
+          }, h('span', { 'aria-hidden': true }, '↗'), h('span', null, t('toolbar.openDrawio')))
+          : null,
         h('button', {
           type: 'button',
           className: 'wb-btn wb-primary',
@@ -2388,7 +2745,7 @@ window.__ModuleLoader__.load({
         savedBoxes.map(function (entry, index) {
           return h('div', {
             key: 'saved-' + index,
-            className: entry.area ? 'wb-areaSel' : 'wb-shapeSel',
+            className: entry.point ? 'wb-pointSel' : entry.area ? 'wb-areaSel' : 'wb-shapeSel',
             style: entry.box,
           }, entry.name ? h('span', { className: 'wb-shapeName' }, entry.name) : null);
         }),
@@ -2618,8 +2975,10 @@ window.__ModuleLoader__.load({
           quote.preview
             ? h('span', { className: 'wb-quote', title: quote.preview }, '「' + quote.preview + '」')
             : quote.area
-              ? h('span', { className: 'wb-quote wb-quoteMuted' }, t('annotation.areaAnchor'))
-              : h('span', { className: 'wb-quote wb-quoteMuted' }, t('annotation.freeAnchor')),
+              ? h('span', { className: 'wb-quote wb-quoteMuted' }, quote.pdf ? t('annotation.pdfArea') : t('annotation.areaAnchor'))
+              : quote.pdf
+                ? h('span', { className: 'wb-quote wb-quoteMuted' }, t('annotation.pdfPoint'))
+                : h('span', { className: 'wb-quote wb-quoteMuted' }, t('annotation.freeAnchor')),
           h('span', { className: 'wb-meta' }, (author ? author + ' · ' : '') + formatTime(annotation.createdAt)),
         ),
         h('div', { className: 'wb-bodyText' + (props.selected ? '' : ' wb-clamp') }, annotation.body),
@@ -3309,6 +3668,122 @@ window.__ModuleLoader__.load({
       );
     }
 
+
+    // ------------------------------------------------------------------
+    // Mermaid 源码编辑抽屉
+    // ------------------------------------------------------------------
+    function SourceDrawer(props) {
+      var t = translator(props.lang);
+      var editor = props.editor || {};
+      var text = typeof editor.text === 'string' ? editor.text : '';
+      var dirty = text !== (editor.original || '');
+      var loading = !!editor.loading;
+      var saving = !!editor.saving;
+      var error = editor.error || null;
+      var stale = !!(error && error.code === 'stale');
+      var body = [];
+      body.push(h('div', { key: 'meta', className: 'wb-sourceMeta' },
+        h('span', { className: 'wb-sourcePath', title: props.path || '' }, props.path || ''),
+        dirty ? h('span', { className: 'wb-chip', title: t('source.dirty') }, t('source.dirty')) : null,
+      ));
+      if (stale) {
+        body.push(h('div', { key: 'stale', className: 'wb-sourceStale' },
+          h('span', null, t('source.stale')),
+          h('button', { type: 'button', className: 'wb-linkBtn', disabled: saving || loading, onClick: props.onReload }, t('source.reload')),
+        ));
+      } else if (error) {
+        var errorText = error.code === 'source-not-editable' || error.code === 'not-source-editable' || error.code === 'http-404'
+          ? t('source.notSupported')
+          : (error.message || t('source.saveFailed', { message: t('edit.unknown') }));
+        body.push(h('div', { key: 'error', className: 'wb-sourceError' },
+          h('span', null, errorText),
+          h('button', { type: 'button', className: 'wb-linkBtn', disabled: saving || loading, onClick: props.onReload }, t('source.reload')),
+        ));
+      }
+      if (loading) {
+        body.push(h('div', { key: 'loading', className: 'wb-empty' },
+          h('span', { className: 'wb-miniSpinner', 'aria-hidden': true }),
+          h('span', null, ' ' + t('source.loading')),
+        ));
+      } else {
+        body.push(h('textarea', {
+          key: 'editor',
+          className: 'wb-textarea wb-sourceText',
+          value: text,
+          disabled: saving,
+          spellCheck: false,
+          rows: 12,
+          placeholder: t('source.placeholder'),
+          'aria-label': t('source.aria'),
+          onChange: function (event) {
+            props.onChange(event.target.value);
+          },
+        }));
+      }
+      body.push(h('div', { key: 'actions', className: 'wb-row', style: { justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' } },
+        h('span', { className: 'wb-sourceMeta' }, t('source.hint')),
+        h('div', { className: 'wb-row' },
+          h('button', {
+            type: 'button',
+            className: 'wb-btn',
+            'aria-label': t('source.cancel'),
+            disabled: saving,
+            onClick: props.onClose,
+          }, t('source.cancel')),
+          h('button', {
+            type: 'button',
+            className: 'wb-btn wb-primary',
+            'aria-label': t('source.save'),
+            disabled: saving || loading || !dirty,
+            onClick: props.onSave,
+          }, saving ? t('source.saving') : t('source.save')),
+        ),
+      ));
+      return h('div', { className: 'wb-drawer', 'data-mode': 'source', 'data-open': 'true', 'data-wb-source': '' },
+        h('div', { className: 'wb-drawerHead' },
+          h('span', { className: 'wb-drawerTitle' }, t('source.title')),
+          h('span', { className: 'wb-spacer' }),
+          h('button', {
+            type: 'button',
+            className: 'wb-btn wb-icon',
+            'aria-label': t('source.close'),
+            title: t('source.close'),
+            disabled: saving,
+            onClick: props.onClose,
+          }, h('span', { 'aria-hidden': true }, '▾')),
+        ),
+        h('div', { className: 'wb-drawerBody', role: 'group', 'aria-label': t('source.title') }, body),
+      );
+    }
+
+    function SourceCloseDialog(props) {
+      var t = translator(props.lang);
+      var dialogRef = React.useRef(null);
+      React.useEffect(function () {
+        var node = dialogRef.current;
+        if (node) {
+          var first = node.querySelector('button');
+          if (first && typeof first.focus === 'function') {
+            try {
+              first.focus({ preventScroll: true });
+            } catch (error) {
+              try { first.focus(); } catch (error2) { /* ignore */ }
+            }
+          }
+        }
+      }, []);
+      return h('div', { className: 'wb-modalMask' },
+        h('div', { className: 'wb-modal', ref: dialogRef, role: 'dialog', 'aria-modal': 'true', 'aria-label': t('source.discardTitle') },
+          h('div', { className: 'wb-modalTitle' }, t('source.discardTitle')),
+          h('div', { className: 'wb-modalText' }, t('source.discardBody')),
+          h('div', { className: 'wb-modalActions' },
+            h('button', { type: 'button', className: 'wb-btn', onClick: props.onCancel }, t('source.keepEditing')),
+            h('button', { type: 'button', className: 'wb-btn wb-primary', onClick: props.onDiscard }, t('source.discard')),
+          ),
+        ),
+      );
+    }
+
     // ------------------------------------------------------------------
     // 主组件
     // ------------------------------------------------------------------
@@ -3418,6 +3893,48 @@ window.__ModuleLoader__.load({
       var canvasNodeHook = React.useState(null);
       var canvasNode = canvasNodeHook[0];
       var setCanvasNode = canvasNodeHook[1];
+      var sourceEditorHook = React.useState(null);
+      var sourceEditor = sourceEditorHook[0];
+      var setSourceEditor = sourceEditorHook[1];
+      var drawioHook = React.useState(null);
+      var drawioState = drawioHook[0];
+      var setDrawioState = drawioHook[1];
+      var drawioSrcHook = React.useState(null);
+      var drawioSrc = drawioSrcHook[0];
+      var setDrawioSrc = drawioSrcHook[1];
+      var drawioSelectionHook = React.useState(EMPTY_LIST);
+      var drawioSelection = drawioSelectionHook[0];
+      var setDrawioSelection = drawioSelectionHook[1];
+      var drawioPanelHook = React.useState(false);
+      var drawioPanelOpen = drawioPanelHook[0];
+      var setDrawioPanelOpen = drawioPanelHook[1];
+      var drawioDraftHook = React.useState('');
+      var drawioDraft = drawioDraftHook[0];
+      var setDrawioDraft = drawioDraftHook[1];
+      var drawioSelectedAnnotationHook = React.useState(null);
+      var drawioSelectedAnnotationId = drawioSelectedAnnotationHook[0];
+      var setDrawioSelectedAnnotationId = drawioSelectedAnnotationHook[1];
+      var htmlHook = React.useState(null);
+      var htmlState = htmlHook[0];
+      var setHtmlState = htmlHook[1];
+      var htmlSrcHook = React.useState(null);
+      var htmlSrc = htmlSrcHook[0];
+      var setHtmlSrc = htmlSrcHook[1];
+      var htmlAnnotateHook = React.useState(false);
+      var htmlAnnotate = htmlAnnotateHook[0];
+      var setHtmlAnnotate = htmlAnnotateHook[1];
+      var htmlPanelHook = React.useState(false);
+      var htmlPanelOpen = htmlPanelHook[0];
+      var setHtmlPanelOpen = htmlPanelHook[1];
+      var htmlDraftHook = React.useState(null);
+      var htmlDraft = htmlDraftHook[0];
+      var setHtmlDraft = htmlDraftHook[1];
+      var htmlDraftBodyHook = React.useState('');
+      var htmlDraftBody = htmlDraftBodyHook[0];
+      var setHtmlDraftBody = htmlDraftBodyHook[1];
+      var htmlSelectedAnnotationHook = React.useState(null);
+      var htmlSelectedAnnotationId = htmlSelectedAnnotationHook[0];
+      var setHtmlSelectedAnnotationId = htmlSelectedAnnotationHook[1];
 
       var rootRef = React.useRef(null);
       var canvasRef = React.useRef(null);
@@ -3445,6 +3962,16 @@ window.__ModuleLoader__.load({
       var autoSaveBlockedRef = React.useRef(false);
       var viewSlidesRef = React.useRef(EMPTY_LIST);
       var inlineEditRef = React.useRef(null);
+      var sourceEditorRef = React.useRef(null);
+      var sourceSaveRef = React.useRef(null);
+      var drawioStateRef = React.useRef(null);
+      var drawioFrameRef = React.useRef(null);
+      var drawioInitRef = React.useRef(false);
+      var drawioFetchSeqRef = React.useRef(0);
+      var drawioSelectionRef = React.useRef(EMPTY_LIST);
+      var htmlFrameRef = React.useRef(null);
+      var htmlStateRef = React.useRef(null);
+      var htmlAnnotateRef = React.useRef(false);
 
       contentRef.current = content;
       sessionIdRef.current = sessionId;
@@ -3459,10 +3986,22 @@ window.__ModuleLoader__.load({
       historyRef.current = historyState;
       formDirtyRef.current = formDirtyCount;
       inlineEditRef.current = inlineEdit;
+      sourceEditorRef.current = sourceEditor;
+      drawioStateRef.current = drawioState;
+      drawioSelectionRef.current = drawioSelection;
+      htmlStateRef.current = htmlState;
+      htmlAnnotateRef.current = htmlAnnotate;
 
       var slides = deckState.slides;
       var deck = deckState.deck;
       var sha = deck ? deck.sha256 : null;
+      var earlyDeckFormat = deck && deck.format === 'pdf' ? 'pdf' : 'pptx';
+      var sourceFormatEarly = deck && typeof deck.sourceFormat === 'string' ? deck.sourceFormat : earlyDeckFormat;
+      var sourceEditableEarly = !!(deck && deck.sourceFormat === 'mermaid');
+      var sourceOpenEarly = !!(sourceEditor && sourceEditor.open);
+      var sourceDirtyEarly = sourceOpenEarly ? ((sourceEditor.text || '') !== (sourceEditor.original || '')) : false;
+      var isDrawioEarly = !!(deck && deck.sourceFormat === 'drawio');
+      var isHtmlEarly = !!(deck && deck.sourceFormat === 'html');
       var slidesImages = useSlideImages(sha);
       var images = slidesImages.images;
       var ensurePage = slidesImages.ensurePage;
@@ -3574,12 +4113,26 @@ window.__ModuleLoader__.load({
         };
       }, [path, sessionId, revision, retryToken, tabSignal]);
 
-      // ---- 全局 keydown：Esc 退出草稿/批注/编辑模式 ----
+      // ---- 全局 keydown：Esc 退出源码面板/草稿/批注/编辑模式 ----
       React.useEffect(function () {
-        if (!draft && !annotate && !editMode) return undefined;
+        if (!draft && !annotate && !editMode && !sourceOpen) return undefined;
         function onKeyDown(event) {
           if (event.key !== 'Escape' || busyRef.current) return;
           if (dirtyDialog || saving) return;
+          var sourceState = sourceEditorRef.current;
+          if (sourceState && sourceState.open) {
+            if (sourceState.saving) return;
+            event.preventDefault();
+            event.stopPropagation();
+            if (sourceState.confirmClose) {
+              setSourceEditor(function (previous) {
+                return previous ? Object.assign({}, previous, { confirmClose: false }) : previous;
+              });
+            } else if (typeof closeSourceEditor === 'function') {
+              closeSourceEditor();
+            }
+            return;
+          }
           var active = document.activeElement;
           var tag = active && active.tagName ? String(active.tagName).toLowerCase() : '';
           if (tag === 'textarea' || tag === 'input') return;
@@ -3595,7 +4148,7 @@ window.__ModuleLoader__.load({
         return function () {
           document.removeEventListener('keydown', onKeyDown, true);
         };
-      }, [draft, annotate, editMode, dirtyDialog, saving]);
+      }, [draft, annotate, editMode, dirtyDialog, saving, sourceOpenEarly]);
 
       // ---- toast 自动消失 ----
       React.useEffect(function () {
@@ -3660,6 +4213,23 @@ window.__ModuleLoader__.load({
         };
       }, []);
 
+      // ---- ⌘/Ctrl+S 保存 Mermaid 源码（源码面板内优先） ----
+      React.useEffect(function () {
+        function onKeyDown(event) {
+          var editor = sourceEditorRef.current;
+          if (!editor || !editor.open || editor.saving || editor.loading) return;
+          if (!(event.metaKey || event.ctrlKey) || event.altKey) return;
+          if (event.key !== 's' && event.key !== 'S') return;
+          event.preventDefault();
+          event.stopPropagation();
+          if (sourceSaveRef.current) sourceSaveRef.current();
+        }
+        document.addEventListener('keydown', onKeyDown, true);
+        return function () {
+          document.removeEventListener('keydown', onKeyDown, true);
+        };
+      }, []);
+
       // ---- 自动保存：pending 变化后 1500ms 空闲静默保存 ----
       React.useEffect(function () {
         if (!editMode || !autosave) return undefined;
@@ -3673,6 +4243,165 @@ window.__ModuleLoader__.load({
           clearTimeout(timer);
         };
       }, [editMode, autosave, saving, busyOp, conflict, inlineEdit, canvasGesture, dirtyDialog, pendingOps]);
+
+      // ---- drawio 内嵌编辑器：加载 XML 源码 ----
+      React.useEffect(function () {
+        if (!isDrawio) return undefined;
+        fetchDrawioSource();
+        return undefined;
+      }, [isDrawioEarly, sha]);
+
+      // ---- drawio iframe 协议：init / save ----
+      React.useEffect(function () {
+        if (!isDrawio) return undefined;
+        function onMessage(event) {
+          var frame = drawioFrameRef.current;
+          if (!frame || event.source !== frame.contentWindow) return;
+          var data = event.data;
+          if (typeof data === 'string') {
+            try {
+              data = JSON.parse(data);
+            } catch (error) {
+              return;
+            }
+          }
+          if (!data || typeof data !== 'object') return;
+          if (data.event === 'init') {
+            drawioInitRef.current = true;
+            var state = drawioStateRef.current;
+            if (state && typeof state.xml === 'string' && state.xml.length > 0 && state.status !== 'loading') {
+              postDrawioLoad(state.xml);
+            }
+            return;
+          }
+          if (data.event === 'save') {
+            saveDrawioSource(String(data.xml === undefined || data.xml === null ? '' : data.xml));
+            return;
+          }
+          if (data.event === 'dsh-selection') {
+            var cells = Array.isArray(data.cells) ? data.cells : [];
+            setDrawioSelection(cells.filter(function (cell) {
+              return cell && typeof cell.id === 'string' && cell.id.length > 0;
+            }));
+          }
+        }
+        window.addEventListener('message', onMessage);
+        return function () {
+          window.removeEventListener('message', onMessage);
+        };
+      }, [isDrawioEarly]);
+
+      // 监听器已挂载后再给 iframe 赋 src，避免错过编辑器启动时的 {event:'init'}
+      React.useEffect(function () {
+        if (!isDrawio) return undefined;
+        setDrawioSrc(drawioEditorUrl());
+        return undefined;
+      }, [isDrawioEarly]);
+
+
+      // ---- H5 原页 iframe --------------------------------��-----------
+      // bridge 事件：ready / scroll / pick
+      React.useEffect(function () {
+        if (!isHtmlEarly) return undefined;
+        function onMessage(event) {
+          var frame = htmlFrameRef.current;
+          if (!frame || event.source !== frame.contentWindow) return;
+          var data = event.data;
+          if (typeof data === 'string') {
+            try {
+              data = JSON.parse(data);
+            } catch (error) {
+              return;
+            }
+          }
+          if (!data || typeof data !== 'object' || typeof data.event !== 'string') return;
+          if (data.event === 'dsh-html-ready') {
+            setHtmlState(function (previous) {
+              return Object.assign({}, previous || {}, {
+                status: 'ready',
+                title: typeof data.title === 'string' && data.title ? data.title : (previous && previous.title) || '',
+                scrollY: Number(data.scrollY) || 0,
+                scrollHeight: Number(data.scrollHeight) || (previous && previous.scrollHeight) || 0,
+                viewportWidth: Number(data.viewportWidth) || (previous && previous.viewportWidth) || 0,
+                viewportHeight: Number(data.viewportHeight) || (previous && previous.viewportHeight) || 0,
+                error: null,
+              });
+            });
+            postHtmlAnnotate();
+            return;
+          }
+          if (data.event === 'dsh-html-scroll') {
+            setHtmlState(function (previous) {
+              return Object.assign({}, previous || {}, {
+                scrollY: Number(data.scrollY) || 0,
+                scrollHeight: Number(data.scrollHeight) || (previous && previous.scrollHeight) || 0,
+              });
+            });
+            return;
+          }
+          if (data.event === 'dsh-html-pick') {
+            var draft = {
+              selector: typeof data.selector === 'string' ? data.selector : '',
+              textQuote: typeof data.textQuote === 'string' ? data.textQuote.slice(0, 500) : '',
+              xNorm: Number(data.xNorm) || 0,
+              yNorm: Number(data.yNorm) || 0,
+              scrollY: Number(data.scrollY) || 0,
+              tag: typeof data.tag === 'string' ? data.tag.slice(0, 80) : '',
+            };
+            setHtmlDraft(draft);
+            setHtmlDraftBody('');
+            setHtmlPanelOpen(true);
+            setHtmlState(function (previous) {
+              return Object.assign({}, previous || {}, {
+                scrollY: draft.scrollY,
+                viewportWidth: Number(data.viewportWidth) || (previous && previous.viewportWidth) || 0,
+                viewportHeight: Number(data.viewportHeight) || (previous && previous.viewportHeight) || 0,
+              });
+            });
+          }
+        }
+        window.addEventListener('message', onMessage);
+        return function () {
+          window.removeEventListener('message', onMessage);
+        };
+      }, [isHtmlEarly]);
+
+      // 监听器挂载后再赋 iframe src
+      React.useEffect(function () {
+        if (!isHtmlEarly) return undefined;
+        var url = htmlState && typeof htmlState.url === 'string' ? htmlState.url : '';
+        if (url) setHtmlSrc(url);
+        return undefined;
+      }, [isHtmlEarly, htmlState && htmlState.url]);
+
+      // 批注模式开关同步给 bridge
+      React.useEffect(function () {
+        if (!isHtmlEarly) return undefined;
+        postHtmlAnnotate();
+        return undefined;
+      }, [isHtmlEarly, htmlAnnotate, htmlSrc]);
+
+      // Esc 退出批注模式
+      React.useEffect(function () {
+        if (!isHtmlEarly || !htmlAnnotate) return undefined;
+        function onKeyDown(event) {
+          if (event.key !== 'Escape') return;
+          event.preventDefault();
+          event.stopPropagation();
+          setHtmlAnnotate(false);
+        }
+        document.addEventListener('keydown', onKeyDown, true);
+        return function () {
+          document.removeEventListener('keydown', onKeyDown, true);
+        };
+      }, [isHtmlEarly, htmlAnnotate]);
+
+      // 拉取 artifact-url
+      React.useEffect(function () {
+        if (!isHtmlEarly) return undefined;
+        fetchHtmlArtifactUrl();
+        return undefined;
+      }, [isHtmlEarly, sha]);
 
       var byId = React.useMemo(function () {
         var map = new Map();
@@ -3726,8 +4455,23 @@ window.__ModuleLoader__.load({
       var truncated = !!(deck && deck.truncated);
       var missingFonts = deck && Array.isArray(deck.missingFonts) ? deck.missingFonts : EMPTY_LIST;
       var writeAllowed = !deck || deck.writeAllowed !== false;
+      var deckFormat = deck && deck.format === 'pdf' ? 'pdf' : 'pptx';
+      var sourceFormat = sourceFormatEarly;
+      var sourceEditable = sourceEditableEarly;
+      var sourceOpen = sourceOpenEarly;
+      var sourceDirty = sourceDirtyEarly;
+      var isDrawio = isDrawioEarly;
+      var isHtml = isHtmlEarly;
+      var artifactEditable = !!deck && deck.editable !== false && deckFormat === 'pptx';
       var slideWidthEmu = deck ? Number(deck.slideWidthEmu) : NaN;
       var slideHeightEmu = deck ? Number(deck.slideHeightEmu) : NaN;
+      if (deck && Array.isArray(deck.pages) && deck.pages.length && (!Number.isFinite(slideWidthEmu) || slideWidthEmu <= 0)) {
+        var firstPageRect = deck.pages[0].rectangle || {};
+        if (Number(firstPageRect.width) > 0) {
+          slideWidthEmu = Math.round(Number(firstPageRect.width) * 9525);
+          slideHeightEmu = Math.round(Number(firstPageRect.height) * 9525);
+        }
+      }
       var fitWidth = canvasWidth > 0 ? Math.max(160, canvasWidth - 24) : null;
       var openCount = counts.open || 0;
 
@@ -3771,7 +4515,7 @@ window.__ModuleLoader__.load({
       var pendingCount = pendingOps.length;
       var formDirty = formDirtyCount;
       var dirtyCount = pendingCount + (editMode ? formDirty : 0);
-      var canEdit = writeAllowed && !!deck;
+      var canEdit = writeAllowed && !!deck && artifactEditable;
       var canUndo = !!(historyState && historyState.canUndo);
       var canRedo = !!(historyState && historyState.canRedo);
       var resetKey = [
@@ -3974,6 +4718,7 @@ window.__ModuleLoader__.load({
           shapeIds: shape && Number.isInteger(shape.shapeId) ? [shape.shapeId] : [],
           shapes: shape ? [shape] : [],
           areaNorm: null,
+          pdf: currentDeck.format === 'pdf',
           body: '',
         });
       }, [annotate]);
@@ -3996,6 +4741,7 @@ window.__ModuleLoader__.load({
           shapeIds: hits.map(function (shape) { return shape.shapeId; }).filter(function (value) { return Number.isInteger(value); }),
           shapes: hits,
           areaNorm: hits.length === 0 ? rectNorm : null,
+          pdf: currentDeck.format === 'pdf',
           body: '',
         });
       }, [annotate]);
@@ -4025,6 +4771,8 @@ window.__ModuleLoader__.load({
         } else if (draftValue.areaNorm) {
           payload.bboxNorm = draftValue.areaNorm;
         }
+        var currentDeck = deckRef.current;
+        if (currentDeck && currentDeck.format === 'pdf') payload.format = 'pdf';
         var slideIndex = draftValue.slideIndex;
         runOp(payload).then(function (data) {
           if (!data) return;
@@ -4428,11 +5176,13 @@ window.__ModuleLoader__.load({
             body: JSON.stringify({ sessionId: sid, path: deckPath }),
           }).then(function (result) {
             if (!result.ok || !result.data || result.data.ok !== true) throw normalizeError(result);
-            showToast('success', t('edit.openNativeDone'));
+            showToast('success', currentDeck.sourceFormat === 'drawio' ? t('toolbar.openDrawioDone') : t('edit.openNativeDone'));
           }).catch(function (error) {
             var normalized = error && error.code ? error : normalizeError(error);
             if (normalized.code === 'http-404' || normalized.code === 'not-implemented') {
               showToast('error', t('edit.openNativeUnsupported'));
+            } else if (currentDeck.sourceFormat === 'drawio') {
+              showToast('error', t('toolbar.openNativeFailed', { message: normalized.message || t('edit.unknown') }));
             } else {
               showToast('error', t('edit.openNativeFailed', { message: normalized.message || t('edit.unknown') }));
             }
@@ -4448,6 +5198,514 @@ window.__ModuleLoader__.load({
         } else {
           post();
         }
+      }
+
+      function updateSourceEditor(patch) {
+        setSourceEditor(function (previous) {
+          if (!previous) return previous;
+          return Object.assign({}, previous, patch);
+        });
+      }
+
+      function sourceFailureText(normalized) {
+        if (normalized.code === 'source-not-editable' || normalized.code === 'not-source-editable' || normalized.code === 'http-404' || normalized.code === 'not-implemented') {
+          return t('source.notSupported');
+        }
+        return t('source.saveFailed', { message: normalized.message || t('edit.unknown') });
+      }
+
+      function fetchSourceText() {
+        var currentDeck = deckRef.current;
+        var sid = sessionIdRef.current;
+        var deckPath = currentDeck && currentDeck.path ? currentDeck.path : pathRef.current;
+        if (!currentDeck || !sid || !deckPath) return;
+        updateSourceEditor({ loading: true, error: null });
+        jsonFetch('source?sessionId=' + encodeURIComponent(sid) + '&path=' + encodeURIComponent(deckPath))
+          .then(function (result) {
+            if (!result.ok || !result.data || result.data.ok !== true) throw normalizeError(result);
+            var data = result.data;
+            var text = typeof data.text === 'string' ? data.text : '';
+            updateSourceEditor({
+              text: text,
+              original: text,
+              sha256: typeof data.sha256 === 'string' ? data.sha256 : '',
+              loading: false,
+              error: null,
+            });
+          })
+          .catch(function (error) {
+            var normalized = error && error.code ? error : normalizeError(error);
+            updateSourceEditor({ loading: false, error: { code: normalized.code, message: sourceFailureText(normalized) } });
+          });
+      }
+
+      function openSourceEditor() {
+        var editor = sourceEditorRef.current;
+        if (editor && editor.open) return;
+        if (!(deckRef.current && deckRef.current.sourceFormat === 'mermaid')) return;
+        setSourceEditor({ open: true, text: '', original: '', loading: true, saving: false, error: null, confirmClose: false });
+        fetchSourceText();
+      }
+
+      function closeSourceEditor() {
+        var editor = sourceEditorRef.current;
+        if (!editor || !editor.open || editor.saving) return;
+        if ((editor.text || '') !== (editor.original || '')) {
+          updateSourceEditor({ confirmClose: true });
+          return;
+        }
+        setSourceEditor(null);
+      }
+
+      function discardSourceEditor() {
+        setSourceEditor(null);
+      }
+
+      function cancelSourceClose() {
+        updateSourceEditor({ confirmClose: false });
+      }
+
+      function saveSource() {
+        var editor = sourceEditorRef.current;
+        if (!editor || !editor.open || editor.saving || editor.loading) return;
+        var currentDeck = deckRef.current;
+        var sid = sessionIdRef.current;
+        var deckPath = currentDeck && currentDeck.path ? currentDeck.path : pathRef.current;
+        if (!currentDeck || !sid || !deckPath) return;
+        var text = String(editor.text === undefined || editor.text === null ? '' : editor.text);
+        var baseSha = editor.sha256 && editor.sha256.length ? editor.sha256 : currentDeck.sha256;
+        updateSourceEditor({ saving: true, error: null });
+        jsonFetch('source', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            sessionId: sid,
+            path: deckPath,
+            baseSha: baseSha,
+            text: text,
+          }),
+        }).then(function (result) {
+          if (!result.ok || !result.data || result.data.ok !== true) throw normalizeError(result);
+          if (!adoptEditResponse(result.data)) {
+            throw normalizeError({ code: 'source-failed', message: t('edit.unknown') });
+          }
+          setSourceEditor(null);
+          showToast('success', t('source.saved'));
+        }).catch(function (error) {
+          var normalized = error && error.code ? error : normalizeError(error);
+          updateSourceEditor({
+            saving: false,
+            error: {
+              code: normalized.code,
+              message: normalized.code === 'stale'
+                ? (normalized.message || t('source.stale'))
+                : sourceFailureText(normalized),
+            },
+          });
+          if (normalized.code === 'stale') showToast('error', t('source.staleTitle'));
+          else showToast('error', sourceFailureText(normalized));
+        });
+      }
+      sourceSaveRef.current = saveSource;
+
+      function drawioErrorMessage(normalized, phase) {
+        if (normalized.code === 'stale') return t('drawio.stale');
+        if (phase === 'load' || normalized.code === 'not-source-editable' || normalized.code === 'http-404') {
+          return t('drawio.loadFailed', { message: normalized.message || t('edit.unknown') });
+        }
+        return t('drawio.saveFailed', { message: normalized.message || t('edit.unknown') });
+      }
+
+      function postDrawioLoad(xml) {
+        var frame = drawioFrameRef.current;
+        var currentDeck = deckRef.current;
+        if (!frame || !frame.contentWindow || typeof xml !== 'string') return;
+        try {
+          frame.contentWindow.postMessage(JSON.stringify({
+            action: 'load',
+            xml: xml,
+            autosave: 0,
+            title: currentDeck && currentDeck.path ? basename(currentDeck.path) : 'diagram.drawio',
+          }), '*');
+        } catch (error) {
+          /* ignore */
+        }
+      }
+
+      function fetchDrawioSource() {
+        var currentDeck = deckRef.current;
+        var sid = sessionIdRef.current;
+        var deckPath = currentDeck && currentDeck.path ? currentDeck.path : pathRef.current;
+        if (!currentDeck || !sid || !deckPath) return;
+        var seq = drawioFetchSeqRef.current + 1;
+        drawioFetchSeqRef.current = seq;
+        setDrawioState(function (previous) {
+          return Object.assign({}, previous || {}, { status: 'loading', error: null });
+        });
+        jsonFetch('source?sessionId=' + encodeURIComponent(sid) + '&path=' + encodeURIComponent(deckPath))
+          .then(function (result) {
+            if (seq !== drawioFetchSeqRef.current) return;
+            if (!result.ok || !result.data || result.data.ok !== true) throw normalizeError(result);
+            var data = result.data;
+            var text = typeof data.text === 'string' ? data.text : '';
+            setDrawioState({
+              status: 'ready',
+              xml: text,
+              baseSha: typeof data.sha256 === 'string' ? data.sha256 : '',
+              error: null,
+              savedAt: null,
+            });
+            if (drawioInitRef.current) postDrawioLoad(text);
+          })
+          .catch(function (error) {
+            if (seq !== drawioFetchSeqRef.current) return;
+            var normalized = error && error.code ? error : normalizeError(error);
+            setDrawioState(function (previous) {
+              return Object.assign({}, previous || {}, {
+                status: 'error',
+                error: { code: normalized.code, message: drawioErrorMessage(normalized, 'load') },
+              });
+            });
+          });
+      }
+
+      function saveDrawioSource(xml) {
+        var state = drawioStateRef.current;
+        if (typeof xml !== 'string' || !state || state.status === 'saving') return;
+        var currentDeck = deckRef.current;
+        var sid = sessionIdRef.current;
+        var deckPath = currentDeck && currentDeck.path ? currentDeck.path : pathRef.current;
+        if (!currentDeck || !sid || !deckPath) return;
+        var baseSha = state.baseSha && state.baseSha.length ? state.baseSha : currentDeck.sha256;
+        setDrawioState(function (previous) {
+          return Object.assign({}, previous || {}, { status: 'saving', error: null, xml: xml });
+        });
+        jsonFetch('source', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            sessionId: sid,
+            path: deckPath,
+            baseSha: baseSha,
+            text: xml,
+            render: false,
+          }),
+        }).then(function (result) {
+          if (!result.ok || !result.data || result.data.ok !== true) throw normalizeError(result);
+          var data = result.data;
+          var newSha = data.source && data.source.newSha
+            ? data.source.newSha
+            : (typeof data.sha256 === 'string' ? data.sha256 : '');
+          setDrawioState(function (previous) {
+            return Object.assign({}, previous || {}, {
+              status: 'saved',
+              xml: xml,
+              baseSha: newSha && newSha.length ? newSha : baseSha,
+              savedAt: Date.now(),
+              error: null,
+            });
+          });
+          var frame = drawioFrameRef.current;
+          if (frame && frame.contentWindow) {
+            try {
+              frame.contentWindow.postMessage(JSON.stringify({ action: 'status', message: t('drawio.saved') }), '*');
+            } catch (error) {
+              /* ignore */
+            }
+          }
+        }).catch(function (error) {
+          var normalized = error && error.code ? error : normalizeError(error);
+          setDrawioState(function (previous) {
+            return Object.assign({}, previous || {}, {
+              status: 'error',
+              error: { code: normalized.code, message: drawioErrorMessage(normalized, 'save') },
+            });
+          });
+        });
+      }
+
+      function reloadDrawio() {
+        fetchDrawioSource();
+      }
+
+      function onDrawioFrameLoad() {
+        drawioInitRef.current = false;
+      }
+
+      function toggleDrawioPanel() {
+        setDrawioPanelOpen(function (previous) {
+          return !previous;
+        });
+      }
+
+      function postDrawioSelect(cellIds) {
+        var frame = drawioFrameRef.current;
+        var ids = Array.isArray(cellIds)
+          ? cellIds.filter(function (id) { return typeof id === 'string' && id; })
+          : typeof cellIds === 'string' && cellIds ? [cellIds] : [];
+        if (!frame || !frame.contentWindow || ids.length === 0) return;
+        try {
+          frame.contentWindow.postMessage(JSON.stringify({ action: 'dsh-select', cellId: ids[0], cellIds: ids }), '*');
+        } catch (error) {
+          /* ignore */
+        }
+      }
+
+      function selectDrawioAnnotation(annotation) {
+        if (!annotation) return;
+        var anchor = annotation.anchor || {};
+        setDrawioSelectedAnnotationId(annotation.id);
+        var ids = Array.isArray(anchor.cellIds) ? anchor.cellIds : typeof anchor.cellId === 'string' && anchor.cellId ? [anchor.cellId] : [];
+        if (ids.length > 0) postDrawioSelect(ids);
+      }
+
+      function addDrawioAnnotation() {
+        var selected = drawioSelectionRef.current || EMPTY_LIST;
+        var cells = selected.filter(function (cell) { return cell && typeof cell.id === 'string' && cell.id; });
+        var body = String(drawioDraft || '').trim();
+        if (!body) {
+          showToast('error', t('compose.empty'));
+          return;
+        }
+        if (busyRef.current) return;
+        var pageIndex = cells.length && Number.isInteger(cells[0].pageIndex) && cells[0].pageIndex > 0 ? cells[0].pageIndex : 1;
+        var payload = {
+          op: 'create',
+          pageIndex: pageIndex,
+          body: body,
+        };
+        if (cells.length > 0) {
+          payload.cellIds = cells.map(function (cell) { return cell.id; });
+          payload.cellLabels = cells.map(function (cell) { return typeof cell.label === 'string' ? cell.label.slice(0, 300) : ''; });
+          payload.cellId = cells[0].id;
+          payload.cellLabel = typeof cells[0].label === 'string' ? cells[0].label.slice(0, 300) : '';
+        } else {
+          payload.scope = 'diagram';
+        }
+        runOp(payload).then(function (data) {
+          if (!data) return;
+          setDrawioDraft('');
+          var list = Array.isArray(data.annotations) ? data.annotations : [];
+          for (var index = list.length - 1; index >= 0; index -= 1) {
+            var candidate = list[index];
+            if (candidate && candidate.format === 'drawio') {
+              var anchor = candidate.anchor || {};
+              var candidateIds = Array.isArray(anchor.cellIds) ? anchor.cellIds : [anchor.cellId];
+              if (cells.length === 0 ? anchor.kind === 'drawio-diagram' : candidateIds[0] === cells[0].id) {
+                setDrawioSelectedAnnotationId(candidate.id);
+                break;
+              }
+            }
+          }
+          showToast('success', t('drawio.annotationSaved'));
+        });
+      }
+
+      function pushTextToComposer(text) {
+        var inputActions = inputActionsRef.current;
+        var value = String(text || '');
+        if (!value) return;
+        var inserted = false;
+        try {
+          if (inputActions && typeof inputActions.captureInsertion === 'function' && typeof inputActions.insertText === 'function') {
+            var span = inputActions.captureInsertion();
+            inserted = inputActions.insertText(value, span) !== false;
+          }
+        } catch (error) {
+          inserted = false;
+        }
+        if (inserted) {
+          showToast('success', t('send.inserted'));
+          return;
+        }
+        function showManual() {
+          toastIdRef.current += 1;
+          setToast({ id: toastIdRef.current, kind: 'manual', text: t('send.manual'), payload: value });
+        }
+        if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+          try {
+            navigator.clipboard.writeText(value).then(function () {
+              showToast('success', t('send.copied'));
+            }, showManual);
+          } catch (error) {
+            showManual();
+          }
+        } else {
+          showManual();
+        }
+      }
+
+      function sendDrawioAnnotations() {
+        var list = annotationsRef.current.filter(function (annotation) {
+          return annotation && annotation.format === 'drawio' && annotation.status === 'open';
+        });
+        var currentDeck = deckRef.current;
+        if (!currentDeck || list.length === 0) {
+          showToast('error', t('send.none'));
+          return;
+        }
+        var name = basename(currentDeck.path || pathRef.current || 'diagram.drawio');
+        var lines = [t('send.drawioHeader', { name: name, count: list.length })];
+        list.forEach(function (annotation, index) {
+          var anchor = annotation.anchor || {};
+          var label = typeof anchor.cellLabel === 'string' && anchor.cellLabel ? anchor.cellLabel : t('drawio.noLabel');
+          var body = String(annotation.body || '').replace(/\s*\n\s*/g, ' ').trim();
+          var cellCount = Array.isArray(anchor.cellIds) ? anchor.cellIds.length : anchor.cellId ? 1 : 0;
+          lines.push(t('send.drawioLine', {
+            index: index + 1,
+            label: label || t('drawio.wholeDiagram'),
+            cellId: cellCount > 1 ? t('drawio.groupCount', { count: cellCount }) : String(anchor.cellId || t('drawio.wholeDiagram')),
+            body: body,
+          }));
+        });
+        lines.push('');
+        lines.push(t('send.footer'));
+        pushTextToComposer(lines.join('\n'));
+      }
+
+      function fetchHtmlArtifactUrl() {
+        var currentDeck = deckRef.current;
+        var sid = sessionIdRef.current;
+        var deckPath = currentDeck && currentDeck.path ? currentDeck.path : pathRef.current;
+        if (!currentDeck || !sid || !deckPath) return;
+        setHtmlState(function (previous) {
+          return Object.assign({}, previous || {}, { status: 'loading', error: null });
+        });
+        jsonFetch('artifact-url?sessionId=' + encodeURIComponent(sid) + '&path=' + encodeURIComponent(deckPath))
+          .then(function (result) {
+            if (!result.ok || !result.data || result.data.ok !== true) throw normalizeError(result);
+            var data = result.data;
+            setHtmlState({
+              status: 'loading',
+              url: typeof data.url === 'string' ? data.url : '',
+              title: typeof data.title === 'string' ? data.title : '',
+              error: null,
+              scrollY: 0,
+              scrollHeight: 0,
+              viewportWidth: 0,
+              viewportHeight: 0,
+            });
+          })
+          .catch(function (error) {
+            var normalized = error && error.code ? error : normalizeError(error);
+            setHtmlState(function (previous) {
+              return Object.assign({}, previous || {}, {
+                status: 'error',
+                error: { code: normalized.code, message: t('html.loadFailed', { message: normalized.message || t('edit.unknown') }) },
+              });
+            });
+          });
+      }
+
+      function postHtmlMessage(payload) {
+        var frame = htmlFrameRef.current;
+        if (!frame || !frame.contentWindow) return;
+        try {
+          frame.contentWindow.postMessage(JSON.stringify(payload), '*');
+        } catch (error) {
+          /* ignore */
+        }
+      }
+
+      function postHtmlAnnotate() {
+        postHtmlMessage({ action: 'dsh-html-annotate', on: !!htmlAnnotateRef.current });
+      }
+
+      function postHtmlScrollTo(yNorm) {
+        var value = Number(yNorm);
+        postHtmlMessage({ action: 'dsh-html-scroll-to', yNorm: Number.isFinite(value) ? value : 0 });
+      }
+
+      function toggleHtmlAnnotate() {
+        setHtmlAnnotate(function (previous) {
+          return !previous;
+        });
+      }
+
+      function toggleHtmlPanel() {
+        setHtmlPanelOpen(function (previous) {
+          return !previous;
+        });
+      }
+
+      function htmlAnchorTarget(anchor) {
+        var target = anchor || {};
+        if (typeof target.textQuote === 'string' && target.textQuote) return target.textQuote.slice(0, 120);
+        if (typeof target.selector === 'string' && target.selector) return target.selector;
+        return t('html.wholePage');
+      }
+
+      function selectHtmlAnnotation(annotation) {
+        if (!annotation) return;
+        var anchor = annotation.anchor || {};
+        setHtmlSelectedAnnotationId(annotation.id);
+        postHtmlScrollTo(anchor.yNorm);
+      }
+
+      function addHtmlAnnotation() {
+        var body = String(htmlDraftBody || '').trim();
+        if (!body) {
+          showToast('error', t('compose.empty'));
+          return;
+        }
+        if (busyRef.current) return;
+        var draft = htmlDraft || null;
+        var current = htmlStateRef.current || {};
+        var scrollHeight = Number(current.scrollHeight) || 0;
+        var scrollY = draft ? Number(draft.scrollY) || Number(current.scrollY) || 0 : Number(current.scrollY) || 0;
+        var payload = {
+          op: 'create',
+          pageIndex: 0,
+          body: body,
+          selector: draft && typeof draft.selector === 'string' ? draft.selector : '',
+          textQuote: draft && typeof draft.textQuote === 'string' ? draft.textQuote : '',
+          tag: draft && typeof draft.tag === 'string' ? draft.tag : '',
+          xNorm: draft ? draft.xNorm : 0.5,
+          yNorm: draft
+            ? draft.yNorm
+            : scrollHeight > 0
+              ? Math.min(1, Math.max(0, (scrollY + (Number(current.viewportHeight) || 0) / 2) / scrollHeight))
+              : 0.5,
+          scrollY: scrollY,
+        };
+        runOp(payload).then(function (data) {
+          if (!data) return;
+          setHtmlDraft(null);
+          setHtmlDraftBody('');
+          var list = Array.isArray(data.annotations) ? data.annotations : [];
+          for (var index = list.length - 1; index >= 0; index -= 1) {
+            var candidate = list[index];
+            if (candidate && candidate.format === 'html') {
+              setHtmlSelectedAnnotationId(candidate.id);
+              break;
+            }
+          }
+          showToast('success', t('html.annotationSaved'));
+        });
+      }
+
+      function sendHtmlAnnotations() {
+        var list = annotationsRef.current.filter(function (annotation) {
+          return annotation && annotation.format === 'html' && annotation.status === 'open';
+        });
+        var currentDeck = deckRef.current;
+        if (!currentDeck || list.length === 0) {
+          showToast('error', t('send.none'));
+          return;
+        }
+        var name = basename(currentDeck.path || pathRef.current || 'report.html');
+        var lines = [t('send.htmlHeader', { name: name, count: list.length })];
+        list.forEach(function (annotation, index) {
+          var anchor = annotation.anchor || {};
+          lines.push(t('send.htmlLine', {
+            index: index + 1,
+            target: htmlAnchorTarget(anchor),
+            body: String(annotation.body || '').replace(/\s*\n\s*/g, ' ').trim(),
+          }));
+        });
+        lines.push('');
+        lines.push(t('send.footer'));
+        pushTextToComposer(lines.join('\n'));
       }
 
       function clearDraft() {
@@ -4499,6 +5757,10 @@ window.__ModuleLoader__.load({
         if (editModeRef.current) return;
         var currentDeck = deckRef.current;
         if (!currentDeck) return;
+        if (currentDeck.format === 'pdf' || currentDeck.editable === false) {
+          showToast('error', t('edit.pdfReadonly'));
+          return;
+        }
         if (currentDeck.writeAllowed === false) {
           showToast('error', t('edit.previewOnly'));
           return;
@@ -4599,6 +5861,436 @@ window.__ModuleLoader__.load({
         return loadingView;
       }
 
+      if (isDrawio) {
+        var drawioAnnotationList = annotations.filter(function (annotation) {
+          return annotation && annotation.format === 'drawio';
+        });
+        var drawioOpenCount = drawioAnnotationList.filter(function (annotation) {
+          return annotation.status === 'open';
+        }).length;
+        drawioAnnotationList = drawioAnnotationList.slice().sort(function (a, b) {
+          if ((a.status === 'open') !== (b.status === 'open')) return a.status === 'open' ? -1 : 1;
+          return 0;
+        });
+        var drawioSelectedCells = (drawioSelection || []).filter(function (cell) { return cell && typeof cell.id === 'string'; });
+        var drawioSelectedCell = drawioSelectedCells.length ? drawioSelectedCells[0] : null;
+        var drawioSelectionLabel = drawioSelectedCells.length > 1
+          ? t('drawio.selectedMany', { count: drawioSelectedCells.length, label: (drawioSelectedCells[0].label || drawioSelectedCells[0].id || '') })
+          : drawioSelectedCell
+            ? t('drawio.selected', { label: typeof drawioSelectedCell.label === 'string' && drawioSelectedCell.label ? drawioSelectedCell.label : (drawioSelectedCell.id || t('drawio.noLabel')) })
+            : t('drawio.wholeDiagram');
+        var drawioStatusText = '';
+        if (drawioState) {
+          if (drawioState.status === 'loading') drawioStatusText = t('drawio.loading');
+          else if (drawioState.status === 'saving') drawioStatusText = t('drawio.saving');
+          else if (drawioState.status === 'saved' && drawioState.savedAt) {
+            drawioStatusText = t('drawio.savedAt', { time: formatClock(drawioState.savedAt) });
+          }
+        }
+        var drawioError = drawioState && drawioState.error ? drawioState.error : null;
+        return h('div', {
+          className: 'wb-root wb-drawioView',
+          'data-ppt-workbench': 'body',
+          'data-state': 'ready',
+          'data-source-format': 'drawio',
+          ref: rootRef,
+        },
+          h('div', { className: 'wb-drawioBar', role: 'toolbar', 'aria-label': t('toolbar.drawioBadge') },
+            h('span', { className: 'wb-chip', 'data-info': 'true', 'data-pdf-badge': '', 'data-source-format': 'drawio', title: t('drawio.editorBadge') },
+              t('drawio.editorBadge')),
+            h('span', { className: 'wb-drawioName', title: deck.path || '' }, deck.path ? basename(deck.path) : ''),
+            h('span', { className: 'wb-spacer' }),
+            drawioStatusText
+              ? h('span', { className: 'wb-saveStatus', 'aria-live': 'polite', 'data-drawio-status': drawioState.status }, drawioStatusText)
+              : null,
+            h('button', {
+              type: 'button',
+              className: 'wb-btn',
+              'aria-pressed': drawioPanelOpen ? 'true' : 'false',
+              'aria-label': t('drawio.annotate'),
+              title: t('drawio.annotateTitle'),
+              onClick: toggleDrawioPanel,
+            },
+              h('span', { 'aria-hidden': true }, '✎'),
+              h('span', null, t('drawio.annotate')),
+              drawioOpenCount > 0 ? h('span', { className: 'wb-tabCount' }, String(drawioOpenCount)) : null),
+            h('button', {
+              type: 'button',
+              className: 'wb-btn wb-icon',
+              'aria-label': t('drawio.reload'),
+              title: t('drawio.reload'),
+              onClick: reloadDrawio,
+            }, h('span', { 'aria-hidden': true }, '⟳')),
+          ),
+          drawioError
+            ? h('div', { className: 'wb-drawioError', role: 'status', 'data-drawio-error': drawioError.code || 'error' },
+              h('span', null, drawioError.message || t('drawio.saveFailed', { message: '' })),
+              h('button', { type: 'button', className: 'wb-linkBtn', onClick: reloadDrawio }, t('drawio.reload')),
+            )
+            : null,
+          h('iframe', {
+            className: 'wb-drawioFrame',
+            ref: drawioFrameRef,
+            src: drawioSrc || undefined,
+            title: t('drawio.editorTitle'),
+            onLoad: onDrawioFrameLoad,
+          }),
+          drawioPanelOpen
+            ? h('div', { className: 'wb-drawioPanel', 'data-drawio-panel': '' },
+              h('div', { className: 'wb-drawioPanelHead' },
+                h('span', { className: 'wb-drawerTitle' }, t('drawio.panelTitle')),
+                drawioOpenCount > 0 ? h('span', { className: 'wb-chip', 'data-info': 'true' }, String(drawioOpenCount)) : null,
+                h('span', { className: 'wb-spacer' }),
+                h('button', {
+                  type: 'button',
+                  className: 'wb-btn wb-icon',
+                  'aria-label': t('drawio.panelClose'),
+                  title: t('drawio.panelClose'),
+                  onClick: toggleDrawioPanel,
+                }, h('span', { 'aria-hidden': true }, '×')),
+              ),
+              h('div', { className: 'wb-drawioPanelBody' },
+                h('div', { className: 'wb-drawioSelection', 'data-drawio-selection': '' },
+                  h('div', null, drawioSelectionLabel),
+                  drawioSelectedCells.length > 1
+                    ? h('div', { className: 'wb-meta' }, drawioSelectedCells.slice(0, 6).map(function (cell) { return cell.label || cell.id; }).join(' · '))
+                    : null),
+                h('textarea', {
+                  className: 'wb-textarea',
+                  value: drawioDraft,
+                  rows: 2,
+                  disabled: !!busyOp,
+                  placeholder: t('drawio.placeholder'),
+                  'aria-label': t('drawio.panelTitle'),
+                  onChange: function (event) {
+                    setDrawioDraft(event.target.value);
+                  },
+                }),
+                h('div', { className: 'wb-row', style: { justifyContent: 'flex-end' } },
+                  h('button', {
+                    type: 'button',
+                    className: 'wb-btn wb-primary',
+                    disabled: !String(drawioDraft || '').trim() || !!busyOp,
+                    onClick: addDrawioAnnotation,
+                  }, busyOp ? t('drawio.adding') : t('drawio.add')),
+                ),
+                h('div', { className: 'wb-sourceMeta' }, t('drawio.selectHint')),
+                drawioAnnotationList.length === 0
+                  ? h('div', { className: 'wb-empty' }, t('drawio.empty'))
+                  : drawioAnnotationList.map(function (annotation) {
+                    var anchor = annotation.anchor || {};
+                    var statusLabel = annotation.status === 'resolved'
+                      ? t('drawer.filterResolved')
+                      : annotation.status === 'orphaned'
+                        ? t('drawio.orphaned')
+                        : t('drawer.filterOpen');
+                    var label = typeof anchor.cellLabel === 'string' && anchor.cellLabel ? anchor.cellLabel : t('drawio.noLabel');
+                    return h('div', {
+                      key: annotation.id,
+                      className: 'wb-card',
+                      'data-drawio-card': annotation.id,
+                      'data-selected': annotation.id === drawioSelectedAnnotationId ? 'true' : 'false',
+                      role: 'button',
+                      tabIndex: 0,
+                      onClick: function () {
+                        selectDrawioAnnotation(annotation);
+                      },
+                      onKeyDown: function (event) {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          selectDrawioAnnotation(annotation);
+                        }
+                      },
+                    },
+                      h('div', { className: 'wb-cardHead' },
+                        h('span', { className: 'wb-badge' }, label),
+                        h('span', { className: 'wb-meta' }, Array.isArray(anchor.cellIds) && anchor.cellIds.length > 1 ? t('drawio.groupCount', { count: anchor.cellIds.length }) : anchor.cellId ? 'cell ' + anchor.cellId : t('drawio.wholeDiagram')),
+                        h('span', { className: 'wb-chip', 'data-info': 'true' }, statusLabel)),
+                      h('div', { className: 'wb-bodyText' }, String(annotation.body || '')),
+                      h('div', { className: 'wb-actions' },
+                        annotation.status === 'resolved'
+                          ? h('button', {
+                            type: 'button',
+                            className: 'wb-linkBtn',
+                            disabled: !!busyOp,
+                            onClick: function (event) {
+                              event.stopPropagation();
+                              reopenAnnotation(annotation);
+                            },
+                          }, t('annotation.reopen'))
+                          : h('button', {
+                            type: 'button',
+                            className: 'wb-linkBtn',
+                            disabled: !!busyOp,
+                            onClick: function (event) {
+                              event.stopPropagation();
+                              resolveAnnotation(annotation);
+                            },
+                          }, t('annotation.resolve')),
+                        h('button', {
+                          type: 'button',
+                          className: 'wb-linkBtn',
+                          disabled: !!busyOp,
+                          onClick: function (event) {
+                            event.stopPropagation();
+                            deleteAnnotation(annotation);
+                          },
+                        }, t('annotation.delete'))),
+                    );
+                  }),
+              ),
+              h('div', { className: 'wb-drawioFooter' },
+                h('span', { className: 'wb-spacer' }),
+                h('button', {
+                  type: 'button',
+                  className: 'wb-btn wb-primary',
+                  'aria-label': t('drawio.sendTitle'),
+                  title: t('drawio.sendTitle'),
+                  disabled: drawioOpenCount === 0 || !!busyOp,
+                  onClick: sendDrawioAnnotations,
+                }, t('toolbar.send')),
+              ),
+            )
+            : null,
+          toast ? h(ToastView, { toast: toast, lang: lang, onClose: closeToast }) : null,
+        );
+      }
+
+      if (isHtml) {
+        var htmlAnnotationList = annotations.filter(function (annotation) {
+          return annotation && annotation.format === 'html';
+        });
+        var htmlOpenCount = htmlAnnotationList.filter(function (annotation) {
+          return annotation.status === 'open';
+        }).length;
+        htmlAnnotationList = htmlAnnotationList.slice().sort(function (a, b) {
+          if ((a.status === 'open') !== (b.status === 'open')) return a.status === 'open' ? -1 : 1;
+          return 0;
+        });
+        var htmlMetrics = htmlState || {};
+        var htmlScrollY = Number(htmlMetrics.scrollY) || 0;
+        var htmlScrollHeight = Number(htmlMetrics.scrollHeight) || 0;
+        var htmlViewportHeight = Number(htmlMetrics.viewportHeight) || 0;
+        var htmlDraftTarget = htmlDraft ? htmlAnchorTarget(htmlDraft) : '';
+        var htmlDraftMeta = htmlDraft
+          ? (htmlDraft.tag ? htmlDraft.tag + ' · ' : '') + (htmlDraft.selector || '')
+          : '';
+        var visibleHtmlPins = [];
+        if (htmlScrollHeight > 0) {
+          htmlAnnotationList.forEach(function (annotation, index) {
+            var anchor = annotation.anchor || {};
+            var yNorm = Number(anchor.yNorm);
+            if (!Number.isFinite(yNorm)) return;
+            var topPx = yNorm * htmlScrollHeight - htmlScrollY;
+            if (topPx < -10) return;
+            if (htmlViewportHeight > 0 && topPx > htmlViewportHeight + 10) return;
+            var xNorm = Number(anchor.xNorm);
+            var leftPct = (Number.isFinite(xNorm) ? Math.min(1, Math.max(0, xNorm)) : 0.5) * 100;
+            visibleHtmlPins.push({ annotation: annotation, number: index + 1, left: leftPct, top: topPx });
+          });
+        }
+        var htmlError = htmlMetrics.error || null;
+        return h('div', {
+          className: 'wb-root wb-htmlView',
+          'data-ppt-workbench': 'body',
+          'data-state': 'ready',
+          'data-source-format': 'html',
+          ref: rootRef,
+        },
+          h('div', { className: 'wb-htmlBar', role: 'toolbar', 'aria-label': t('html.badge') },
+            h('span', { className: 'wb-chip', 'data-info': 'true', 'data-pdf-badge': '', 'data-source-format': 'html', title: t('html.badge') },
+              t('html.badge')),
+            h('span', { className: 'wb-htmlName', title: deck.path || '' }, deck.path ? basename(deck.path) : ''),
+            h('span', { className: 'wb-spacer' }),
+            h('span', { className: 'wb-saveStatus', 'data-html-status': htmlMetrics.status || 'loading' },
+              htmlMetrics.status === 'ready' ? (htmlMetrics.title || '') : t('html.loading')),
+            h('button', {
+              type: 'button',
+              className: 'wb-btn',
+              'aria-pressed': htmlAnnotate ? 'true' : 'false',
+              'aria-label': t('html.annotateMode'),
+              title: htmlAnnotate ? t('html.annotateOn') : t('html.annotateOff'),
+              onClick: toggleHtmlAnnotate,
+            }, h('span', { 'aria-hidden': true }, '✎'), h('span', null, t('html.annotateMode'))),
+            h('button', {
+              type: 'button',
+              className: 'wb-btn',
+              'aria-pressed': htmlPanelOpen ? 'true' : 'false',
+              'aria-label': t('html.panelTitle'),
+              title: t('html.panelShow'),
+              onClick: toggleHtmlPanel,
+            },
+              h('span', { 'aria-hidden': true }, '▤'),
+              h('span', null, t('html.panelTitle')),
+              htmlOpenCount > 0 ? h('span', { className: 'wb-tabCount' }, String(htmlOpenCount)) : null),
+          ),
+          htmlError
+            ? h('div', { className: 'wb-drawioError', role: 'status', 'data-html-error': htmlError.code || 'error' },
+              h('span', null, htmlError.message || t('html.loadFailed', { message: '' })),
+              h('button', { type: 'button', className: 'wb-linkBtn', onClick: fetchHtmlArtifactUrl }, t('html.retry')),
+            )
+            : null,
+          h('div', { className: 'wb-htmlContent' },
+            h('iframe', {
+              className: 'wb-htmlFrame',
+              ref: htmlFrameRef,
+              src: htmlSrc || undefined,
+              sandbox: 'allow-scripts',
+              title: htmlMetrics.title || basename(deck.path || 'report.html'),
+              onLoad: function () {
+                postHtmlAnnotate();
+              },
+            }),
+            htmlMetrics.status !== 'ready'
+              ? h('div', { className: 'wb-htmlLoading' },
+                h('span', { className: 'wb-miniSpinner', 'aria-hidden': true }),
+                h('span', null, t('html.loading')))
+              : null,
+            h('div', { className: 'wb-htmlPins' }, visibleHtmlPins.map(function (pin) {
+              return h('button', {
+                key: pin.annotation.id,
+                type: 'button',
+                className: 'wb-htmlPin',
+                'data-html-pin': pin.annotation.id,
+                'data-visible': 'true',
+                'data-selected': pin.annotation.id === htmlSelectedAnnotationId ? 'true' : 'false',
+                style: { left: pin.left + '%', top: pin.top + 'px' },
+                title: htmlAnchorTarget(pin.annotation.anchor || {}),
+                onClick: function () {
+                  selectHtmlAnnotation(pin.annotation);
+                },
+              }, String(pin.number));
+            })),
+            htmlPanelOpen
+              ? h('div', { className: 'wb-htmlPanel', 'data-html-panel': '' },
+                h('div', { className: 'wb-htmlPanelHead' },
+                  h('span', { className: 'wb-drawerTitle' }, t('html.panelTitle')),
+                  htmlOpenCount > 0 ? h('span', { className: 'wb-chip', 'data-info': 'true' }, String(htmlOpenCount)) : null,
+                  h('span', { className: 'wb-spacer' }),
+                  h('button', {
+                    type: 'button',
+                    className: 'wb-btn wb-icon',
+                    'aria-label': t('html.panelClose'),
+                    title: t('html.panelClose'),
+                    onClick: toggleHtmlPanel,
+                  }, h('span', { 'aria-hidden': true }, '×')),
+                ),
+                h('div', { className: 'wb-htmlPanelBody' },
+                  h('div', { className: 'wb-htmlSelection', 'data-html-draft': '' },
+                    htmlDraft ? h('div', null, t('html.draft', { target: htmlDraftTarget })) : t('html.noDraft'),
+                    htmlDraft && htmlDraftMeta ? h('div', { className: 'wb-meta' }, htmlDraftMeta) : null),
+                  h('textarea', {
+                    className: 'wb-textarea',
+                    value: htmlDraftBody,
+                    rows: 2,
+                    disabled: !!busyOp,
+                    placeholder: t('html.placeholder'),
+                    'aria-label': t('html.panelTitle'),
+                    onChange: function (event) {
+                      setHtmlDraftBody(event.target.value);
+                    },
+                  }),
+                  h('div', { className: 'wb-row', style: { justifyContent: 'space-between', alignItems: 'center' } },
+                    htmlDraft
+                      ? h('button', {
+                        type: 'button',
+                        className: 'wb-linkBtn',
+                        disabled: !!busyOp,
+                        onClick: function () {
+                          setHtmlDraft(null);
+                          setHtmlDraftBody('');
+                        },
+                      }, t('annotation.cancel'))
+                      : h('span'),
+                    h('button', {
+                      type: 'button',
+                      className: 'wb-btn wb-primary',
+                      disabled: !String(htmlDraftBody || '').trim() || !!busyOp,
+                      onClick: addHtmlAnnotation,
+                    }, busyOp ? t('html.adding') : t('html.add'))),
+                  h('div', { className: 'wb-sourceMeta' }, t('html.selectHint')),
+                  htmlAnnotationList.length === 0
+                    ? h('div', { className: 'wb-empty' }, t('html.empty'))
+                    : htmlAnnotationList.map(function (annotation) {
+                      var anchor = annotation.anchor || {};
+                      var statusLabel = annotation.status === 'resolved'
+                        ? t('drawer.filterResolved')
+                        : annotation.status === 'orphaned'
+                          ? t('drawio.orphaned')
+                          : t('drawer.filterOpen');
+                      var target = htmlAnchorTarget(anchor);
+                      var meta = [anchor.tag, anchor.selector].filter(Boolean).join(' · ');
+                      return h('div', {
+                        key: annotation.id,
+                        className: 'wb-card',
+                        'data-html-card': annotation.id,
+                        'data-selected': annotation.id === htmlSelectedAnnotationId ? 'true' : 'false',
+                        role: 'button',
+                        tabIndex: 0,
+                        onClick: function () {
+                          selectHtmlAnnotation(annotation);
+                        },
+                        onKeyDown: function (event) {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            selectHtmlAnnotation(annotation);
+                          }
+                        },
+                      },
+                        h('div', { className: 'wb-cardHead' },
+                          h('span', { className: 'wb-badge' }, target),
+                          meta ? h('span', { className: 'wb-meta', title: meta }, meta.slice(0, 48)) : null,
+                          h('span', { className: 'wb-chip', 'data-info': 'true' }, statusLabel)),
+                        h('div', { className: 'wb-bodyText' }, String(annotation.body || '')),
+                        h('div', { className: 'wb-actions' },
+                          annotation.status === 'resolved'
+                            ? h('button', {
+                              type: 'button',
+                              className: 'wb-linkBtn',
+                              disabled: !!busyOp,
+                              onClick: function (event) {
+                                event.stopPropagation();
+                                reopenAnnotation(annotation);
+                              },
+                            }, t('annotation.reopen'))
+                            : h('button', {
+                              type: 'button',
+                              className: 'wb-linkBtn',
+                              disabled: !!busyOp,
+                              onClick: function (event) {
+                                event.stopPropagation();
+                                resolveAnnotation(annotation);
+                              },
+                            }, t('annotation.resolve')),
+                          h('button', {
+                            type: 'button',
+                            className: 'wb-linkBtn',
+                            disabled: !!busyOp,
+                            onClick: function (event) {
+                              event.stopPropagation();
+                              deleteAnnotation(annotation);
+                            },
+                          }, t('annotation.delete'))),
+                      );
+                    }),
+                ),
+                h('div', { className: 'wb-htmlFooter' },
+                  h('span', { className: 'wb-spacer' }),
+                  h('button', {
+                    type: 'button',
+                    className: 'wb-btn wb-primary',
+                    'aria-label': t('html.sendTitle'),
+                    title: t('html.sendTitle'),
+                    disabled: htmlOpenCount === 0 || !!busyOp,
+                    onClick: sendHtmlAnnotations,
+                  }, t('toolbar.send'))),
+              )
+              : null,
+          ),
+          toast ? h(ToastView, { toast: toast, lang: lang, onClose: closeToast }) : null,
+        );
+      }
+
       var banners = [];
       if (conflict) {
         banners.push(h(NoticeBanner, {
@@ -4675,7 +6367,10 @@ window.__ModuleLoader__.load({
           zoom: zoom,
           annotate: annotate,
           edit: editMode,
-          canAnnotate: writeAllowed && !busyOp && !saving,
+          format: deckFormat,
+          sourceFormat: sourceFormat,
+          showEdit: artifactEditable,
+          canAnnotate: writeAllowed && !busyOp && !saving && !sourceOpen,
           canEdit: canEdit && !saving && !busyOp,
           canSend: openCount > 0 && !busyOp,
 
@@ -4701,6 +6396,10 @@ window.__ModuleLoader__.load({
             setRailPref(!railOpen);
           },
           onSend: sendAnnotations,
+          onOpenNative: openNative,
+          nativeBusy: nativeBusy,
+          onOpenSource: openSourceEditor,
+          sourceOpen: sourceOpen,
         }),
         editMode
           ? h(EditBar, {
@@ -4733,7 +6432,7 @@ window.__ModuleLoader__.load({
           })
           : annotate
             ? h('div', { className: 'wb-annotateHint' },
-              h('span', null, tr('annotate.hint')),
+              h('span', null, tr(deckFormat === 'pdf' ? 'annotate.hintPdf' : 'annotate.hint')),
             )
             : null,
         h('div', { className: 'wb-main' },
@@ -4823,8 +6522,20 @@ window.__ModuleLoader__.load({
               ),
           ),
         ),
-        editMode
-          ? h(ShapeInspector, {
+        sourceOpen
+          ? h(SourceDrawer, {
+            lang: lang,
+            editor: sourceEditor,
+            path: deck && deck.path ? deck.path : path,
+            onClose: closeSourceEditor,
+            onChange: function (value) {
+              updateSourceEditor({ text: value });
+            },
+            onSave: saveSource,
+            onReload: fetchSourceText,
+          })
+          : editMode
+            ? h(ShapeInspector, {
             lang: lang,
             open: drawerOpen,
             onToggleOpen: function () {
@@ -4839,10 +6550,10 @@ window.__ModuleLoader__.load({
             readonly: !writeAllowed,
             diffRef: formDiffRef,
             onFormDirty: setFormDirtyCount,
-            onAutoDraft: appendPendingOps,
-            onClearDraft: clearDraft,
-          })
-          : h(AnnotationDrawer, {
+              onAutoDraft: appendPendingOps,
+              onClearDraft: clearDraft,
+            })
+            : h(AnnotationDrawer, {
             lang: lang,
             annotations: annotations,
             slides: slides,
@@ -4861,6 +6572,13 @@ window.__ModuleLoader__.load({
             onDelete: deleteAnnotation,
             onReply: replyAnnotation,
           }),
+        sourceEditor && sourceEditor.confirmClose
+          ? h(SourceCloseDialog, {
+            lang: lang,
+            onCancel: cancelSourceClose,
+            onDiscard: discardSourceEditor,
+          })
+          : null,
         dirtyDialog
           ? h(DirtyDialog, {
             lang: lang,
@@ -4906,8 +6624,8 @@ window.__ModuleLoader__.load({
         ctx.effect(function () {
           return ctx.documentPreviews.register({
             id: RENDERER_ID,
-            extensions: ['pptx'],
-            binaryExtensions: ['pptx'],
+            extensions: ['pptx', 'pdf', 'html', 'htm', 'drawio', 'mmd', 'mermaid'],
+            binaryExtensions: ['pptx', 'pdf', 'html', 'htm', 'drawio', 'mmd', 'mermaid'],
             priority: 'extension',
             title: function () {
               return tr('viewer.title');

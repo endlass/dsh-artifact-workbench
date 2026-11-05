@@ -1,8 +1,8 @@
 {
   "name": "dsh-ppt-workbench",
-  "version": "0.3.0",
+  "version": "0.10.0",
   "private": true,
-  "description": "PPT 交互式工作台：在右侧栏文档预览中浏览、批注 dsh 生成的 .pptx，并把批注发回给 dsh",
+  "description": "Artifact Workbench：在右侧栏浏览/批注/编辑 dsh 生成的交付物（当前支持 PPTX 编辑与 PDF 批注）",
   "type": "module",
   "main": "index.js",
   "exports": {
@@ -25,7 +25,17 @@
     "EDIT-CONTRACT.md",
     "lib/edit_ops.py",
     "EDIT-UX-CONTRACT.md",
-    "ROADMAP.md"
+    "ROADMAP.md",
+    "P2-CONTRACT.md",
+    "lib/artifacts/",
+    "CHANGELOG.md",
+    "PUBLISHING.md",
+    "P3-CONTRACT.md",
+    "editor/",
+    "P4-CONTRACT.md",
+    "P4-DRAWIO-ANNOTATIONS.md",
+    "P4-H5-CONTRACT.md",
+    "lib/html-bridge.js"
   ],
   "engines": {
     "node": ">=22",
@@ -33,7 +43,7 @@
   },
   "scripts": {
     "check": "node --check index.js && node --check client.js",
-    "test": "node test/host-smoke.mjs && node test/annotation-multi.mjs && node test/annotation-concurrency.mjs && node test/edit-smoke.mjs && node test/edit-http.mjs"
+    "test": "node test/host-smoke.mjs && node test/annotation-multi.mjs && node test/annotation-concurrency.mjs && node test/edit-smoke.mjs && node test/edit-http.mjs && node test/pdf-smoke.mjs && node test/pdf-http.mjs && node test/html-smoke.mjs && node test/diagram-smoke.mjs && node test/editor-assets.mjs && node test/drawio-annotations.mjs && node test/html-artifact.mjs && node test/source-http.mjs && node test/annotation-schema.mjs"
   },
   "dsh": {
     "bundle": {
@@ -47,5 +57,13 @@
         "@deepseek-ai/dsh-client-ui-sidebar-right"
       ]
     }
-  }
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "artifact-workbench",
+    "pptx",
+    "pdf",
+    "annotations"
+  ]
 }

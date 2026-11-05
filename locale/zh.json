@@ -1,6 +1,6 @@
 {
   "meta": {
-    "title": "PPT 工作台",
-    "description": "在会话右侧栏直接打开 dsh 生成的 .pptx：浏览幻灯片、添加批注，并做文本/版式/页级结构化编辑。"
+    "title": "PPT / PDF 工作台",
+    "description": "在会话右侧栏打开 dsh 生成的 .pptx/.pdf：浏览、批注；PPTX 支持直接编辑和自动保存，PDF 只读批注。"
   }
 }

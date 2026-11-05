@@ -1,6 +1,6 @@
 {
   "meta": {
-    "title": "PPT Workbench",
-    "description": "Open a .pptx generated in a session, browse slides, annotate them, and make structured text/layout/slide edits in the right sidebar."
+    "title": "PPT / PDF Workbench",
+    "description": "Open .pptx/.pdf artifacts in the right sidebar: browse and annotate; PPTX supports direct editing and auto-save, PDF is read-only annotation."
   }
 }

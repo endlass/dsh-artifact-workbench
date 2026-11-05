@@ -16,15 +16,14 @@
  */
 
 import { spawn } from 'node:child_process';
-import { access, copyFile, mkdir, rename, rm } from 'node:fs/promises';
-import { dirname, isAbsolute, join, resolve } from 'node:path';
+import { access, copyFile, mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
+import { basename, dirname, isAbsolute, join, resolve } from 'node:path';
 
-import {
-  annotationFile,
-  mutateAnnotations,
-  readAnnotations,
-} from './lib/annotations.mjs';
+import { annotationFile } from './lib/annotations.mjs';
+import { adapterForPath, listArtifactAdapters } from './lib/artifacts/index.mjs';
 import { withDeckLock } from './lib/deck-lock.mjs';
+import { EDITOR_ROUTE, serveEditorFile } from './lib/editor-server.mjs';
+import { ARTIFACT_ROUTE, registerHtmlArtifact, serveHtmlArtifact } from './lib/html-server.mjs';
 import { EditOpError, getEditBackend } from './lib/edit-backend.mjs';
 import {
   ensureCurrentSnapshot,
@@ -35,7 +34,7 @@ import {
   redo,
   undo,
 } from './lib/history.mjs';
-import { disposeRenderer, ensureDeck, readSlidePng } from './lib/render.mjs';
+import { disposeRenderer, readSlidePng } from './lib/render.mjs';
 import {
   STORAGE,
   errorText,
@@ -43,14 +42,16 @@ import {
   log,
   sha256File,
   statFile,
+  syncFile,
 } from './lib/util.mjs';
 
 const NS = '/api/dsh-ppt-workbench';
 const OPS_MAX = 100;
 const LIBREOFFICE_APP = '/Applications/LibreOffice.app';
+const DRAWIO_APP = '/Applications/draw.io.app';
 const nativeOpenAt = new Map();
 
-export const inject = ['connection', 'sessions', 'workingDirectory'];
+export const inject = ['connection', 'sessions', 'workingDirectory', 'webServer'];
 
 function json(status, value) {
   return Response.json(value, { status });
@@ -86,8 +87,9 @@ async function inspectDeckMeta(ctx, payload) {
     payload.sessionId,
     payload.path,
   );
-  if (!/\.pptx$/i.test(absolutePath)) {
-    throw userError('only .pptx files are supported', 415, 'unsupported-format');
+  const adapter = adapterForPath(absolutePath);
+  if (!adapter) {
+    throw userError('unsupported artifact format (supported: .pptx, .pdf, .html, .drawio, .mmd, .mermaid)', 415, 'unsupported-format');
   }
   const info = await statFile(absolutePath);
   if (!info) throw userError('file not found', 404, 'not-found');
@@ -99,6 +101,7 @@ async function inspectDeckMeta(ctx, payload) {
     session,
     cwd,
     absolutePath,
+    adapter,
     info,
     sha,
     bytes,
@@ -108,20 +111,24 @@ async function inspectDeckMeta(ctx, payload) {
 
 async function inspectDeck(ctx, payload) {
   const meta = await inspectDeckMeta(ctx, payload);
-  const deck = await ensureDeck(meta.absolutePath, meta.sha, {
-    size: meta.info.size,
-    mtimeMs: meta.info.mtimeMs,
+  const deck = await meta.adapter.load({
+    path: meta.absolutePath,
+    sha: meta.sha,
+    info: meta.info,
   });
   deck.deck.path = meta.absolutePath;
   deck.deck.requestedPath = payload.path;
   deck.deck.bytes = meta.bytes.length;
+  deck.deck.format = meta.adapter.format;
+  deck.deck.editable = meta.adapter.editable === true;
   deck.deck.writeAllowed = meta.writeAllowed;
   deck.deck.annotationsFile = annotationFile(meta.absolutePath);
   return { ...meta, deck };
 }
 
-function inventoryOf(deck) {
+function inventoryOf(deck, adapter) {
   return {
+    format: deck.deck.format || (adapter && adapter.format) || 'pptx',
     slides: deck.slides,
     slideWidthEmu: deck.deck.slideWidthEmu,
     slideHeightEmu: deck.deck.slideHeightEmu,
@@ -129,10 +136,14 @@ function inventoryOf(deck) {
 }
 
 async function deckResponse(ctx, payload, extras) {
-  const { sha, deck, absolutePath } = await inspectDeck(ctx, payload);
+  const { sha, deck, absolutePath, adapter } = await inspectDeck(ctx, payload);
   let annotations;
   try {
-    annotations = await readAnnotations(deck.deck.path, sha, inventoryOf(deck));
+    annotations = await adapter.readAnnotations({
+      path: deck.deck.path,
+      sha,
+      inventory: inventoryOf(deck, adapter),
+    });
   } catch (error) {
     // Reading/repairing annotations is a side channel; a failure here must not make
     // a successfully saved edit (or a normal deck read) look like a 500.
@@ -182,22 +193,25 @@ async function openNative(meta) {
     throw userError('external editing is only allowed inside the session workspace', 403, 'outside-workspace');
   }
   if (process.platform !== 'darwin') {
-    throw userError('external LibreOffice editing is currently implemented for macOS only', 501, 'unsupported-platform');
+    throw userError('external editing is currently implemented for macOS only', 501, 'unsupported-platform');
   }
+  const isDiagram = /\.(drawio|mmd|mermaid)$/i.test(meta.absolutePath);
+  const appPath = isDiagram ? DRAWIO_APP : LIBREOFFICE_APP;
+  const appName = isDiagram ? 'draw.io' : 'LibreOffice';
   try {
-    await access(LIBREOFFICE_APP);
+    await access(appPath);
   } catch {
-    throw userError('LibreOffice.app was not found at /Applications', 500, 'native-app-missing');
+    throw userError(`${appName}.app was not found at /Applications`, 500, 'native-app-missing');
   }
   const previous = nativeOpenAt.get(meta.absolutePath) || 0;
   if (Date.now() - previous < 3000) {
-    throw userError('the deck was just opened in LibreOffice', 429, 'rate-limited');
+    throw userError('the artifact was just opened externally', 429, 'rate-limited');
   }
   nativeOpenAt.set(meta.absolutePath, Date.now());
   if (process.env.PPT_WORKBENCH_OPEN_DRY_RUN === '1') {
-    return { ok: true, app: 'LibreOffice', path: meta.absolutePath, dryRun: true };
+    return { ok: true, app: appName, path: meta.absolutePath, dryRun: true };
   }
-  const child = spawn('open', ['-a', LIBREOFFICE_APP, meta.absolutePath], {
+  const child = spawn('open', ['-a', appPath, meta.absolutePath], {
     detached: true,
     stdio: 'ignore',
   });
@@ -205,8 +219,45 @@ async function openNative(meta) {
     void log(`open-native spawn failed: ${errorText(error)}`);
   });
   child.unref();
-  await log(`open-native file=${meta.absolutePath.split('/').pop()}`);
-  return { ok: true, app: 'LibreOffice', path: meta.absolutePath };
+  await log(`open-native app=${appName} file=${meta.absolutePath.split('/').pop()}`);
+  return { ok: true, app: appName, path: meta.absolutePath };
+}
+
+const SOURCE_MAX_BYTES = 200 * 1024;
+const SOURCE_BACKUP_LIMIT = 5;
+
+function isEditableSource(artifactPath) {
+  return /\.(mmd|mermaid|drawio)$/i.test(String(artifactPath || ''));
+}
+
+async function sourceBackupDir(artifactPath) {
+  return join(`${artifactPath}.workbench`, 'source-backups');
+}
+
+async function backupMermaidSource(artifactPath) {
+  const dir = await sourceBackupDir(artifactPath);
+  await mkdir(dir, { recursive: true });
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const lower = artifactPath.toLowerCase();
+  const extension = lower.endsWith('.mermaid') ? 'mermaid' : lower.endsWith('.drawio') ? 'drawio' : 'mmd';
+  const target = join(dir, `${timestamp}.${extension}`);
+  await copyFile(artifactPath, target);
+  const entries = (await readdir(dir).catch(() => [])).filter((name) => !name.startsWith('.')).sort();
+  for (const name of entries.slice(0, Math.max(0, entries.length - SOURCE_BACKUP_LIMIT))) {
+    await rm(join(dir, name), { force: true }).catch(() => {});
+  }
+  return target;
+}
+
+async function readMermaidSource(meta) {
+  if (!isEditableSource(meta.absolutePath) || !meta.adapter || meta.adapter.id !== 'diagram') {
+    throw userError('source editing is available for .mmd/.mermaid/.drawio', 422, 'not-source-editable');
+  }
+  const info = await statFile(meta.absolutePath);
+  if (!info) throw userError('file not found', 404, 'not-found');
+  if (info.size > SOURCE_MAX_BYTES) throw userError('source is too large', 413, 'too-large');
+  const text = await readFile(meta.absolutePath, 'utf8');
+  return { text, info };
 }
 
 async function historyResponse(ctx, payload) {
@@ -251,6 +302,9 @@ async function writeConflictCopy(absolutePath, ops) {
 
 async function mutateDeck(ctx, payload, mode, signal) {
   const meta = await inspectDeckMeta(ctx, payload);
+  if (!meta.adapter.editable) {
+    throw userError(`${meta.adapter.format} is read-only in the workbench`, 422, 'not-editable');
+  }
   if (!meta.writeAllowed) {
     throw userError(
       'editing is only allowed inside the session workspace',
@@ -381,6 +435,18 @@ export function apply(ctx) {
     }, `dsh-ppt-workbench: route ${path}`);
   };
 
+  ctx.effect(() => ctx.webServer.register({
+    kind: 'prefix',
+    path: EDITOR_ROUTE,
+    handler: serveEditorFile,
+  }), 'dsh-ppt-workbench: drawio editor assets');
+
+  ctx.effect(() => ctx.webServer.register({
+    kind: 'prefix',
+    path: ARTIFACT_ROUTE,
+    handler: serveHtmlArtifact,
+  }), 'dsh-ppt-workbench: h5 artifact assets');
+
   route('health', ['GET'], 'buffered', async () => {
     return json(200, {
       ok: true,
@@ -428,11 +494,15 @@ export function apply(ctx) {
   route('annotations', ['GET', 'POST'], 'buffered', async (request) => {
     if (request.method === 'GET') {
       const url = new URL(request.url);
-      const { sha, deck } = await inspectDeck(ctx, {
+      const { sha, deck, adapter } = await inspectDeck(ctx, {
         sessionId: url.searchParams.get('sessionId'),
         path: url.searchParams.get('path'),
       });
-      const annotations = await readAnnotations(deck.deck.path, sha, inventoryOf(deck));
+      const annotations = await adapter.readAnnotations({
+        path: deck.deck.path,
+        sha,
+        inventory: inventoryOf(deck, adapter),
+      });
       return json(200, {
         ok: true,
         deckSha: sha,
@@ -448,7 +518,7 @@ export function apply(ctx) {
     } catch {
       return failure(400, 'bad-json', 'body must be JSON');
     }
-    const { cwd, absolutePath, sha, deck } = await inspectDeck(ctx, payload);
+    const { cwd, absolutePath, sha, deck, adapter } = await inspectDeck(ctx, payload);
     if (!isInside(cwd, absolutePath)) {
       return failure(
         403,
@@ -456,13 +526,13 @@ export function apply(ctx) {
         'annotations can only be saved inside the session workspace',
       );
     }
-    const result = await mutateAnnotations(
-      absolutePath,
+    const result = await adapter.mutateAnnotations({
+      path: absolutePath,
       sha,
-      inventoryOf(deck),
+      inventory: inventoryOf(deck, adapter),
       payload,
-      payload.author,
-    );
+      author: payload.author,
+    });
     await log(
       `annotation ${payload.op || 'create'} file=${absolutePath.split('/').pop()} count=${result.annotations.length}`,
     );
@@ -472,6 +542,27 @@ export function apply(ctx) {
       annotations: result.annotations,
       annotationsRepair: result.repair,
       writeAllowed: true,
+    });
+  });
+
+  route('artifact-url', ['GET'], 'buffered', async (request) => {
+    const url = new URL(request.url);
+    const meta = await inspectDeckMeta(ctx, {
+      sessionId: url.searchParams.get('sessionId'),
+      path: url.searchParams.get('path'),
+    });
+    if (!/\.(html?|htm)$/i.test(meta.absolutePath)) {
+      throw userError('artifact-url is only available for .html/.htm', 422, 'not-html');
+    }
+    if (!meta.writeAllowed) {
+      throw userError('html artifacts are only served inside the session workspace', 403, 'outside-workspace');
+    }
+    const artifact = registerHtmlArtifact(meta.absolutePath);
+    return json(200, {
+      ok: true,
+      url: artifact.url,
+      title: basename(meta.absolutePath),
+      sha256: meta.sha,
     });
   });
 
@@ -495,6 +586,95 @@ export function apply(ctx) {
     }
     validateEditPayload(payload);
     return mutateDeck(ctx, payload, 'edit', request.signal);
+  });
+
+  route('source', ['GET', 'POST'], 'buffered', async (request) => {
+    if (request.method === 'GET') {
+      const url = new URL(request.url);
+      const meta = await inspectDeckMeta(ctx, {
+        sessionId: url.searchParams.get('sessionId'),
+        path: url.searchParams.get('path'),
+      });
+      const { text, info } = await readMermaidSource(meta);
+      return json(200, {
+        ok: true,
+        path: meta.absolutePath,
+        sha256: meta.sha,
+        size: info.size,
+        text,
+      });
+    }
+
+    let payload;
+    try {
+      payload = await request.json();
+    } catch {
+      return failure(400, 'bad-json', 'body must be JSON');
+    }
+    if (!payload || typeof payload.text !== 'string') {
+      throw userError('text must be a string', 422, 'bad-source');
+    }
+    if (Buffer.byteLength(payload.text, 'utf8') > SOURCE_MAX_BYTES) {
+      throw userError('source is too large', 413, 'too-large');
+    }
+    if (!/^[0-9a-f]{64}$/.test(String(payload.baseSha || ''))) {
+      throw userError('baseSha must be a 64-char sha256', 400, 'bad-request');
+    }
+    const meta = await inspectDeckMeta(ctx, payload);
+    if (!isEditableSource(meta.absolutePath) || meta.adapter.id !== 'diagram') {
+      throw userError('source editing is available for .mmd/.mermaid/.drawio', 422, 'not-source-editable');
+    }
+    if (!meta.writeAllowed) {
+      throw userError('source editing is only allowed inside the session workspace', 403, 'outside-workspace');
+    }
+    return withDeckLock(meta.absolutePath, async () => {
+      const current = await sha256File(meta.absolutePath);
+      if (current.sha !== payload.baseSha) {
+        throw userError('file changed on disk', 409, 'stale', { currentSha: current.sha });
+      }
+      const backup = await backupMermaidSource(meta.absolutePath);
+      const workbench = `${meta.absolutePath}.workbench`;
+      await mkdir(workbench, { recursive: true });
+      const tmp = join(workbench, `source-${process.pid}-${Date.now()}.${meta.absolutePath.toLowerCase().endsWith('.mermaid') ? 'mermaid' : meta.absolutePath.toLowerCase().endsWith('.drawio') ? 'drawio' : 'mmd'}`);
+      try {
+        await writeFile(tmp, payload.text, 'utf8');
+        await syncFile(tmp);
+        await rename(tmp, meta.absolutePath);
+        await fsyncDirectory(dirname(meta.absolutePath));
+        const newSha = (await sha256File(meta.absolutePath)).sha;
+        if (payload.render === false) {
+          await log(`source save file=${meta.absolutePath.split('/').pop()} bytes=${Buffer.byteLength(payload.text, 'utf8')} sha=${newSha.slice(0, 12)} render=skip`);
+          return json(200, {
+            ok: true,
+            path: meta.absolutePath,
+            sha256: newSha,
+            size: Buffer.byteLength(payload.text, 'utf8'),
+            source: {
+              oldSha: current.sha,
+              newSha,
+              bytes: Buffer.byteLength(payload.text, 'utf8'),
+            },
+          });
+        }
+        let response;
+        try {
+          response = await deckResponse(ctx, payload, {
+            source: {
+              oldSha: current.sha,
+              newSha,
+              bytes: Buffer.byteLength(payload.text, 'utf8'),
+            },
+          });
+        } catch (error) {
+          await copyFile(backup, meta.absolutePath).catch(() => {});
+          throw error;
+        }
+        await log(`source save file=${meta.absolutePath.split('/').pop()} bytes=${Buffer.byteLength(payload.text, 'utf8')} sha=${newSha.slice(0, 12)}`);
+        return response;
+      } finally {
+        await rm(tmp, { force: true }).catch(() => {});
+      }
+    });
   });
 
   route('history', ['GET'], 'buffered', async (request) => {
@@ -527,7 +707,17 @@ export function apply(ctx) {
 
   route('capabilities', ['GET'], 'buffered', async () => {
     const { describeEditBackend } = await import('./lib/edit-backend.mjs');
-    return json(200, { ok: true, backend: await describeEditBackend() });
+    return json(200, {
+      ok: true,
+      backend: await describeEditBackend(),
+      artifacts: listArtifactAdapters().map((adapter) => ({
+        id: adapter.id,
+        format: adapter.format,
+        extensions: adapter.extensions,
+        editable: adapter.editable === true,
+        capabilities: adapter.capabilities || null,
+      })),
+    });
   });
 
   ctx.effect(() => {

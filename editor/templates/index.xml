@@ -1,0 +1,83 @@
+<templates>
+<template url="basic/classes.xml" title="classDiagram" libs="general;uml" tags="classDiagram;Classes"/>
+<template url="basic/flowchart.xml" title="flowchart" libs="general;flowchart" tags="flowchart;Flowchart"/>
+<template url="basic/orgchart.xml" title="orgChart" libs="general;basic;arrows" tags="orgChart;Orgchart"/>
+<template url="basic/swimlanes.xml" title="swimlaneDiagram" libs="general;flowchart;bpmn" tags="swimlaneDiagram;Swimlanes"/>
+<template url="basic/erd.xml" title="entityRelationshipDiagram" libs="general;er" tags="entityRelationshipDiagram;Erd"/>
+<template url="basic/sequence.xml" title="Sequence Diagram" tags="Sequence;Diagram;Sequence"/>
+<template url="basic/kanban.xml" title="Simple Kanban Board" tags="Simple;Kanban;Board;Kanban"/>
+<template url="basic/cross.xml" title="Cross-Functional Flowchart" tags="Cross-Functional;Flowchart;Cross"/>
+<template url="basic/placeholder.xml" title="placeholders" tags="placeholder;Network;Subnet;;Folding;Collapse;Expand;"/>
+<template url="basic/mindmap.xml" title="mindmaps" tags="mindmap;Folding;Collapse;Expand;Tree;Subtree"/>
+<template url="business/accd.xml" name="Accd" libs="general" tags="Accd"/>
+<template url="business/bpmn.xml" name="Bpmn" libs="general;bpmn" tags="Bpmn"/>
+<template url="business/business_model_2.xml" name="Business model 2" libs="general" tags="Business;model"/>
+<template url="business/ishikawa_1.xml" name="Ishikawa 1" libs="general" tags="Ishikawa"/>
+<template url="business/ishikawa_2.xml" name="Ishikawa 2" libs="general" tags="Ishikawa"/>
+<template url="business/pert_1.xml" name="Pert 1" libs="general" tags="Pert"/>
+<template url="business/pert_2.xml" name="Pert 2" libs="general" tags="Pert"/>
+<template url="business/swimlane.xml" name="Swimlane" tags="Swimlane"/>
+<template url="business/timeline_1.xml" name="Timeline 1" libs="general" tags="Timeline"/>
+<template url="business/timeline_2.xml" name="Timeline 2" libs="general" tags="Timeline"/>
+<template url="business/timeline_3.xml" name="Timeline 3" libs="general" tags="Timeline"/>
+<template url="business/timeline_4.xml" name="Timeline 4" libs="general" tags="Timeline"/>
+<template url="charts/bar_chart_1.xml" name="Bar chart 1" libs="general" tags="Bar;chart"/>
+<template url="charts/coc.xml" name="Coc" libs="general" tags="Coc"/>
+<template url="charts/org_chart_1.xml" name="Org chart 1" libs="general" tags="Org;chart"/>
+<template url="charts/org_chart_2.xml" name="Org chart 2" libs="general" tags="Org;chart"/>
+<template url="charts/work_breakdown_structure.xml" name="Work breakdown structure" libs="general" tags="Work;breakdown;structure"/>
+<template url="charts/processbar.xml" name="Process Bar" libs="general" tags="Process;bar;stack;steps"/>
+<template url="flowcharts/cross_functional_flowchart_1.xml" name="Cross functional flowchart 1" libs="general;flowchart" tags="Cross;functional;flowchart"/>
+<template url="flowcharts/cross_functional_flowchart_2.xml" name="Cross functional flowchart 2" libs="general;flowchart" tags="Cross;functional;flowchart"/>
+<template url="flowcharts/data_flow_1.xml" name="Data flow 1" libs="general;uml" tags="Data;flow"/>
+<template url="flowcharts/data_flow_2.xml" name="Data flow 2" libs="general;uml" tags="Data;flow"/>
+<template url="flowcharts/data_flow_3.xml" name="Data flow 3" libs="general;uml" tags="Data;flow"/>
+<template url="flowcharts/epc.xml" name="Epc" libs="general;flowchart" tags="Epc"/>
+<template url="flowcharts/flowchart_1.xml" name="Flowchart 1" libs="general;flowchart" tags="Flowchart"/>
+<template url="flowcharts/flowchart_2.xml" name="Flowchart 2" libs="general;flowchart" tags="Flowchart"/>
+<template url="flowcharts/workflow_1.xml" name="Workflow 1" libs="general;flowchart" tags="Workflow"/>
+<template url="maps/concept_map_1.xml" name="Concept map 1" libs="general" tags="Concept;map"/>
+<template url="maps/concept_map_2.xml" name="Concept map 2" libs="general" tags="Concept;map"/>
+<template url="maps/living_beings_mind_map.xml" name="Living beings mind map" libs="general" tags="Living;beings;mind;map"/>
+<template url="maps/mind_map.xml" name="Mind map" libs="general" tags="Mind;map"/>
+<template url="maps/site_map.xml" name="Site map" libs="general" tags="Site;map"/>
+<template url="other/block.xml" name="Block" libs="general;" tags="Block"/>
+<template url="other/cycle_1.xml" name="Cycle 1" libs="general;" tags="Cycle"/>
+<template url="other/decision_tree.xml" name="Decision tree" libs="general;" tags="Decision;tree"/>
+<template url="other/delivery_diagram.xml" name="Delivery diagram" libs="general;" clibs="Uhttps%3A%2F%2Fjgraph.github.io%2Fdrawio-libs%2Flibs%2F%2Fdelivery-icons.xml" tags="Delivery;diagram"/>
+<template url="other/educational.xml" name="Educational" libs="general;" tags="Educational"/>
+<template url="software/class_1.xml" name="Class 1" libs="general;uml" tags="Class"/>
+<template url="software/class_2.xml" name="Class 2" libs="general;uml" tags="Class"/>
+<template url="software/component.xml" name="Component" libs="general;uml" tags="Component"/>
+<template url="software/database_1.xml" name="Database 1" libs="general;uml" tags="Database"/>
+<template url="software/database_2.xml" name="Database 2" libs="general;uml" tags="Database"/>
+<template url="software/database_3.xml" name="Database 3" libs="general;uml" tags="Database"/>
+<template url="software/entity_relationship.xml" name="Entity relationship" libs="general;uml;er" tags="Entity;relationship"/>
+<template url="software/git_flow_1.xml" name="Git flow 1" libs="general" tags="Git;flow"/>
+<template url="software/git_flow_2.xml" name="Git flow 2" libs="general" tags="Git;flow"/>
+<template url="software/git_flow_3.xml" name="Git flow 3" libs="general" tags="Git;flow"/>
+<template url="tables/authority_matrix.xml" name="Authority matrix" libs="general" tags="Authority;matrix"/>
+<template url="tables/gantt_1.xml" name="Gantt 1" libs="general" tags="Gantt"/>
+<template url="tables/gantt_2.xml" name="Gantt 2" libs="general" tags="Gantt"/>
+<template url="tables/gantt_3.xml" name="Gantt 3" libs="general" tags="Gantt"/>
+<template url="uml/activity_diagram_1.xml" name="Activity diagram 1" libs="general;uml" tags="Activity;diagram"/>
+<template url="uml/activity_diagram_2.xml" name="Activity diagram 2" libs="general;uml" tags="Activity;diagram"/>
+<template url="uml/sequence_1.xml" name="Sequence 1" libs="general;uml" tags="Sequence"/>
+<template url="uml/sequence_2.xml" name="Sequence 2" libs="general;uml" tags="Sequence"/>
+<template url="uml/state_machine.xml" name="State machine" libs="general;uml" tags="State;machine"/>
+<template url="uml/uml_1.xml" name="Uml 1" libs="general;uml" tags="Uml"/>
+<template url="uml/uml_2.xml" name="Uml 2" libs="general;uml" tags="Uml"/>
+<template url="venn/spider_1.xml" name="Spider 1" libs="general" tags="Spider"/>
+<template url="venn/spider_2.xml" name="Spider 2" libs="general" tags="Spider"/>
+<template url="venn/venn_1.xml" name="Venn 1" libs="general" tags="Venn"/>
+<template url="venn/venn_2.xml" name="Venn 2" libs="general" tags="Venn"/>
+<template url="venn/venn_3.xml" name="Venn 3" libs="general" tags="Venn"/>
+<template url="venn/venn_4.xml" name="Venn 4" libs="general" tags="Venn"/>
+<template url="venn/venn_5.xml" name="Venn 5" libs="general" tags="Venn"/>
+<template url="venn/venn_6.xml" name="Venn 6" libs="general" tags="Venn"/>
+<template url="layout/blog_wireframe.xml" name="Blog wireframe" tags="Blog;wireframe"/>
+<template url="layout/bootstrap.xml" name="Bootstrap" tags="Bootstrap"/>
+<template url="layout/wireframe_1.xml" name="Wireframe 1" tags="Wireframe"/>
+<template url="layout/wireframe_2.xml" name="Wireframe 2" tags="Wireframe"/>
+<template url="software/data_flow_1.xml" name="Data flow 1" tags="Data;flow"/>
+</templates>

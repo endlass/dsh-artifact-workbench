@@ -1,9 +1,10 @@
 # dsh-ppt-workbench
 
-DSH 插件（P1.1 版本，v0.3.0）：在会话右侧栏的文档预览里，直接打开 dsh 生成的 `.pptx`，浏览幻灯片、添加批注，并把未解决批注一键整理成修改指令发给 dsh。
+DSH 插件（P4 版本，v0.8.0）：在会话右侧栏的文档预览里，直接打开 dsh 生成的 `.pptx`，浏览幻灯片、添加批注，并把未解决批注一键整理成修改指令发给 dsh。
 
 - 设计与可行性依据：`../research/ppt-workbench/PPT工作台插件-设计方案-20261104.md`
 - 下一步规划：`./ROADMAP.md`
+- P2 契约：`./P2-CONTRACT.md`
 - Client 开发契约：`./CONTRACT.md`
 - 编辑契约：`./EDIT-CONTRACT.md`；直接编辑/外部 LibreOffice 契约：`./EDIT-UX-CONTRACT.md`
 - 目标环境：macOS + DSH 桌面版 `0.2.1-rc.5`（profile `desktop`）
@@ -18,6 +19,10 @@ DSH 插件（P1.1 版本，v0.3.0）：在会话右侧栏的文档预览里，�
 - **结构化编辑（P1）**：工具栏「编辑」模式下点选顶层形状，在底部 inspector 改文本/字号/粗斜体/颜色/位置大小/表格单元格/备注；支持复制/删除/上移/下移/插入空白页；保存走 atomic replace + 单写者锁，支持撤销/重做（硬链快照），外部改写返回 409 冲突且不覆盖。
 - **直接编辑（P1.1）**：画布内**双击文本原位编辑**（Esc 取消、⌘/Ctrl+Enter 或 blur 提交）；选中形状直接拖动移动、8 个手柄缩放；inspector 字段 blur/change 自动进草稿；**自动保存**默认开启（1500ms 空闲静默保存，可在编辑栏关闭），保存中/已保存状态可见；手动 ⌘/Ctrl+S 始终可用。
 - **外部原生编辑兜底（P1.1）**：编辑栏「在 LibreOffice 中编辑」先保存 pending，再用本机 `/Applications/LibreOffice.app` 打开 deck；外部保存后由现有 revision 机制自动刷新。
+- **PDF 工作台（P2）**：`.pdf` 在右侧栏渲染页图，支持点击/区域批注、回复/解决/筛选、发送给 dsh；PDF 只读，不显示编辑/撤销/页操作入口。批注侧车为 `dsh-artifact-annotation@2`，兼容旧版 `@1`。
+- **H5 报告批注（P2.2）**：`.html/.htm` 用本机 Chrome headless 打印成 PDF 快照，再走 PDF 页图/批注管线；只读批注，不改 HTML。内置 HTML 预览会被本工作台接管。
+- **drawio 内嵌编辑器（P4）**：`.drawio` 不再分页渲染，右侧栏直接嵌入离线 drawio 编辑器（插件自带 Apache-2.0 的 drawio webapp），可拖拽/连线/保存 XML；需要 `webServer` 同源资源路由。
+- **Mermaid**：继续用页图和「编辑源码」面板。
 - **发送给 dsh**：把未解决批注整理成包含页码、形状引用、批注正文和文件 SHA 的指令，插入 composer（用户确认后发送）；composer 不可用时退回剪贴板。
 - **安全边界**：批注写操作只允许在 session workspace 内；workspace 外的 deck 可只读浏览但禁用写操作。
 
@@ -52,6 +57,11 @@ DSH 插件（P1.1 版本，v0.3.0）：在会话右侧栏的文档预览里，�
 ```bash
 node --check index.js && node --check client.js
 node test/host-smoke.mjs     # Host: 渲染/缓存/批注 CRUD/锚点修复（需要设计调研目录里的测试样张）
+node test/pdf-smoke.mjs      # PDF 页图/批注/旧 schema 迁移
+node test/pdf-http.mjs       # PDF Host 路由/只读保护
+node test/html-smoke.mjs     # H5 → PDF 快照 + 页批注
+node test/diagram-smoke.mjs  # drawio/Mermaid → PNG + 页批注（含多页）
+node test/source-http.mjs   # Mermaid 源码 GET/POST + stale/只读保护
 node test/annotation-concurrency.mjs  # 批注侧车并发写/修复写回归
 node test/edit-smoke.mjs     # 编辑/undo/redo/冲突
 node test/edit-http.mjs      # Host 路由级编辑 + open-native dry-run
@@ -59,9 +69,13 @@ node test/edit-http.mjs      # Host 路由级编辑 + open-native dry-run
 
 Host smoke 使用 `research/ppt-workbench/engine/deck/deck-v1.pptx` 与 `deck-v1-lort.pptx`（可用环境变量 `PPT_WORKBENCH_TEST_DECK` / `PPT_WORKBENCH_TEST_DECK_LORT` 覆盖），只写 `/tmp` 与插件缓存目录。
 
-## 已知限制（P1+）
+## 已知限制（P4+）
 
 - 只支持顶层形状；组内形状/图片替换/动画/转场/SmartArt/媒体不编辑。
+- PDF 文本层选择/搜索未接入；当前批注是页图坐标+区域，文本摘录可选但默认空。
+- H5 走打印快照，动态交互/链接/表单会丢失；只适合报告类静态页。
+- drawio 最多渲染 30 页；超过会提示截断；drawio 只支持外部编辑。
+- Mermaid 源码保存不做语法预校验，渲染失败会回滚源文件；无编辑历史，保留最近 5 份备份。
 - 冲突（409）时 Host 会把当前磁盘版本+本次 ops 尽力回放到 `<deck>.workbench/conflict/`，并在冲突 banner 显示副本名；Client 只提供「重新加载（丢弃草稿）」。
 - 保存后整份 deck 重新渲染（12 页约 3–4 s），暂未只重渲染脏页。
 - LibreOffice 与 PowerPoint 存在版式差异；缺字体只告警不失败。
@@ -77,7 +91,8 @@ Host smoke 使用 `research/ppt-workbench/engine/deck/deck-v1.pptx` 与 `deck-v1
 ```
 index.js              Host 半：/api/dsh-ppt-workbench/{deck,slide,annotations,edit,history,undo,redo,open-native,capabilities,health}
 client.js             Client 半：document renderer body（浏览/批注/直接编辑/自动保存/外部打开/发送/抽屉）
-lib/render.mjs        LibreOffice Kit 渲染队列 + 页面缓存 + inventory 编排（缓存 v2）
+lib/render.mjs        LibreOffice Kit 渲染队列 + PPTX inventory + PDF 页图编排
+lib/artifacts/        Artifact adapter registry（pptx 可编辑 / pdf + html 快照只读批注）
 lib/annotations.mjs   批注侧车读写、锚点修复、op 处理
 lib/edit-backend.mjs  EditBackend 抽象 + PptxEditBackend（预留官方 editor 后端）
 lib/edit_ops.py       11 类白名单编辑 op 的 python-pptx 实现
@@ -91,6 +106,7 @@ test/edit-smoke.mjs   编辑/undo/redo/冲突测试
 test/edit-http.mjs    Host 路由级编辑测试
 EDIT-CONTRACT.md      P1 编辑 API/ops 契约
 EDIT-UX-CONTRACT.md   P1.1 直接编辑/自动保存/外部 LibreOffice 契约
+P2-CONTRACT.md        P2 骨架/PDF/批注 schema v2 契约
 CONTRACT.md           Client/Host 契约（开发用）
 locale/{zh,en}.json   Plugin Manager 显示元数据
 icon.svg              插件图标
