@@ -1,6 +1,6 @@
 {
   "name": "dsh-ppt-workbench",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "private": true,
   "description": "Artifact Workbench：在右侧栏浏览/批注/编辑 dsh 生成的交付物（当前支持 PPTX 编辑与 PDF 批注）",
   "type": "module",
@@ -39,7 +39,8 @@
     "lib/feishu.mjs",
     "test/feishu-smoke.mjs",
     "P5.1-FEISHU-TAB.md",
-    "test/fixtures/fake-lark-cli"
+    "test/fixtures/fake-lark-cli",
+    "P5.2-FEISHU-WORKBENCH.md"
   ],
   "engines": {
     "node": ">=22",

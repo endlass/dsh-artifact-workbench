@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.12.0 — 2026-11-08
+
+- P5.2：飞书评论工作台增强。块级评论（blockId 选择）、30s revision/评论自动刷新（草稿/隐藏暂停）、发送未解决评论给 dsh（inputActions/剪贴板/manual）。
+- Host 增加 blocks 解析（DocxXML → heading/paragraph/listItem id+text）。
+
 ## 0.11.0 — 2026-11-08
 
 - P5.1：飞书只读工作台。Host `lib/feishu.mjs` 通过 lark-cli 封装 doc fetch/comments/add/reply/resolve；新增右侧栏 `feishu-doc` tab、URL 输入、正文/评论显示、全文评论/回复/解决/重开、在飞书打开。

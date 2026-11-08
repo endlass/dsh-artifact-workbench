@@ -24,6 +24,8 @@ window.__ModuleLoader__.load({
     var NS = 'dsh-ppt-workbench';
     var RENDERER_ID = 'dsh-ppt-workbench/pptx';
     var FEISHU_TAB_ID = 'dsh-ppt-workbench/feishu-doc';
+    var FEISHU_AUTO_REFRESH_MS = 30000;
+    var FEISHU_BLOCK_LIMIT = 200;
     var FEISHU_TAB_KIND = 'feishu-doc';
     var API_PREFIX = 'api/dsh-ppt-workbench/';
     var STYLE_TAG_ID = 'dsh-ppt-workbench/client.css';
@@ -381,6 +383,29 @@ window.__ModuleLoader__.load({
       'feishu.noReplies': '（无回复内容）',
       'feishu.badUrl': '请输入有效的飞书文档链接。',
       'feishu.anonymous': '未知作者',
+      'feishu.blockSelect': '评论位置',
+      'feishu.blockFull': '全文评论',
+      'feishu.blockOption': '{index}. {text}',
+      'feishu.blockTarget': '评论位置：{text}',
+      'feishu.blockClear': '改回全文评论',
+      'feishu.blockRef': '块引用',
+      'feishu.noBlocks': '没有可选的块，将使用全文评论。',
+      'feishu.autoRefresh': '自动刷新 · 30s',
+      'feishu.autoPaused': '自动刷新已暂停',
+      'feishu.autoRefreshed': '上次刷新 {time}',
+      'feishu.revisionChanged': '文档已更新：版本 {previous} → {next}',
+      'feishu.send': '发送给 dsh',
+      'feishu.sendTitle': '把未解决的评论发送给 dsh',
+      'feishu.sendEmpty': '没有未解决的评论。',
+      'feishu.manualCopy': '无法自动插入输入框，已显示文本供手动复制。',
+      'feishu.manualClose': '关闭',
+      'send.feishuHeader': '请按以下飞书文档评论修改 `{title}`：',
+      'send.feishuMeta': '文档：{url}',
+      'send.feishuRevision': '版本：{revision}',
+      'send.feishuSummary': '正文摘要：{excerpt}',
+      'send.feishuComments': '未解决评论（{count} 条）：',
+      'send.feishuLine': '{index}. 块「{block}」：{body}',
+      'send.feishuFooter': '修改后请在飞书文档中直接编辑并回传。',
       'feishu.markdownTitle': '正文',
       'toast.close': '关闭提示',
 
@@ -728,6 +753,29 @@ window.__ModuleLoader__.load({
       'feishu.noReplies': '(no comment text)',
       'feishu.badUrl': 'Enter a valid Feishu document URL.',
       'feishu.anonymous': 'Unknown author',
+      'feishu.blockSelect': 'Comment target',
+      'feishu.blockFull': 'Whole document',
+      'feishu.blockOption': '{index}. {text}',
+      'feishu.blockTarget': 'Target: {text}',
+      'feishu.blockClear': 'Back to whole document',
+      'feishu.blockRef': 'Block',
+      'feishu.noBlocks': 'No block targets; comments will target the whole document.',
+      'feishu.autoRefresh': 'Auto-refresh · 30s',
+      'feishu.autoPaused': 'Auto-refresh paused',
+      'feishu.autoRefreshed': 'Refreshed {time}',
+      'feishu.revisionChanged': 'Document updated: revision {previous} → {next}',
+      'feishu.send': 'Send to dsh',
+      'feishu.sendTitle': 'Send open comments to dsh',
+      'feishu.sendEmpty': 'No open comments.',
+      'feishu.manualCopy': 'Could not insert automatically; the text is shown for manual copy.',
+      'feishu.manualClose': 'Close',
+      'send.feishuHeader': 'Please update the Feishu document `{title}` according to these comments:',
+      'send.feishuMeta': 'Document: {url}',
+      'send.feishuRevision': 'Revision: {revision}',
+      'send.feishuSummary': 'Body excerpt: {excerpt}',
+      'send.feishuComments': 'Open comments ({count}):',
+      'send.feishuLine': '{index}. Block "{block}": {body}',
+      'send.feishuFooter': 'Edit the document in Feishu and reply when done.',
       'feishu.markdownTitle': 'Body',
       'toast.close': 'Dismiss',
 
@@ -1598,6 +1646,10 @@ window.__ModuleLoader__.load({
       '.wb-shapeSelReadonly{border-style:dashed;border-color:var(--dsw-alias-state-warn-primary,#d97706);background:rgba(217,119,6,.08)}',
       '.wb-shapeBadge{position:absolute;right:0;top:-18px;font-size:10px;line-height:16px;padding:0 5px;border-radius:3px;background:var(--dsw-alias-state-warn-primary,#d97706);color:#fff;white-space:nowrap}',
       '.wb-feishu{display:flex;flex-direction:column;width:100%;height:100%;min-height:0;background:var(--dsw-alias-bg-base,#fff);color:var(--dsw-alias-label-primary,#1a1a1a);font-size:12px}',
+      '.wb-feishuSelect{max-width:100%;min-width:120px;height:26px;padding:0 6px;border-radius:var(--dsw-radius-sm,6px);border:.5px solid var(--dsw-alias-border-l2,rgba(128,128,128,.35));background:var(--dsw-alias-bg-layer-2,#fff);color:var(--dsw-alias-label-primary,#1a1a1a);font-size:11.5px}',
+      '.wb-feishuTarget{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:5px 8px;border-radius:var(--dsw-radius-sm,6px);border:.5px solid var(--dsw-alias-brand-primary,rgba(77,107,254,.45));background:var(--dsw-alias-bg-layer-1,#f4f7ff);font-size:11.5px;line-height:1.5;color:var(--dsw-alias-label-secondary,#444);word-break:break-word}',
+      '.wb-feishuBlockRef{padding:5px 8px;border-left:3px solid var(--dsw-alias-state-info-primary,#2f5bea);border-radius:0 4px 4px 0;background:var(--dsw-alias-bg-layer-1,#f7f7f8);color:var(--dsw-alias-label-secondary,#555);font-size:11.5px;line-height:1.5;white-space:pre-wrap;word-break:break-word}',
+      '.wb-feishuManual{display:flex;flex-direction:column;gap:6px;margin:8px 12px 0;padding:8px 10px;border-radius:var(--dsw-radius-sm,6px);border:.5px solid var(--dsw-alias-state-warn-secondary,rgba(217,119,6,.45));background:var(--dsw-alias-state-warn-tertiary,#fff7e6);font-size:11.5px;line-height:1.5}',
       '.wb-feishuBar{flex:none;display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:8px 10px;border-bottom:.5px solid var(--dsw-alias-border-l3,rgba(128,128,128,.3));background:var(--dsw-alias-bg-layer-2,#fff)}',
       '.wb-feishuChip{flex:none;display:inline-flex;align-items:center;justify-content:center;padding:2px 8px;border-radius:999px;border:.5px solid var(--dsw-alias-border-l2,rgba(128,128,128,.3));background:var(--dsw-alias-bg-layer-1,#f7f7f8);color:var(--dsw-alias-label-secondary,#555);font-size:11px;line-height:18px;white-space:nowrap}',
       '.wb-feishuInput{flex:1 1 220px;min-width:140px;height:28px;padding:0 8px;border-radius:var(--dsw-radius-sm,6px);border:.5px solid var(--dsw-alias-border-l2,rgba(128,128,128,.35));background:var(--dsw-alias-bg-base,#fff);color:var(--dsw-alias-label-primary,#1a1a1a);font-size:12px;outline:none}',
@@ -3938,6 +3990,11 @@ window.__ModuleLoader__.load({
       var replies = Array.isArray(comment.replies) ? comment.replies : [];
       var solved = comment.solved === true;
       var replying = props.replyTarget === comment.id;
+      var block = props.block || null;
+      var blockText = block && typeof block.text === 'string' ? block.text : '';
+      var quoteText = comment.quote ? String(comment.quote) : '';
+      var refText = quoteText || blockText;
+      var blockRef = comment.anchorBlockId ? String(comment.anchorBlockId) : '';
       return h('div', {
         className: 'wb-feishuComment',
         'data-feishu-comment': comment.id || '',
@@ -3965,7 +4022,12 @@ window.__ModuleLoader__.load({
               else props.onResolve(comment.id);
             },
           }, solved ? t('feishu.reopen') : t('feishu.resolve'))),
-        comment.quote ? h('div', { className: 'wb-feishuQuote' }, t('feishu.quote') + '：' + String(comment.quote)) : null,
+        refText
+          ? h('div', {
+            className: 'wb-feishuBlockRef',
+            'data-feishu-block-ref': blockRef,
+          }, (blockRef ? t('feishu.blockRef') + '：' : t('feishu.quote') + '：') + refText)
+          : null,
         h('div', { className: 'wb-feishuReplies' },
           replies.length === 0
             ? h('div', { className: 'wb-feishuReply' }, t('feishu.noReplies'))
@@ -4050,9 +4112,27 @@ window.__ModuleLoader__.load({
       var replyDraftHook = React.useState('');
       var replyDraft = replyDraftHook[0];
       var setReplyDraft = replyDraftHook[1];
+      var selectedBlockHook = React.useState('');
+      var selectedBlockId = selectedBlockHook[0];
+      var setSelectedBlockId = selectedBlockHook[1];
+      var autoRefreshedAtHook = React.useState(null);
+      var autoRefreshedAt = autoRefreshedAtHook[0];
+      var setAutoRefreshedAt = autoRefreshedAtHook[1];
+      var revisionNoticeHook = React.useState(null);
+      var revisionNotice = revisionNoticeHook[0];
+      var setRevisionNotice = revisionNoticeHook[1];
+      var manualTextHook = React.useState('');
+      var manualText = manualTextHook[0];
+      var setManualText = manualTextHook[1];
+      var pageVisibleHook = React.useState(true);
+      var pageVisible = pageVisibleHook[0];
+      var setPageVisible = pageVisibleHook[1];
       var loadSeqRef = React.useRef(0);
       var loadedUrlRef = React.useRef('');
       loadedUrlRef.current = loadedUrl;
+      var viewRef = React.useRef(null);
+      viewRef.current = view;
+      var autoGuardRef = React.useRef(null);
 
       function loadDoc(rawUrl) {
         var value = String(rawUrl === undefined || rawUrl === null ? '' : rawUrl).trim();
@@ -4122,6 +4202,36 @@ window.__ModuleLoader__.load({
         });
       }
 
+      function quietRefreshDoc() {
+        var current = loadedUrlRef.current;
+        if (!current) return Promise.resolve(false);
+        return feishuFetch('doc', { url: current }).then(function (result) {
+          if (!result.ok || !result.data || result.data.ok !== true) return false;
+          var data = result.data;
+          var comments = sortFeishuComments(data.comments);
+          var previousRevision = viewRef.current && viewRef.current.doc ? viewRef.current.doc.revisionId : null;
+          var nextRevision = data.revisionId;
+          setView(function (previous) {
+            if (!previous || previous.status !== 'ready') return previous;
+            return Object.assign({}, previous, {
+              url: typeof data.url === 'string' ? data.url : previous.url,
+              doc: data,
+              comments: comments,
+              error: null,
+            });
+          });
+          setLoadedUrl(typeof data.url === 'string' ? data.url : current);
+          setAutoRefreshedAt(Date.now());
+          var changed = previousRevision !== null && previousRevision !== undefined &&
+            nextRevision !== null && nextRevision !== undefined &&
+            String(previousRevision) !== String(nextRevision);
+          if (changed) setRevisionNotice({ previous: previousRevision, next: nextRevision });
+          return true;
+        }).catch(function () {
+          return false;
+        });
+      }
+
       function submitAction(payload, successText) {
         var url = payload && payload.url ? payload.url : loadedUrlRef.current;
         if (!url) return Promise.resolve(false);
@@ -4157,8 +4267,13 @@ window.__ModuleLoader__.load({
         }
         var url = loadedUrlRef.current;
         if (!url) return;
-        submitAction({ action: 'create', url: url, text: text }, t('feishu.commentAdded')).then(function (ok) {
-          if (ok) setCommentDraft('');
+        var createPayload = { action: 'create', url: url, text: text };
+        if (selectedBlockId) createPayload.blockId = selectedBlockId;
+        submitAction(createPayload, t('feishu.commentAdded')).then(function (ok) {
+          if (ok) {
+            setCommentDraft('');
+            setSelectedBlockId('');
+          }
         });
       }
 
@@ -4179,6 +4294,91 @@ window.__ModuleLoader__.load({
         var url = loadedUrlRef.current;
         if (!url) return;
         submitAction({ action: solved ? 'reopen' : 'resolve', url: url, commentId: commentId }, solved ? t('feishu.reopened') : t('feishu.resolved'));
+      }
+
+      function feishuCommentBody(comment) {
+        var replies = Array.isArray(comment && comment.replies) ? comment.replies : [];
+        var texts = replies.map(function (reply) {
+          return String(reply && reply.text ? reply.text : '').trim();
+        }).filter(Boolean);
+        return texts.length ? texts.join('；') : t('feishu.noReplies');
+      }
+
+      function buildFeishuSendText() {
+        var currentView = viewRef.current || {};
+        var currentDoc = currentView.doc || null;
+        if (!currentDoc) return '';
+        var unresolved = (currentView.comments || []).filter(function (comment) {
+          return comment && comment.solved !== true;
+        });
+        if (unresolved.length === 0) return '';
+        var blocks = {};
+        (Array.isArray(currentDoc.blocks) ? currentDoc.blocks : []).forEach(function (block) {
+          if (block && typeof block.id === 'string' && block.id) blocks[block.id] = block;
+        });
+        var title = currentDoc.title || loadedUrlRef.current || 'feishu doc';
+        var revision = currentDoc.revisionId === undefined || currentDoc.revisionId === null ? '-' : String(currentDoc.revisionId);
+        var markdown = String(currentDoc.markdown || '').replace(/\s+/g, ' ').trim();
+        var excerpt = markdown.length > 180 ? markdown.slice(0, 180) + '…' : markdown;
+        var lines = [t('send.feishuHeader', { title: title })];
+        lines.push(t('send.feishuMeta', { url: loadedUrlRef.current || currentDoc.url || '' }));
+        lines.push(t('send.feishuRevision', { revision: revision }));
+        lines.push(t('send.feishuSummary', { excerpt: excerpt || '—' }));
+        lines.push('');
+        lines.push(t('send.feishuComments', { count: unresolved.length }));
+        unresolved.forEach(function (comment, index) {
+          var blockId = comment && comment.anchorBlockId ? String(comment.anchorBlockId) : '';
+          var block = blockId && blocks[blockId] ? blocks[blockId] : null;
+          var target = comment && comment.quote
+            ? String(comment.quote)
+            : block && block.text
+              ? String(block.text)
+              : t('feishu.noReplies');
+          lines.push(t('send.feishuLine', {
+            index: index + 1,
+            block: truncate(target, 120),
+            body: feishuCommentBody(comment),
+          }));
+        });
+        lines.push('');
+        lines.push(t('send.feishuFooter'));
+        return lines.join('\n');
+      }
+
+      function sendToDsh() {
+        var text = buildFeishuSendText();
+        if (!text) {
+          setNotice(t('feishu.sendEmpty'));
+          return;
+        }
+        var inputActions = props.inputActions;
+        var inserted = false;
+        try {
+          if (inputActions && typeof inputActions.captureInsertion === 'function' && typeof inputActions.insertText === 'function') {
+            var span = inputActions.captureInsertion();
+            inserted = inputActions.insertText(text, span) !== false;
+          }
+        } catch (error) {
+          inserted = false;
+        }
+        if (inserted) {
+          setNotice(t('send.inserted'));
+          return;
+        }
+        setManualText(text);
+        setNotice(t('feishu.manualCopy'));
+        if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+          try {
+            navigator.clipboard.writeText(text).then(function () {
+              setNotice(t('send.copied'));
+              setManualText('');
+            }, function () {
+              /* manual panel already shown */
+            });
+          } catch (error) {
+            /* ignore */
+          }
+        }
       }
 
       React.useEffect(function () {
@@ -4208,6 +4408,38 @@ window.__ModuleLoader__.load({
         };
       }, [notice]);
 
+      React.useEffect(function () {
+        function onVisibilityChange() {
+          setPageVisible(document.visibilityState !== 'hidden');
+        }
+        onVisibilityChange();
+        document.addEventListener('visibilitychange', onVisibilityChange);
+        return function () {
+          document.removeEventListener('visibilitychange', onVisibilityChange);
+        };
+      }, []);
+
+      React.useEffect(function () {
+        var timer = setInterval(function () {
+          var guard = autoGuardRef.current;
+          if (!guard || !guard.ready || !guard.canRefresh || !guard.visible) return;
+          quietRefreshDoc();
+        }, FEISHU_AUTO_REFRESH_MS);
+        return function () {
+          clearInterval(timer);
+        };
+      }, []);
+
+      React.useEffect(function () {
+        if (!revisionNotice) return undefined;
+        var timer = setTimeout(function () {
+          setRevisionNotice(null);
+        }, 8000);
+        return function () {
+          clearTimeout(timer);
+        };
+      }, [revisionNotice]);
+
       var status = view.status;
       var doc = view.doc;
       var comments = Array.isArray(view.comments) ? view.comments : [];
@@ -4217,6 +4449,28 @@ window.__ModuleLoader__.load({
       });
       var externalUrl = doc && typeof doc.url === 'string' ? doc.url : loadedUrl;
       var showNotice = notice || null;
+      var docBlocks = doc && Array.isArray(doc.blocks) ? doc.blocks : [];
+      var blocksById = {};
+      docBlocks.forEach(function (block) {
+        if (block && typeof block.id === 'string' && block.id) blocksById[block.id] = block;
+      });
+      var blockTargets = [];
+      for (var blockIndex = 0; blockIndex < docBlocks.length && blockTargets.length < FEISHU_BLOCK_LIMIT; blockIndex += 1) {
+        var candidateBlock = docBlocks[blockIndex];
+        if (!candidateBlock || typeof candidateBlock.id !== 'string' || !candidateBlock.id) continue;
+        if (candidateBlock.type !== 'heading' && candidateBlock.type !== 'paragraph' && candidateBlock.type !== 'listItem') continue;
+        blockTargets.push(candidateBlock);
+      }
+      var selectedBlock = selectedBlockId && blocksById[selectedBlockId] ? blocksById[selectedBlockId] : null;
+      var canAutoRefresh = status === 'ready' && !busy && !replyTarget &&
+        !String(commentDraft || '').trim() && !String(replyDraft || '').trim();
+      var tabVisible = !(tabRecord && tabRecord.visible === false) && pageVisible;
+      autoGuardRef.current = {
+        ready: status === 'ready',
+        canRefresh: canAutoRefresh,
+        visible: tabVisible,
+        url: loadedUrl,
+      };
       return h('div', {
         className: 'wb-feishu',
         'data-wb-feishu': '',
@@ -4260,6 +4514,16 @@ window.__ModuleLoader__.load({
               },
             }, h('span', { 'aria-hidden': true }, '⟳'))
             : null,
+          status === 'ready'
+            ? h('button', {
+              type: 'button',
+              className: 'wb-btn wb-primary',
+              'aria-label': t('feishu.sendTitle'),
+              title: t('feishu.sendTitle'),
+              disabled: busy,
+              onClick: sendToDsh,
+            }, t('feishu.send'))
+            : null,
           status === 'ready' && externalUrl
             ? h('a', {
               className: 'wb-feishuLink',
@@ -4270,6 +4534,45 @@ window.__ModuleLoader__.load({
               title: t('feishu.externalTitle'),
             }, t('feishu.external'))
             : null),
+        revisionNotice
+          ? h('div', { className: 'wb-sourceStale', 'data-feishu-revision-notice': '' },
+            h('span', null, t('feishu.revisionChanged', {
+              previous: String(revisionNotice.previous),
+              next: String(revisionNotice.next),
+            })),
+            h('button', {
+              type: 'button',
+              className: 'wb-linkBtn',
+              onClick: function () {
+                setRevisionNotice(null);
+              },
+            }, t('toast.close')))
+          : null,
+        manualText
+          ? h('div', { className: 'wb-feishuManual', 'data-feishu-manual': '' },
+            h('div', { className: 'wb-feishuMeta' }, t('feishu.manualCopy')),
+            h('textarea', {
+              className: 'wb-textarea',
+              value: manualText,
+              rows: 6,
+              readOnly: true,
+              onFocus: function (event) {
+                try {
+                  event.target.select();
+                } catch (error) {
+                  /* ignore */
+                }
+              },
+            }),
+            h('div', { className: 'wb-row', style: { justifyContent: 'flex-end' } },
+              h('button', {
+                type: 'button',
+                className: 'wb-btn',
+                onClick: function () {
+                  setManualText('');
+                },
+              }, t('feishu.manualClose'))))
+          : null,
         actionError
           ? h('div', { className: 'wb-feishuError', 'data-feishu-action-error': '' },
             h('span', null, actionError),
@@ -4320,12 +4623,52 @@ window.__ModuleLoader__.load({
                     doc && doc.documentId
                       ? h('span', { className: 'wb-feishuChip' }, t('feishu.docId', { id: String(doc.documentId) }))
                       : null,
-                    h('span', { className: 'wb-feishuChip' }, t('feishu.commentsCount', { count: comments.length, open: openCount })))),
+                    h('span', { className: 'wb-feishuChip' }, t('feishu.commentsCount', { count: comments.length, open: openCount })),
+                    h('span', {
+                      className: 'wb-feishuChip',
+                      'data-feishu-auto-refresh': tabVisible && canAutoRefresh ? 'active' : 'paused',
+                      title: t('feishu.autoRefresh'),
+                    }, tabVisible && canAutoRefresh ? t('feishu.autoRefresh') : t('feishu.autoPaused')),
+                    autoRefreshedAt
+                      ? h('span', { className: 'wb-feishuMeta', 'data-feishu-auto-at': String(autoRefreshedAt) }, t('feishu.autoRefreshed', { time: formatClock(autoRefreshedAt) }))
+                      : null)),
                 h('pre', { className: 'wb-feishuMd', 'data-feishu-markdown': '' }, String((doc && doc.markdown) || '')),
                 h('div', { className: 'wb-feishuSection' },
                   h('span', null, t('feishu.comments')),
                   h('span', { className: 'wb-feishuChip' }, t('feishu.commentsCount', { count: comments.length, open: openCount }))),
                 h('div', { className: 'wb-feishuComposer' },
+                  h('div', { className: 'wb-row', style: { alignItems: 'center', gap: '6px', flexWrap: 'wrap' } },
+                    h('span', { className: 'wb-feishuMeta' }, t('feishu.blockSelect')),
+                    h('select', {
+                      className: 'wb-feishuSelect',
+                      'data-feishu-block-select': '',
+                      value: selectedBlockId,
+                      disabled: busy,
+                      'aria-label': t('feishu.blockSelect'),
+                      onChange: function (event) {
+                        setSelectedBlockId(event.target.value);
+                      },
+                    },
+                      h('option', { value: '' }, t('feishu.blockFull')),
+                      blockTargets.map(function (block, index) {
+                        return h('option', { key: block.id, value: block.id },
+                          t('feishu.blockOption', { index: index + 1, text: truncate(block.text, 42) }));
+                      })),
+                    blockTargets.length === 0
+                      ? h('span', { className: 'wb-feishuMeta' }, t('feishu.noBlocks'))
+                      : null),
+                  selectedBlock
+                    ? h('div', { className: 'wb-feishuTarget', 'data-feishu-block-target': selectedBlock.id },
+                      h('span', null, t('feishu.blockTarget', { text: truncate(selectedBlock.text, 120) })),
+                      h('button', {
+                        type: 'button',
+                        className: 'wb-linkBtn',
+                        disabled: busy,
+                        onClick: function () {
+                          setSelectedBlockId('');
+                        },
+                      }, t('feishu.blockClear')))
+                    : null,
                   h('textarea', {
                     className: 'wb-textarea',
                     value: commentDraft,
@@ -4352,6 +4695,7 @@ window.__ModuleLoader__.load({
                       key: comment.id || String(comment.createdAt),
                       lang: language(),
                       comment: comment,
+                      block: comment && comment.anchorBlockId ? blocksById[comment.anchorBlockId] : null,
                       busy: busy,
                       replyTarget: replyTarget,
                       replyDraft: replyDraft,
