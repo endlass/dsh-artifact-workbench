@@ -1,0 +1,29 @@
+#!/bin/sh
+# Test double for lib/feishu.mjs. It never touches the network.
+case "$*" in
+  *"auth status"*)
+    printf '%s\n' '{"ok":true,"appId":"cli_test","identity":"user","identities":{"user":{"status":"ready","available":true,"userName":"测试用户","openId":"ou_test"}}}'
+    ;;
+  *"docs +fetch"*"--doc-format xml"*)
+    printf '%s\n' '{"ok":true,"data":{"document":{"content":"<title>测试文档</title><h2 id=\"b1\">背景</h2><p id=\"b2\">正文</p>","document_id":"doc_test","revision_id":7}}}'
+    ;;
+  *"docs +fetch"*)
+    printf '%s\n' '{"ok":true,"data":{"document":{"content":"# 测试文档\n\n## 背景\n\n正文","document_id":"doc_test","revision_id":7}}}'
+    ;;
+  *"+list-comments"*)
+    printf '%s\n' '{"ok":true,"data":{"items":[{"comment_id":"c1","is_solved":false,"quote":"背景","extra":{"content_anchor_id":"b1"},"reply_list":{"replies":[{"reply_id":"r1","content":{"elements":[{"text_run":{"text":"请补充"}}]},"user_id":"ou_test","create_time":1}]}}]}}'
+    ;;
+  *"+add-comment"*)
+    printf '%s\n' '{"ok":true,"data":{"comment_id":"c2","anchor_block_id":"b1","comment_mode":"local"}}'
+    ;;
+  *"+add-reply"*)
+    printf '%s\n' '{"ok":true,"data":{"comment_id":"c1","reply_id":"r2","created":true}}'
+    ;;
+  *"+resolve-comment"*|*"+restore-comment"*)
+    printf '%s\n' '{"ok":true,"data":{"comment_id":"c1","is_solved":true,"updated":true}}'
+    ;;
+  *)
+    printf '%s\n' '{"ok":false,"error":{"message":"unexpected fake lark-cli call"}}'
+    exit 1
+    ;;
+esac

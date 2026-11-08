@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.11.0 — 2026-11-08
+
+- P5.1：飞书只读工作台。Host `lib/feishu.mjs` 通过 lark-cli 封装 doc fetch/comments/add/reply/resolve；新增右侧栏 `feishu-doc` tab、URL 输入、正文/评论显示、全文评论/回复/解决/重开、在飞书打开。
+- Host 新增 feishu-status/doc/comments/comment 路由与 fake-lark-cli 测试；真实飞书 docx 评论闭环已验证。
+
 ## 0.10.0 — 2026-11-06
 
 - P4.3：H5 改为原页 iframe（保留 CSS/JS/滚动/交互），不再打印分页快照。

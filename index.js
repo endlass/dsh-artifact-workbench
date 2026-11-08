@@ -23,6 +23,7 @@ import { annotationFile } from './lib/annotations.mjs';
 import { adapterForPath, listArtifactAdapters } from './lib/artifacts/index.mjs';
 import { withDeckLock } from './lib/deck-lock.mjs';
 import { EDITOR_ROUTE, serveEditorFile } from './lib/editor-server.mjs';
+import { addFeishuComment, feishuStatus, listFeishuComments, readFeishuDoc, replyFeishuComment, resolveFeishuComment } from './lib/feishu.mjs';
 import { ARTIFACT_ROUTE, registerHtmlArtifact, serveHtmlArtifact } from './lib/html-server.mjs';
 import { EditOpError, getEditBackend } from './lib/edit-backend.mjs';
 import {
@@ -543,6 +544,59 @@ export function apply(ctx) {
       annotationsRepair: result.repair,
       writeAllowed: true,
     });
+  });
+
+  route('feishu-status', ['GET'], 'buffered', async () => {
+    try {
+      return json(200, { ok: true, ...(await feishuStatus()) });
+    } catch (error) {
+      return failure(502, 'feishu-failed', errorText(error));
+    }
+  });
+
+  route('feishu-doc', ['GET'], 'buffered', async (request) => {
+    const url = new URL(request.url);
+    try {
+      return json(200, { ok: true, ...(await readFeishuDoc(url.searchParams.get('url'))) });
+    } catch (error) {
+      return failure(422, 'feishu-failed', errorText(error));
+    }
+  });
+
+  route('feishu-comments', ['GET'], 'buffered', async (request) => {
+    const url = new URL(request.url);
+    try {
+      return json(200, {
+        ok: true,
+        ...(await listFeishuComments(url.searchParams.get('url'), url.searchParams.get('status') || 'all')),
+      });
+    } catch (error) {
+      return failure(422, 'feishu-failed', errorText(error));
+    }
+  });
+
+  route('feishu-comment', ['POST'], 'buffered', async (request) => {
+    let payload;
+    try {
+      payload = await request.json();
+    } catch {
+      return failure(400, 'bad-json', 'body must be JSON');
+    }
+    try {
+      const action = payload?.action || 'create';
+      if (action === 'create') {
+        return json(200, { ok: true, ...(await addFeishuComment(payload.url, { blockId: payload.blockId, text: payload.text })) });
+      }
+      if (action === 'reply') {
+        return json(200, { ok: true, ...(await replyFeishuComment(payload.url, { commentId: payload.commentId, text: payload.text })) });
+      }
+      if (action === 'resolve' || action === 'reopen') {
+        return json(200, { ok: true, ...(await resolveFeishuComment(payload.url, { commentId: payload.commentId, solved: action === 'resolve' })) });
+      }
+      return failure(400, 'bad-request', 'action must be create, reply, resolve or reopen');
+    } catch (error) {
+      return failure(422, 'feishu-failed', errorText(error));
+    }
   });
 
   route('artifact-url', ['GET'], 'buffered', async (request) => {
