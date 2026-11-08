@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.14.3 — 2026-11-09
+
+- P1-01: history snapshots are independent copies (not hardlinks), restore verifies snapshot SHA; source-render failure only rolls back when the file is still the version this request wrote, otherwise preserves external content in a conflict copy.
+- Added history-immutability regression.
+
 ## 0.14.2 — 2026-11-09
 
 - H5 artifact 改为“HTML 及其引用资源 allowlist”：只服务 HTML/CSS/JS/图片/字体/视频，拒绝未引用文件、隐藏目录、sidecar 和符号链接；未引用 CSS/资源不再可读。

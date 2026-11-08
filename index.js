@@ -820,6 +820,20 @@ export function apply(ctx) {
             },
           });
         } catch (error) {
+          // An external editor may have written during render. Only roll back
+          // when the file is still exactly the version this request wrote.
+          const afterFailure = await sha256File(meta.absolutePath).catch(() => null);
+          if (afterFailure && afterFailure.sha !== newSha) {
+            const conflictDir = join(workbench, 'conflict');
+            await mkdir(conflictDir, { recursive: true }).catch(() => {});
+            const extension = meta.absolutePath.toLowerCase().endsWith('.drawio') ? 'drawio' : 'mmd';
+            const conflictCopy = join(conflictDir, `source-${Date.now()}-${process.pid}.${extension}`);
+            await copyFile(meta.absolutePath, conflictCopy).catch(() => {});
+            throw userError('render failed and the file changed on disk during save', 409, 'stale', {
+              currentSha: afterFailure.sha,
+              conflictCopy,
+            });
+          }
           await copyFile(backup, meta.absolutePath).catch(() => {});
           throw error;
         }
