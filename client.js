@@ -356,6 +356,9 @@ window.__ModuleLoader__.load({
       'feishu.loadFailed': '读取失败：{message}',
       'feishu.retry': '重试',
       'feishu.refresh': '刷新',
+      'feishu.menuOpen': '在 Artifact Workbench 打开',
+      'feishu.menuNative': '在侧栏原生界面打开',
+      'feishu.menuExternal': '在飞书浏览器打开',
       'feishu.openNative': '侧栏原生打开',
       'feishu.autoNative': '自动打开原生界面',
       'feishu.autoNativeTitle': '文档加载成功后自动在 DSH Browser tab 打开飞书原生页面',
@@ -730,6 +733,9 @@ window.__ModuleLoader__.load({
       'feishu.loadFailed': 'Could not read the document: {message}',
       'feishu.retry': 'Retry',
       'feishu.refresh': 'Refresh',
+      'feishu.menuOpen': 'Open in Artifact Workbench',
+      'feishu.menuNative': 'Open in native pane',
+      'feishu.menuExternal': 'Open in Feishu browser',
       'feishu.openNative': 'Open native pane',
       'feishu.autoNative': 'Auto-open native page',
       'feishu.autoNativeTitle': 'Open the native Feishu page in the DSH browser tab after a document loads',
@@ -7595,7 +7601,7 @@ window.__ModuleLoader__.load({
     // 注册
     // ------------------------------------------------------------------
     return {
-      inject: ['slots', 'locale', 'documentPreviews', 'sidebarRightTabs', 'sidebarRight'],
+      inject: ['slots', 'locale', 'documentPreviews', 'sidebarRightTabs', 'sidebarRight', 'contextMenus'],
       apply: function (ctx) {
         runtime.locale = ctx.locale;
 
@@ -7691,6 +7697,46 @@ window.__ModuleLoader__.load({
             );
           });
         }, 'dsh-ppt-workbench: feishu body');
+
+        ctx.effect(function () {
+          return ctx.contextMenus.register({
+            id: 'dsh-ppt-workbench.feishu-url',
+            target: 'url',
+            order: 20,
+            resolve: function (target) {
+              var url = target && typeof target.url === 'string' ? target.url : '';
+              if (!/^https:\/\/[^/]*\.(feishu\.cn|larksuite\.com)\/(docx|wiki)\//i.test(url)) return [];
+              return [
+                {
+                  id: 'open-workbench',
+                  label: tr('feishu.menuOpen'),
+                  run: function () {
+                    try {
+                      ctx.sidebarRight.openTab(FEISHU_TAB_KIND, {
+                        params: { url: url },
+                        revealIfOpened: false,
+                        preferNewPane: true,
+                      });
+                    } catch (error) { /* ignore */ }
+                  },
+                },
+                {
+                  id: 'open-native',
+                  label: tr('feishu.menuNative'),
+                  run: function () {
+                    try {
+                      ctx.sidebarRight.openTab('browser', {
+                        params: { url: url },
+                        revealIfOpened: true,
+                        preferNewPane: true,
+                      });
+                    } catch (error) { /* ignore */ }
+                  },
+                },
+              ];
+            },
+          });
+        }, 'dsh-ppt-workbench: feishu URL context menu');
       },
     };
   },
