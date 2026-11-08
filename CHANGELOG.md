@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.14.0 — 2026-11-08
+
+- 飞书用户 OAuth（Device Flow）：App ID/Secret 配置、device authorization、token 轮询、refresh、logout；设置页登录按钮/授权链接/账号状态。
+- 凭据文件权限 600，Secret/token 不返回客户端、不进日志。
+
 ## 0.13.4 — 2026-11-08
 
 - Plugins 设置页新增「飞书文档」卡：本机 lark-cli 状态/账号/应用、自动打开原生界面开关，OAuth 预留说明。

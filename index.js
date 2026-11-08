@@ -24,6 +24,7 @@ import { adapterForPath, listArtifactAdapters } from './lib/artifacts/index.mjs'
 import { withDeckLock } from './lib/deck-lock.mjs';
 import { EDITOR_ROUTE, serveEditorFile } from './lib/editor-server.mjs';
 import { addFeishuComment, feishuStatus, listFeishuComments, readFeishuDoc, replyFeishuComment, resolveFeishuComment } from './lib/feishu.mjs';
+import { getFeishuAuthStatus, saveFeishuAppConfig, startFeishuLogin, pollFeishuLogin, logoutFeishu } from './lib/feishu-oauth.mjs';
 import { ARTIFACT_ROUTE, registerHtmlArtifact, serveHtmlArtifact } from './lib/html-server.mjs';
 import { EditOpError, getEditBackend } from './lib/edit-backend.mjs';
 import {
@@ -594,6 +595,53 @@ export function apply(ctx) {
       };
     },
   }), 'dsh-ppt-workbench: feishu_doc_read tool');
+
+  route('feishu/auth-status', ['GET'], 'buffered', async () => {
+    try {
+      return json(200, { ok: true, ...(await getFeishuAuthStatus()) });
+    } catch (error) {
+      return failure(500, 'feishu-auth-failed', errorText(error));
+    }
+  });
+
+  route('feishu/config', ['POST'], 'buffered', async (request) => {
+    let payload;
+    try { payload = await request.json(); } catch { return failure(400, 'bad-json', 'body must be JSON'); }
+    try {
+      const app = await saveFeishuAppConfig({ appId: payload?.appId, appSecret: payload?.appSecret });
+      return json(200, { ok: true, ...app });
+    } catch (error) {
+      return failure(422, 'feishu-config-failed', errorText(error));
+    }
+  });
+
+  route('feishu/login/start', ['POST'], 'buffered', async (request) => {
+    let payload = {};
+    try { payload = await request.json(); } catch { payload = {}; }
+    try {
+      return json(200, { ok: true, ...(await startFeishuLogin({ scope: payload?.scope })) });
+    } catch (error) {
+      return failure(422, 'feishu-login-failed', errorText(error));
+    }
+  });
+
+  route('feishu/login/poll', ['POST'], 'buffered', async (request) => {
+    let payload;
+    try { payload = await request.json(); } catch { return failure(400, 'bad-json', 'body must be JSON'); }
+    try {
+      return json(200, { ok: true, ...(await pollFeishuLogin(payload?.flowId)) });
+    } catch (error) {
+      return failure(422, 'feishu-login-failed', errorText(error));
+    }
+  });
+
+  route('feishu/logout', ['POST'], 'buffered', async () => {
+    try {
+      return json(200, { ok: true, ...(await logoutFeishu()) });
+    } catch (error) {
+      return failure(500, 'feishu-logout-failed', errorText(error));
+    }
+  });
 
   route('feishu-status', ['GET'], 'buffered', async () => {
     try {

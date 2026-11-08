@@ -356,6 +356,19 @@ window.__ModuleLoader__.load({
       'feishu.loadFailed': '读取失败：{message}',
       'feishu.retry': '重试',
       'feishu.refresh': '刷新',
+      'feishu.settingsAppId': 'App ID',
+      'feishu.settingsSecret': 'App Secret',
+      'feishu.settingsSecretHint': '已配置；留空表示保留当前 Secret',
+      'feishu.settingsSave': '保存应用配置',
+      'feishu.settingsSaved': '应用配置已保存',
+      'feishu.settingsLogin': '登录飞书',
+      'feishu.settingsLogout': '退出登录',
+      'feishu.settingsConfigured': '已配置',
+      'feishu.settingsNotConfigured': '未配置',
+      'feishu.settingsLoginPending': '等待授权…',
+      'feishu.settingsLoginOk': '已登录：{name}',
+      'feishu.settingsVerification': '打开授权链接：{url}',
+      'feishu.settingsError': '操作失败：{message}',
       'feishu.settingsTitle': '飞书文档',
       'feishu.settingsSummary': '飞书文档接入：本机 lark-cli 状态、默认打开方式与未来 OAuth 配置。',
       'feishu.settingsAuth': '认证方式',
@@ -744,6 +757,19 @@ window.__ModuleLoader__.load({
       'feishu.loadFailed': 'Could not read the document: {message}',
       'feishu.retry': 'Retry',
       'feishu.refresh': 'Refresh',
+      'feishu.settingsAppId': 'App ID',
+      'feishu.settingsSecret': 'App Secret',
+      'feishu.settingsSecretHint': 'Configured; leave blank to keep the current secret',
+      'feishu.settingsSave': 'Save app config',
+      'feishu.settingsSaved': 'App config saved',
+      'feishu.settingsLogin': 'Sign in with Feishu',
+      'feishu.settingsLogout': 'Sign out',
+      'feishu.settingsConfigured': 'Configured',
+      'feishu.settingsNotConfigured': 'Not configured',
+      'feishu.settingsLoginPending': 'Waiting for authorization…',
+      'feishu.settingsLoginOk': 'Signed in: {name}',
+      'feishu.settingsVerification': 'Open the authorization link: {url}',
+      'feishu.settingsError': 'Action failed: {message}',
       'feishu.settingsTitle': 'Feishu documents',
       'feishu.settingsSummary': 'Feishu document access: local lark-cli status, default open mode, and the future OAuth setup.',
       'feishu.settingsAuth': 'Authentication',
@@ -4817,9 +4843,21 @@ window.__ModuleLoader__.load({
       var t = translator(language());
       useLocaleRevision();
       var view = props.view || 'summary';
-      var statusHook = React.useState({ loading: true, data: null, error: null });
-      var status = statusHook[0];
-      var setStatus = statusHook[1];
+      var authHook = React.useState({ loading: true, data: null, error: null });
+      var auth = authHook[0];
+      var setAuth = authHook[1];
+      var appIdHook = React.useState('');
+      var appId = appIdHook[0];
+      var setAppId = appIdHook[1];
+      var secretHook = React.useState('');
+      var appSecret = secretHook[0];
+      var setAppSecret = secretHook[1];
+      var saveHook = React.useState({ saving: false, notice: '', error: '' });
+      var saveState = saveHook[0];
+      var setSaveState = saveHook[1];
+      var loginHook = React.useState({ running: false, flow: null, user: null, error: '' });
+      var login = loginHook[0];
+      var setLogin = loginHook[1];
       var autoNativeHook = React.useState(function () {
         try {
           return window.localStorage.getItem('dsh-ppt-workbench.feishu.autoNative') !== 'false';
@@ -4829,35 +4867,149 @@ window.__ModuleLoader__.load({
       });
       var autoNative = autoNativeHook[0];
       var setAutoNative = autoNativeHook[1];
+      var pollRef = React.useRef(null);
 
-      function loadStatus() {
-        setStatus({ loading: true, data: null, error: null });
-        feishuFetch('status').then(function (result) {
+      function loadAuth() {
+        setAuth({ loading: true, data: null, error: null });
+        feishuFetch('auth-status').then(function (result) {
           if (!result.ok || !result.data || result.data.ok !== true) throw normalizeError(result);
-          setStatus({ loading: false, data: result.data, error: null });
+          setAuth({ loading: false, data: result.data, error: null });
+          if (result.data.appId) setAppId(function (previous) { return previous || result.data.appId; });
         }).catch(function (error) {
-          setStatus({ loading: false, data: null, error: error && error.message ? error.message : t('feishu.loadFailed', { message: '' }) });
+          setAuth({ loading: false, data: null, error: error && error.message ? error.message : t('feishu.loadFailed', { message: '' }) });
         });
       }
+
+      function stopPolling() {
+        if (pollRef.current !== null) {
+          window.clearInterval(pollRef.current);
+          pollRef.current = null;
+        }
+      }
+
+      function pollLogin(flowId) {
+        feishuFetch('login/poll', null, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ flowId: flowId }),
+        }).then(function (result) {
+          if (!result.ok || !result.data || result.data.ok !== true) throw normalizeError(result);
+          var data = result.data;
+          if (data.status === 'pending') {
+            if (data.interval && pollRef.current !== null) {
+              stopPolling();
+              pollRef.current = window.setInterval(function () { pollLogin(flowId); }, Math.max(2, Number(data.interval) || 5) * 1000);
+            }
+            return;
+          }
+          stopPolling();
+          if (data.status === 'ok') {
+            setLogin(function (previous) { return Object.assign({}, previous, { running: false, flow: null, user: data.user || null, error: '' }); });
+            loadAuth();
+            return;
+          }
+          setLogin(function (previous) { return Object.assign({}, previous, { running: false, flow: null, error: data.error || 'login failed' }); });
+        }).catch(function (error) {
+          stopPolling();
+          setLogin(function (previous) { return Object.assign({}, previous, { running: false, error: error && error.message ? error.message : 'login failed' }); });
+        });
+      }
+
+      function saveConfig() {
+        setSaveState({ saving: true, notice: '', error: '' });
+        feishuFetch('config', null, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ appId: appId, appSecret: appSecret }),
+        }).then(function (result) {
+          if (!result.ok || !result.data || result.data.ok !== true) throw normalizeError(result);
+          setAppSecret('');
+          setSaveState({ saving: false, notice: t('feishu.settingsSaved'), error: '' });
+          loadAuth();
+        }).catch(function (error) {
+          setSaveState({ saving: false, notice: '', error: error && error.message ? error.message : 'save failed' });
+        });
+      }
+
+      function startLogin() {
+        stopPolling();
+        setLogin({ running: true, flow: null, user: null, error: '' });
+        feishuFetch('login/start', null, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({}),
+        }).then(function (result) {
+          if (!result.ok || !result.data || result.data.ok !== true) throw normalizeError(result);
+          var flow = result.data;
+          setLogin({ running: true, flow: flow, user: null, error: '' });
+          var interval = Math.max(2, Number(flow.interval) || 5);
+          pollRef.current = window.setInterval(function () { pollLogin(flow.flowId); }, interval * 1000);
+        }).catch(function (error) {
+          setLogin({ running: false, flow: null, user: null, error: error && error.message ? error.message : 'login failed' });
+        });
+      }
+
+      function logout() {
+        stopPolling();
+        feishuFetch('logout', null, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({}),
+        }).then(function () {
+          setLogin({ running: false, flow: null, user: null, error: '' });
+          loadAuth();
+        }).catch(function () {});
+      }
+
       React.useEffect(function () {
-        loadStatus();
+        loadAuth();
+        return function () { stopPolling(); };
       }, []);
 
       if (view === 'summary') return h('div', null, t('feishu.settingsSummary'));
 
-      var data = status.data || {};
+      var data = auth.data || {};
       var user = data.user || {};
-      var statusText = status.error ? status.error : status.loading ? t('feishu.opening') : (user.available ? 'ready' : (user.status || 'unknown'));
+      var configured = data.configured === true;
+      var loggedIn = data.loggedIn === true;
+      var statusText = auth.error ? auth.error : auth.loading ? t('feishu.opening') : (loggedIn ? t('feishu.settingsLoginOk', { name: user.name || user.openId || '' }) : (configured ? t('feishu.settingsConfigured') : t('feishu.settingsNotConfigured')));
       return h('div', { className: 'wb-feishuSettings', 'data-feishu-settings': '' },
         h('div', { className: 'wb-feishuSection' }, t('feishu.settingsAuth')),
+        h('div', { className: 'wb-feishuMeta' }, t('feishu.settingsStatus', { status: String(statusText) })),
         h('div', { className: 'wb-feishuMeta' }, t('feishu.settingsCli')),
         h('div', { className: 'wb-feishuMeta' }, t('feishu.settingsOauth')),
-        h('div', { className: 'wb-feishuMeta' },
-          t('feishu.settingsStatus', { status: String(statusText) }),
-          h('span', { className: 'wb-spacer' }),
-          h('button', { type: 'button', className: 'wb-linkBtn', onClick: loadStatus }, t('feishu.settingsRefresh'))),
-        data.appId ? h('div', { className: 'wb-feishuMeta' }, t('feishu.settingsApp', { appId: data.appId })) : null,
-        user.userName ? h('div', { className: 'wb-feishuMeta' }, t('feishu.settingsUser', { name: user.userName })) : null,
+        h('label', { className: 'wb-feishuMeta', style: { display: 'block', marginTop: '10px' } },
+          t('feishu.settingsAppId'),
+          h('input', {
+            className: 'wb-feishuInput',
+            type: 'text',
+            value: appId,
+            placeholder: 'cli_...',
+            style: { marginLeft: '8px', width: 'calc(100% - 72px)' },
+            onChange: function (event) { setAppId(event.target.value); },
+          })),
+        h('label', { className: 'wb-feishuMeta', style: { display: 'block', marginTop: '6px' } },
+          t('feishu.settingsSecret'),
+          h('input', {
+            className: 'wb-feishuInput',
+            type: 'password',
+            value: appSecret,
+            placeholder: configured ? t('feishu.settingsSecretHint') : '',
+            style: { marginLeft: '8px', width: 'calc(100% - 92px)' },
+            onChange: function (event) { setAppSecret(event.target.value); },
+          })),
+        h('div', { className: 'wb-row', style: { justifyContent: 'flex-start', marginTop: '10px', gap: '8px' } },
+          h('button', { type: 'button', className: 'wb-btn wb-primary', disabled: saveState.saving, onClick: saveConfig }, t('feishu.settingsSave')),
+          configured && !loggedIn
+            ? h('button', { type: 'button', className: 'wb-btn', disabled: login.running, onClick: startLogin }, login.running ? t('feishu.settingsLoginPending') : t('feishu.settingsLogin'))
+            : null,
+          loggedIn ? h('button', { type: 'button', className: 'wb-btn', onClick: logout }, t('feishu.settingsLogout')) : null),
+        saveState.notice ? h('div', { className: 'wb-sourceMeta' }, saveState.notice) : null,
+        saveState.error ? h('div', { className: 'wb-sourceStale' }, t('feishu.settingsError', { message: saveState.error })) : null,
+        login.flow ? h('div', { className: 'wb-feishuMeta' },
+          h('a', { href: login.flow.verificationUriComplete || login.flow.verificationUri, target: '_blank', rel: 'noopener noreferrer' }, t('feishu.settingsVerification', { url: login.flow.verificationUriComplete || login.flow.verificationUri })),
+          login.flow.userCode ? h('span', null, ' · ' + login.flow.userCode) : null) : null,
+        login.error ? h('div', { className: 'wb-sourceStale' }, t('feishu.settingsError', { message: login.error })) : null,
         h('label', { className: 'wb-feishuMeta', style: { display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer', marginTop: '8px' } },
           h('input', {
             type: 'checkbox',
