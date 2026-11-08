@@ -356,6 +356,17 @@ window.__ModuleLoader__.load({
       'feishu.loadFailed': '读取失败：{message}',
       'feishu.retry': '重试',
       'feishu.refresh': '刷新',
+      'feishu.settingsTitle': '飞书文档',
+      'feishu.settingsSummary': '飞书文档接入：本机 lark-cli 状态、默认打开方式与未来 OAuth 配置。',
+      'feishu.settingsAuth': '认证方式',
+      'feishu.settingsCli': '本机 lark-cli（当前）',
+      'feishu.settingsOauth': '飞书应用 OAuth（规划中）',
+      'feishu.settingsUser': '账号：{name}',
+      'feishu.settingsApp': '应用：{appId}',
+      'feishu.settingsStatus': '状态：{status}',
+      'feishu.settingsRefresh': '重新检测',
+      'feishu.settingsAutoNative': '加载后自动打开原生界面',
+      'feishu.settingsOauthHint': '发布版将支持 App ID/Secret 与 OAuth 登录；当前先复用本机 lark-cli 授权。',
       'feishu.menuOpen': '在 Artifact Workbench 打开',
       'feishu.menuNative': '在侧栏原生界面打开',
       'feishu.menuExternal': '在飞书浏览器打开',
@@ -733,6 +744,17 @@ window.__ModuleLoader__.load({
       'feishu.loadFailed': 'Could not read the document: {message}',
       'feishu.retry': 'Retry',
       'feishu.refresh': 'Refresh',
+      'feishu.settingsTitle': 'Feishu documents',
+      'feishu.settingsSummary': 'Feishu document access: local lark-cli status, default open mode, and the future OAuth setup.',
+      'feishu.settingsAuth': 'Authentication',
+      'feishu.settingsCli': 'Local lark-cli (current)',
+      'feishu.settingsOauth': 'Feishu app OAuth (planned)',
+      'feishu.settingsUser': 'User: {name}',
+      'feishu.settingsApp': 'App: {appId}',
+      'feishu.settingsStatus': 'Status: {status}',
+      'feishu.settingsRefresh': 'Check again',
+      'feishu.settingsAutoNative': 'Auto-open the native page after loading',
+      'feishu.settingsOauthHint': 'The published build will support App ID/Secret and OAuth login. For now this uses the local lark-cli authorization.',
       'feishu.menuOpen': 'Open in Artifact Workbench',
       'feishu.menuNative': 'Open in native pane',
       'feishu.menuExternal': 'Open in Feishu browser',
@@ -4789,6 +4811,69 @@ window.__ModuleLoader__.load({
     }
 
     // ------------------------------------------------------------------
+    // 飞书设置卡（Plugins 设置页）
+    // ------------------------------------------------------------------
+    function FeishuSettingsCard(props) {
+      var t = translator(language());
+      useLocaleRevision();
+      var view = props.view || 'summary';
+      var statusHook = React.useState({ loading: true, data: null, error: null });
+      var status = statusHook[0];
+      var setStatus = statusHook[1];
+      var autoNativeHook = React.useState(function () {
+        try {
+          return window.localStorage.getItem('dsh-ppt-workbench.feishu.autoNative') !== 'false';
+        } catch (error) {
+          return true;
+        }
+      });
+      var autoNative = autoNativeHook[0];
+      var setAutoNative = autoNativeHook[1];
+
+      function loadStatus() {
+        setStatus({ loading: true, data: null, error: null });
+        feishuFetch('status').then(function (result) {
+          if (!result.ok || !result.data || result.data.ok !== true) throw normalizeError(result);
+          setStatus({ loading: false, data: result.data, error: null });
+        }).catch(function (error) {
+          setStatus({ loading: false, data: null, error: error && error.message ? error.message : t('feishu.loadFailed', { message: '' }) });
+        });
+      }
+      React.useEffect(function () {
+        loadStatus();
+      }, []);
+
+      if (view === 'summary') return h('div', null, t('feishu.settingsSummary'));
+
+      var data = status.data || {};
+      var user = data.user || {};
+      var statusText = status.error ? status.error : status.loading ? t('feishu.opening') : (user.available ? 'ready' : (user.status || 'unknown'));
+      return h('div', { className: 'wb-feishuSettings', 'data-feishu-settings': '' },
+        h('div', { className: 'wb-feishuSection' }, t('feishu.settingsAuth')),
+        h('div', { className: 'wb-feishuMeta' }, t('feishu.settingsCli')),
+        h('div', { className: 'wb-feishuMeta' }, t('feishu.settingsOauth')),
+        h('div', { className: 'wb-feishuMeta' },
+          t('feishu.settingsStatus', { status: String(statusText) }),
+          h('span', { className: 'wb-spacer' }),
+          h('button', { type: 'button', className: 'wb-linkBtn', onClick: loadStatus }, t('feishu.settingsRefresh'))),
+        data.appId ? h('div', { className: 'wb-feishuMeta' }, t('feishu.settingsApp', { appId: data.appId })) : null,
+        user.userName ? h('div', { className: 'wb-feishuMeta' }, t('feishu.settingsUser', { name: user.userName })) : null,
+        h('label', { className: 'wb-feishuMeta', style: { display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer', marginTop: '8px' } },
+          h('input', {
+            type: 'checkbox',
+            checked: !!autoNative,
+            onChange: function (event) {
+              var next = !!event.target.checked;
+              setAutoNative(next);
+              try { window.localStorage.setItem('dsh-ppt-workbench.feishu.autoNative', String(next)); } catch (error) { /* ignore */ }
+            },
+          }),
+          t('feishu.settingsAutoNative')),
+        h('div', { className: 'wb-sourceMeta', style: { marginTop: '8px' } }, t('feishu.settingsOauthHint')),
+      );
+    }
+
+    // ------------------------------------------------------------------
     // 主组件
     // ------------------------------------------------------------------
     function WorkbenchBody(props) {
@@ -7697,6 +7782,18 @@ window.__ModuleLoader__.load({
             );
           });
         }, 'dsh-ppt-workbench: feishu body');
+
+        ctx.effect(function () {
+          return ctx.slots.inject('plugins.item', function () {
+            return ctx.slots.register({
+              name: 'plugins.item',
+              id: 'feishu-doc',
+              order: 60,
+              label: function () { return tr('feishu.settingsTitle'); },
+              locale: NS,
+            }, FeishuSettingsCard);
+          });
+        }, 'dsh-ppt-workbench: feishu settings card');
 
         ctx.effect(function () {
           return ctx.contextMenus.register({
