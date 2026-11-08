@@ -15,7 +15,7 @@ const work = await mkdtemp(join(tmpdir(), 'wb-html-artifact-'));
 const html = '<!doctype html><html><head><link rel="stylesheet" href="report.css"></head><body><h1 id="title">报告</h1><script>window.__ran = true;</script></body></html>';
 await writeFile(join(work, 'report.html'), html);
 await writeFile(join(work, 'report.css'), 'h1{color:#333}');
-const artifact = registerHtmlArtifact(join(work, 'report.html'));
+const artifact = await registerHtmlArtifact(join(work, 'report.html'));
 const server = createServer((req, res) => { void serveHtmlArtifact(req, res); });
 server.listen(0, '127.0.0.1');
 await once(server, 'listening');

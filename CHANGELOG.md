@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.14.2 — 2026-11-09
+
+- H5 artifact 改为“HTML 及其引用资源 allowlist”：只服务 HTML/CSS/JS/图片/字体/视频，拒绝未引用文件、隐藏目录、sidecar 和符号链接；未引用 CSS/资源不再可读。
+
 ## 0.14.1 — 2026-11-09
 
 - P0 security/data fixes: realpath workspace containment, H5 artifact resource allowlist + symlink rejection, transactional annotation read-repair, corrupt sidecar preservation.

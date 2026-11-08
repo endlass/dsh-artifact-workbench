@@ -37,11 +37,11 @@ try {
   // 2) H5 artifact directory must not expose siblings or symlinks
   const htmlRoot = join(work, 'report');
   await mkdir(htmlRoot);
-  await writeFile(join(htmlRoot, 'report.html'), '<!doctype html><html><body>ok</body></html>');
+  await writeFile(join(htmlRoot, 'report.html'), '<!doctype html><html><head><link rel="stylesheet" href="report.css"></head><body>ok</body></html>');
   await writeFile(join(htmlRoot, 'report.css'), 'body{color:#111}');
   await writeFile(join(work, 'outside-marker.css'), 'body{display:none}');
   await symlink(join(work, 'outside-marker.css'), join(htmlRoot, 'escape.css'));
-  const artifact = registerHtmlArtifact(join(htmlRoot, 'report.html'));
+  const artifact = await registerHtmlArtifact(join(htmlRoot, 'report.html'));
   const server = createServer((req, res) => { void serveHtmlArtifact(req, res); });
   server.listen(0, '127.0.0.1');
   await once(server, 'listening');

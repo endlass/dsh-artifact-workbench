@@ -711,7 +711,7 @@ export function apply(ctx) {
     if (!meta.writeAllowed) {
       throw userError('html artifacts are only served inside the session workspace', 403, 'outside-workspace');
     }
-    const artifact = registerHtmlArtifact(meta.absolutePath);
+    const artifact = await registerHtmlArtifact(meta.absolutePath);
     return json(200, {
       ok: true,
       url: artifact.url,
