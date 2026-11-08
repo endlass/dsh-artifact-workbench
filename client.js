@@ -357,6 +357,8 @@ window.__ModuleLoader__.load({
       'feishu.retry': '重试',
       'feishu.refresh': '刷新',
       'feishu.openNative': '侧栏原生打开',
+      'feishu.autoNative': '自动打开原生界面',
+      'feishu.autoNativeTitle': '文档加载成功后自动在 DSH Browser tab 打开飞书原生页面',
       'feishu.openNativeTitle': '在 DSH 内置浏览器中以飞书原生界面打开（可在内登录）',
       'feishu.external': '在飞书打开',
       'feishu.externalTitle': '在飞书原生页面打开该文档',
@@ -729,6 +731,8 @@ window.__ModuleLoader__.load({
       'feishu.retry': 'Retry',
       'feishu.refresh': 'Refresh',
       'feishu.openNative': 'Open native pane',
+      'feishu.autoNative': 'Auto-open native page',
+      'feishu.autoNativeTitle': 'Open the native Feishu page in the DSH browser tab after a document loads',
       'feishu.openNativeTitle': 'Open the native Feishu page in the DSH browser tab',
       'feishu.external': 'Open in Feishu',
       'feishu.externalTitle': 'Open this document in Feishu',
@@ -4131,6 +4135,19 @@ window.__ModuleLoader__.load({
       var pageVisibleHook = React.useState(true);
       var pageVisible = pageVisibleHook[0];
       var setPageVisible = pageVisibleHook[1];
+      var autoNativeHook = React.useState(function () {
+        try {
+          var stored = window.localStorage.getItem('dsh-ppt-workbench.feishu.autoNative');
+          return stored === null ? true : stored === 'true';
+        } catch (error) {
+          return true;
+        }
+      });
+      var autoNative = autoNativeHook[0];
+      var setAutoNative = autoNativeHook[1];
+      var autoNativeRef = React.useRef(autoNative);
+      autoNativeRef.current = autoNative;
+      var lastAutoNativeRef = React.useRef('');
       var loadSeqRef = React.useRef(0);
       var loadedUrlRef = React.useRef('');
       loadedUrlRef.current = loadedUrl;
@@ -4163,6 +4180,12 @@ window.__ModuleLoader__.load({
           var comments = sortFeishuComments(data.comments);
           setView({ status: 'ready', url: typeof data.url === 'string' ? data.url : value, doc: data, comments: comments, error: null });
           setLoadedUrl(typeof data.url === 'string' ? data.url : value);
+          var nativeUrl = typeof data.url === 'string' && data.url ? data.url : value;
+          if (autoNativeRef.current && nativeUrl && lastAutoNativeRef.current !== nativeUrl &&
+              typeof props.openNativeBrowser === 'function') {
+            lastAutoNativeRef.current = nativeUrl;
+            try { props.openNativeBrowser(nativeUrl); } catch (error) { /* ignore */ }
+          }
         }).catch(function (error) {
           if (seq !== loadSeqRef.current) return;
           var normalized = error && error.code ? error : normalizeError(error);
@@ -4524,6 +4547,21 @@ window.__ModuleLoader__.load({
             disabled: !nativeCandidate,
             onClick: function () { openNative(nativeCandidate); },
           }, t('feishu.openNative')),
+          h('label', {
+            className: 'wb-feishuMeta',
+            title: t('feishu.autoNativeTitle'),
+            style: { display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'pointer' },
+          },
+            h('input', {
+              type: 'checkbox',
+              checked: !!autoNative,
+              onChange: function (event) {
+                var next = !!event.target.checked;
+                setAutoNative(next);
+                try { window.localStorage.setItem('dsh-ppt-workbench.feishu.autoNative', String(next)); } catch (error) { /* ignore */ }
+              },
+            }),
+            t('feishu.autoNative')),
           status === 'ready'
             ? h('button', {
               type: 'button',

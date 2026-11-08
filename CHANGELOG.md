@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.13.1 — 2026-11-08
+
+- 飞书文档加载成功后默认自动在 DSH Browser tab 打开原生页面；头部增加「自动打开原生界面」开关（localStorage 持久化）。
+
 ## 0.13.0 — 2026-11-08
 
 - 飞书原生体验：Feishu tab 顶部「侧栏原生打开」直接调用 DSH 内置 browser tab（桌面 Electron webview），可在内登录飞书并使用原生编辑/评论。
