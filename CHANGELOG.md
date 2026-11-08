@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.14.1 — 2026-11-09
+
+- P0 security/data fixes: realpath workspace containment, H5 artifact resource allowlist + symlink rejection, transactional annotation read-repair, corrupt sidecar preservation.
+- P0 client: PPTX draftBaseSha, conflict blocks all save/edit entries, saving locks editor and preserves unsubmitted draft, submitted batch only clears.
+
 ## 0.14.0 — 2026-11-08
 
 - 飞书用户 OAuth（Device Flow）：App ID/Secret 配置、device authorization、token 轮询、refresh、logout；设置页登录按钮/授权链接/账号状态。

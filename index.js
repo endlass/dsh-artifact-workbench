@@ -41,6 +41,7 @@ import {
   STORAGE,
   errorText,
   isInside,
+  isInsideReal,
   log,
   sha256File,
   statFile,
@@ -107,7 +108,7 @@ async function inspectDeckMeta(ctx, payload) {
     info,
     sha,
     bytes,
-    writeAllowed: isInside(cwd, absolutePath),
+    writeAllowed: await isInsideReal(cwd, absolutePath),
   };
 }
 
@@ -145,6 +146,7 @@ async function deckResponse(ctx, payload, extras) {
       path: deck.deck.path,
       sha,
       inventory: inventoryOf(deck, adapter),
+      writeAllowed: deck.deck.writeAllowed,
     });
   } catch (error) {
     // Reading/repairing annotations is a side channel; a failure here must not make
@@ -504,6 +506,7 @@ export function apply(ctx) {
         path: deck.deck.path,
         sha,
         inventory: inventoryOf(deck, adapter),
+        writeAllowed: deck.deck.writeAllowed,
       });
       return json(200, {
         ok: true,
@@ -520,8 +523,8 @@ export function apply(ctx) {
     } catch {
       return failure(400, 'bad-json', 'body must be JSON');
     }
-    const { cwd, absolutePath, sha, deck, adapter } = await inspectDeck(ctx, payload);
-    if (!isInside(cwd, absolutePath)) {
+    const { cwd, absolutePath, sha, deck, adapter, writeAllowed } = await inspectDeck(ctx, payload);
+    if (!writeAllowed) {
       return failure(
         403,
         'outside-workspace',

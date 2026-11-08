@@ -2690,7 +2690,7 @@ window.__ModuleLoader__.load({
       }
 
       function onPointerDown(event) {
-        if (props.busy) return;
+        if (props.busy || props.editLocked) return;
         if (typeof event.button === 'number' && event.button !== 0) return;
         if (props.editMode) {
           if (props.inlineEdit) return;
@@ -2923,7 +2923,7 @@ window.__ModuleLoader__.load({
         onPointerLeave: onPointerLeave,
         onClick: props.editMode
           ? function (event) {
-            if (props.busy || props.inlineEdit) return;
+            if (props.busy || props.editLocked || props.inlineEdit) return;
             if (suppressClickRef.current) {
               suppressClickRef.current = false;
               return;
@@ -2937,7 +2937,7 @@ window.__ModuleLoader__.load({
           : undefined,
         onDoubleClick: props.editMode
           ? function (event) {
-            if (props.busy || props.inlineEdit) return;
+            if (props.busy || props.editLocked || props.inlineEdit) return;
             var target = event.target;
             if (target && target.closest && target.closest('.wb-editor, .wb-pin, .wb-inlineText')) return;
             var point = localPoint(event);
@@ -3378,6 +3378,7 @@ window.__ModuleLoader__.load({
     // ------------------------------------------------------------------
     function EditBar(props) {
       var t = translator(props.lang);
+      var conflict = !!props.conflict;
       var menuHook = React.useState(false);
       var menuOpen = menuHook[0];
       var setMenuOpen = menuHook[1];
@@ -3390,11 +3391,11 @@ window.__ModuleLoader__.load({
       var pageCount = props.pageCount;
       var history = props.history || {};
       var busy = !!props.saving;
-      var pageOpsLocked = pending > 0;
-      var pageOpsDisabled = busy || props.readonly;
-      var canUndo = history.canUndo === true && pending === 0 && !busy;
-      var canRedo = history.canRedo === true && pending === 0 && !busy;
-      var canSave = pending > 0 && !busy && !props.readonly;
+      var pageOpsLocked = pending > 0 || conflict;
+      var pageOpsDisabled = busy || props.readonly || conflict;
+      var canUndo = history.canUndo === true && pending === 0 && !busy && !conflict;
+      var canRedo = history.canRedo === true && pending === 0 && !busy && !conflict;
+      var canSave = pending > 0 && !busy && !props.readonly && !conflict;
 
       React.useEffect(function () {
         if (!menuOpen) return undefined;
@@ -3435,7 +3436,7 @@ window.__ModuleLoader__.load({
       var menu = menuOpen
         ? h('div', { className: 'wb-menu', role: 'menu', 'aria-label': t('edit.pageMenu') },
           pageOpsLocked
-            ? h('div', { key: 'locked', className: 'wb-menuHint' }, t('edit.pageOpBlocked'))
+            ? h('div', { key: 'locked', className: 'wb-menuHint' }, t(conflict ? 'edit.conflictTitle' : 'edit.pageOpBlocked'))
             : null,
           menuItem('dup', t('edit.duplicateSlide'), function () { runPageOp({ op: 'duplicateSlide', slideIndex: page - 1 }); }, { disabled: pageOpsLocked }),
           menuItem('up', t('edit.moveUp'), function () { runPageOp({ op: 'moveSlide', slideIndex: page - 1, toIndex: page - 2 }); }, { disabled: pageOpsLocked || page <= 1 }),
@@ -3475,7 +3476,7 @@ window.__ModuleLoader__.load({
             'aria-haspopup': 'menu',
             'aria-expanded': menuOpen ? 'true' : 'false',
             'aria-label': t('edit.pageMenu'),
-            title: pageOpsDisabled && pending > 0 ? t('edit.pageOpBlocked') : t('edit.pageMenu'),
+            title: pageOpsDisabled && (pending > 0 || conflict) ? t('edit.pageOpBlocked') : t('edit.pageMenu'),
             disabled: pageOpsDisabled,
             onClick: function () {
               setMenuOpen(function (value) {
@@ -3511,7 +3512,7 @@ window.__ModuleLoader__.load({
           className: 'wb-btn',
           'aria-label': t('edit.openNative'),
           title: t('edit.openNativeTitle'),
-          disabled: busy || !!props.nativeBusy || props.readonly,
+          disabled: busy || !!props.nativeBusy || props.readonly || conflict,
           onClick: props.onOpenNative,
         }, h('span', { 'aria-hidden': true }, '↗'), h('span', null, props.nativeBusy ? t('edit.openNativeOpening') : t('edit.openNative'))),
         h('button', {
@@ -5199,6 +5200,8 @@ window.__ModuleLoader__.load({
       var formDiffRef = React.useRef(null);
       var formDirtyRef = React.useRef(0);
       var saveAllRef = React.useRef(null);
+      var conflictRef = React.useRef(null);
+      var draftBaseShaRef = React.useRef(null);
       var requestExitRef = React.useRef(null);
       var autoSaveBlockedRef = React.useRef(false);
       var viewSlidesRef = React.useRef(EMPTY_LIST);
@@ -5224,6 +5227,7 @@ window.__ModuleLoader__.load({
       pendingOpsRef.current = pendingOps;
       editModeRef.current = editMode;
       selectedShapeRef.current = selectedShape;
+      conflictRef.current = conflict;
       historyRef.current = historyState;
       formDirtyRef.current = formDirtyCount;
       inlineEditRef.current = inlineEdit;
@@ -5484,6 +5488,18 @@ window.__ModuleLoader__.load({
           clearTimeout(timer);
         };
       }, [editMode, autosave, saving, busyOp, conflict, inlineEdit, canvasGesture, dirtyDialog, pendingOps]);
+
+      // ---- 草稿版本：首次产生草稿时锁定 baseSha，整个草稿生命周期不随 deck 刷新漂移 ----
+      React.useEffect(function () {
+        var hasDraft = pendingOps.length > 0 || formDirtyCount > 0;
+        if (!hasDraft) {
+          draftBaseShaRef.current = null;
+          return;
+        }
+        if (draftBaseShaRef.current === null && deckRef.current && deckRef.current.sha256) {
+          draftBaseShaRef.current = deckRef.current.sha256;
+        }
+      }, [pendingOps, formDirtyCount]);
 
       // ---- drawio 内嵌编辑器：加载 XML 源码 ----
       React.useEffect(function () {
@@ -6146,7 +6162,7 @@ window.__ModuleLoader__.load({
         }
       }
 
-      function adoptEditResponse(data) {
+      function adoptEditResponse(data, submittedPendingCount) {
         if (!data || !data.deck) return false;
         var nextDeck = data.deck;
         var nextSlides = Array.isArray(data.slides) ? data.slides : [];
@@ -6160,8 +6176,15 @@ window.__ModuleLoader__.load({
         }
         var nextHistory = extractHistory(data);
         if (nextHistory) setHistory(nextHistory);
-        pendingOpsRef.current = EMPTY_LIST;
-        setPendingOps(EMPTY_LIST);
+        // 只清理本次提交的批次；保存期间新增的草稿必须保留。
+        var currentPending = pendingOpsRef.current || EMPTY_LIST;
+        var submitted = Number.isInteger(submittedPendingCount)
+          ? Math.max(0, Math.min(submittedPendingCount, currentPending.length))
+          : currentPending.length;
+        var remaining = currentPending.slice(submitted);
+        pendingOpsRef.current = remaining;
+        setPendingOps(remaining);
+        draftBaseShaRef.current = remaining.length > 0 ? (nextDeck.sha256 || null) : null;
         setConflict(null);
         autoSaveBlockedRef.current = false;
         var selection = selectedShapeRef.current;
@@ -6192,6 +6215,12 @@ window.__ModuleLoader__.load({
         var settings = options || {};
         if (!settings.auto) autoSaveBlockedRef.current = false;
         if (!editModeRef.current || busyRef.current) return Promise.resolve(false);
+        if (conflictRef.current) {
+          // 冲突未处理时禁止手动/自动保存，只允许 reload / discard。
+          showToast('error', t('edit.conflictTitle'));
+          return Promise.resolve(false);
+        }
+        if (inlineEditRef.current) return Promise.resolve(false);
         var currentDeck = deckRef.current;
         var sid = sessionIdRef.current;
         var deckPath = currentDeck && currentDeck.path ? currentDeck.path : pathRef.current;
@@ -6201,6 +6230,7 @@ window.__ModuleLoader__.load({
           return Promise.resolve(false);
         }
         var extra = formDiffRef.current ? formDiffRef.current() || [] : [];
+        var pendingCountAtStart = pendingOpsRef.current.length;
         var ops = pendingOpsRef.current.concat(extra);
         if (ops.length === 0) {
           if (!settings.silent) showToast('success', t('edit.noChanges'));
@@ -6211,6 +6241,10 @@ window.__ModuleLoader__.load({
           showToast('error', t('edit.failed', { message: '> 100 ops' }));
           return Promise.resolve(false);
         }
+        // 草稿生命周期内固定使用首次草稿时的 baseSha，避免静默刷新后 base 漂移。
+        var baseSha = draftBaseShaRef.current && draftBaseShaRef.current.length
+          ? draftBaseShaRef.current
+          : currentDeck.sha256;
         busyRef.current = true;
         setSaving(true);
         return jsonFetch('edit', {
@@ -6219,12 +6253,12 @@ window.__ModuleLoader__.load({
           body: JSON.stringify({
             sessionId: sid,
             path: deckPath,
-            baseSha: currentDeck.sha256,
+            baseSha: baseSha,
             ops: ops,
           }),
         }).then(function (result) {
           if (!result.ok || !result.data || result.data.ok !== true) throw normalizeError(result);
-          if (!adoptEditResponse(result.data)) {
+          if (!adoptEditResponse(result.data, pendingCountAtStart)) {
             throw normalizeError({ code: 'edit-failed', message: t('edit.unknown') });
           }
           setLastSavedAt(Date.now());
@@ -6245,6 +6279,10 @@ window.__ModuleLoader__.load({
 
       function undoRedo(kind) {
         if (busyRef.current || !editModeRef.current) return;
+        if (conflictRef.current) {
+          showToast('error', t('edit.conflictTitle'));
+          return;
+        }
         if (pendingOpsRef.current.length > 0) {
           showToast('error', t('edit.undoBlocked'));
           return;
@@ -6275,6 +6313,10 @@ window.__ModuleLoader__.load({
 
       function runPageOp(op) {
         if (busyRef.current || !editModeRef.current || !op) return;
+        if (conflictRef.current) {
+          showToast('error', t('edit.conflictTitle'));
+          return;
+        }
         if (pendingOpsRef.current.length > 0) {
           showToast('error', t('edit.pageOpBlocked'));
           return;
@@ -6320,6 +6362,7 @@ window.__ModuleLoader__.load({
 
       function appendPendingOps(ops) {
         if (!Array.isArray(ops) || ops.length === 0) return;
+        if (busyRef.current || conflictRef.current) return;
         var merged = mergePendingOps(pendingOpsRef.current, ops);
         pendingOpsRef.current = merged;
         autoSaveBlockedRef.current = false;
@@ -6327,7 +6370,7 @@ window.__ModuleLoader__.load({
       }
 
       function handleInlineStart(slideIndex, shape) {
-        if (!editModeRef.current || !shape || !shapeCanInlineEdit(shape)) return;
+        if (!editModeRef.current || busyRef.current || conflictRef.current || !shape || !shapeCanInlineEdit(shape)) return;
         setSelectedShape({ slideIndex: slideIndex, shapeId: shape.shapeId });
         setDrawerPref(true);
         var text = shapeFullText(shape);
@@ -6362,7 +6405,7 @@ window.__ModuleLoader__.load({
       }
 
       function handleShapeBoxCommit(box, mode) {
-        if (!box || !editModeRef.current) return;
+        if (!box || !editModeRef.current || busyRef.current || conflictRef.current) return;
         var selection = selectedShapeRef.current;
         if (!selection) return;
         var current = findViewShape(viewSlidesRef.current, selection.slideIndex, selection.shapeId);
@@ -7652,6 +7695,7 @@ window.__ModuleLoader__.load({
             formDirty: formDirty,
             saving: saving,
             readonly: !writeAllowed,
+            conflict: !!conflict,
             autosave: autosave,
             saveStatus: saveStatusText,
             nativeBusy: nativeBusy,
@@ -7737,6 +7781,7 @@ window.__ModuleLoader__.load({
                     onRetryPage: retryPage,
                     annotate: annotate,
                     editMode: editMode,
+                    editLocked: !!conflict || saving,
                     slide: viewSlides[page.page - 1] || slides[page.page - 1],
                     selectedShapeBox: selectedShapeView && selectedShape && selectedShape.slideIndex === page.page - 1
                       ? selectedShapeBox
@@ -7788,7 +7833,7 @@ window.__ModuleLoader__.load({
             resetKey: resetKey,
             pendingCount: pendingCount,
             saving: saving,
-            readonly: !writeAllowed,
+            readonly: !writeAllowed || !!conflict || saving,
             diffRef: formDiffRef,
             onFormDirty: setFormDirtyCount,
               onAutoDraft: appendPendingOps,
