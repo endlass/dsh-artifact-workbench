@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.13.0 — 2026-11-08
+
+- 飞书原生体验：Feishu tab 顶部「侧栏原生打开」直接调用 DSH 内置 browser tab（桌面 Electron webview），可在内登录飞书并使用原生编辑/评论。
+- Host 新增 `feishu_doc_read` 工具：读标题/revision/markdown/blocks/comments，供 agent 基于飞书文档和评论继续。
+
 ## 0.12.0 — 2026-11-08
 
 - P5.2：飞书评论工作台增强。块级评论（blockId 选择）、30s revision/评论自动刷新（草稿/隐藏暂停）、发送未解决评论给 dsh（inputActions/剪贴板/manual）。

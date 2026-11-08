@@ -23,6 +23,7 @@ apply({
   workingDirectory: { get: () => workspace },
   connection: { fetch: { register(route) { routes.set(route.path, route); return () => routes.delete(route.path); } } },
   webServer: { register() { return () => {}; }, getOrigin() { return 'http://127.0.0.1:0'; } },
+  tools: { register() { return () => {}; } },
   effect(fn) { return fn(); },
 });
 

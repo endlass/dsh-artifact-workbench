@@ -52,7 +52,7 @@ const LIBREOFFICE_APP = '/Applications/LibreOffice.app';
 const DRAWIO_APP = '/Applications/draw.io.app';
 const nativeOpenAt = new Map();
 
-export const inject = ['connection', 'sessions', 'workingDirectory', 'webServer'];
+export const inject = ['connection', 'sessions', 'workingDirectory', 'webServer', 'tools'];
 
 function json(status, value) {
   return Response.json(value, { status });
@@ -545,6 +545,55 @@ export function apply(ctx) {
       writeAllowed: true,
     });
   });
+
+  ctx.effect(() => ctx.tools.register({
+    name: 'feishu_doc_read',
+    description: 'Read a Feishu/Lark docx or wiki document: current title, revision, markdown body, comment-addressable blocks, and all comments with replies. Use this when the user asks to continue based on a Feishu document or its comments. It returns text/comments only; it does not edit the document.',
+    parameters: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['url'],
+      properties: {
+        url: { type: 'string', description: 'Feishu docx or wiki URL.' },
+      },
+    },
+    output: {
+      schema: {
+        type: 'object',
+        additionalProperties: true,
+        required: ['title', 'url', 'markdown', 'comments'],
+        properties: {
+          title: { type: 'string' },
+          url: { type: 'string' },
+          revisionId: { type: 'number' },
+          markdown: { type: 'string' },
+          comments: { type: 'array', items: { type: 'object', additionalProperties: true } },
+          blocks: { type: 'array', items: { type: 'object', additionalProperties: true } },
+        },
+      },
+      render: (_args, value) => [{
+        type: 'text',
+        text: [
+          `Feishu document: ${value.title}`,
+          value.url,
+          `revision: ${value.revisionId || 0} · comments: ${value.comments.length}`,
+          '',
+          String(value.markdown || '').slice(0, 12000),
+        ].join('\n'),
+      }],
+    },
+    async execute(args) {
+      const doc = await readFeishuDoc(args.url);
+      return {
+        title: doc.title,
+        url: doc.url,
+        revisionId: Number(doc.revisionId) || 0,
+        markdown: doc.markdown,
+        blocks: doc.blocks,
+        comments: doc.comments,
+      };
+    },
+  }), 'dsh-ppt-workbench: feishu_doc_read tool');
 
   route('feishu-status', ['GET'], 'buffered', async () => {
     try {

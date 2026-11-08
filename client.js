@@ -356,6 +356,8 @@ window.__ModuleLoader__.load({
       'feishu.loadFailed': '读取失败：{message}',
       'feishu.retry': '重试',
       'feishu.refresh': '刷新',
+      'feishu.openNative': '侧栏原生打开',
+      'feishu.openNativeTitle': '在 DSH 内置浏览器中以飞书原生界面打开（可在内登录）',
       'feishu.external': '在飞书打开',
       'feishu.externalTitle': '在飞书原生页面打开该文档',
       'feishu.revision': '版本 {revision}',
@@ -726,6 +728,8 @@ window.__ModuleLoader__.load({
       'feishu.loadFailed': 'Could not read the document: {message}',
       'feishu.retry': 'Retry',
       'feishu.refresh': 'Refresh',
+      'feishu.openNative': 'Open native pane',
+      'feishu.openNativeTitle': 'Open the native Feishu page in the DSH browser tab',
       'feishu.external': 'Open in Feishu',
       'feishu.externalTitle': 'Open this document in Feishu',
       'feishu.revision': 'Revision {revision}',
@@ -4471,6 +4475,15 @@ window.__ModuleLoader__.load({
         visible: tabVisible,
         url: loadedUrl,
       };
+      function openNative(value) {
+        var target = String(value || '').trim();
+        if (!target) return;
+        if (typeof props.openNativeBrowser === 'function') {
+          try { props.openNativeBrowser(target); return; } catch (error) { /* fall through */ }
+        }
+        if (typeof window !== 'undefined') window.open(target, '_blank', 'noopener');
+      }
+      var nativeCandidate = String(urlInput || '').trim() || externalUrl || '';
       return h('div', {
         className: 'wb-feishu',
         'data-wb-feishu': '',
@@ -4502,6 +4515,15 @@ window.__ModuleLoader__.load({
             disabled: busy || status === 'loading',
             onClick: openDoc,
           }, status === 'loading' ? t('feishu.opening') : t('feishu.open')),
+          h('button', {
+            type: 'button',
+            className: 'wb-btn',
+            'data-feishu-open-native': 'header',
+            'aria-label': t('feishu.openNative'),
+            title: t('feishu.openNativeTitle'),
+            disabled: !nativeCandidate,
+            onClick: function () { openNative(nativeCandidate); },
+          }, t('feishu.openNative')),
           status === 'ready'
             ? h('button', {
               type: 'button',
@@ -7535,7 +7557,7 @@ window.__ModuleLoader__.load({
     // 注册
     // ------------------------------------------------------------------
     return {
-      inject: ['slots', 'locale', 'documentPreviews', 'sidebarRightTabs'],
+      inject: ['slots', 'locale', 'documentPreviews', 'sidebarRightTabs', 'sidebarRight'],
       apply: function (ctx) {
         runtime.locale = ctx.locale;
 
@@ -7607,7 +7629,25 @@ window.__ModuleLoader__.load({
         ctx.effect(function () {
           return ctx.slots.inject('sidebar.right.pane.tab', function () {
             return ctx.slots.register(
-              { name: 'sidebar.right.pane.tab', key: FEISHU_TAB_ID, locale: NS },
+              {
+                name: 'sidebar.right.pane.tab',
+                key: FEISHU_TAB_ID,
+                locale: NS,
+                inject: function () {
+                  return {
+                    openNativeBrowser: function (url) {
+                      try {
+                        return ctx.sidebarRight.openTab('browser', {
+                          params: { url: url },
+                          revealIfOpened: true,
+                        });
+                      } catch (error) {
+                        return undefined;
+                      }
+                    },
+                  };
+                },
+              },
               FeishuDocBody,
             );
           });

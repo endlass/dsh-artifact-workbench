@@ -33,6 +33,7 @@ const fakeCtx = {
     },
   },
   webServer: { register() { return () => {}; }, getOrigin() { return 'http://127.0.0.1:0'; } },
+  tools: { register() { return () => {}; } },
   effect(fn) {
     const dispose = fn();
     return dispose;
