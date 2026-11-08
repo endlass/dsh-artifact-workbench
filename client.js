@@ -7678,6 +7678,7 @@ window.__ModuleLoader__.load({
                         return ctx.sidebarRight.openTab('browser', {
                           params: { url: url },
                           revealIfOpened: true,
+                          preferNewPane: true,
                         });
                       } catch (error) {
                         return undefined;
