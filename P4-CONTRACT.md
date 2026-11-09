@@ -10,7 +10,7 @@
 
 - `editor/` 是 drawio webapp 的裁剪副本（Apache-2.0，来源 jgraph/drawio；裁剪自社区构建，见 `editor/NOTICE`）。发布时必须带 LICENSE/NOTICE，并在 README 标注上游版本与裁剪说明。
 - Host 通过 DSH `webServer` 注册 prefix 路由：
-  - `/plugins/dsh-ppt-workbench/editor` → 插件 `editor/` 目录静态文件；
+  - `/plugins/dsh-artifact-workbench/editor` → 插件 `editor/` 目录静态文件；
   - 相对 URL 与页面同源，不使用 localhost/CSP 绕过。
 - 该路由只读、无鉴权（客户端资源），但只暴露编辑器静态文件；不暴露工作区文件。
 
@@ -26,7 +26,7 @@
 
 - 当 `deck.sourceFormat === 'drawio'` 时，不再渲染分页/缩略图/批注画布，改为整块 iframe 编辑器。
 - iframe src（相对同源）：
-  `/plugins/dsh-ppt-workbench/editor/index.html?embed=1&proto=json&spin=1&lang=zh&noSaveBtn=0&noExitBtn=1&saveAndExit=0`
+  `/plugins/dsh-artifact-workbench/editor/index.html?embed=1&proto=json&spin=1&lang=zh&noSaveBtn=0&noExitBtn=1&saveAndExit=0`
 - 打开流程：
   1. `GET source?sessionId&path` 取 XML + sha；
   2. iframe 收到 `{event:'init'}` 后 `postMessage({action:'load', xml, autosave:0, title:basename})`；

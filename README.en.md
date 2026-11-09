@@ -4,10 +4,11 @@
 
 [中文](README.md) · [Changelog](CHANGELOG.md) · [Roadmap](ROADMAP.md) · [Security](SECURITY.md) · [Third-party notices](THIRD-PARTY-NOTICES.md)
 
-> Project name: Artifact Workbench. The npm package name and the plugin id stay
-> `dsh-ppt-workbench` for compatibility (renaming would break open tabs and
-> existing annotation sidecars), while the repository is
-> `dsh-artifact-workbench`.
+> Project name: Artifact Workbench. Starting with **0.15.0**, the npm package
+> name, plugin id, renderer/tab keys and route prefix are all
+> `dsh-artifact-workbench` (previously `dsh-ppt-workbench`). To upgrade from
+> 0.14.x see [MIGRATION.md](MIGRATION.md); the old storage directory is migrated
+> automatically and existing annotation sidecars are unaffected.
 
 Artifact Workbench is a desktop plugin for [DeepSeek Harness (DSH)](https://github.com/deepseek-ai/deepseek-harness). It takes over the sidebar document preview and turns `.pptx`, `.pdf`, `.html`, `.drawio` and `.mmd` artifacts into a review workbench: annotations are stored in a JSON sidecar next to the artifact and can be turned into a single "please fix this" prompt for the agent. PPTX files can also be edited in place.
 
@@ -44,14 +45,14 @@ This is a DSH bundle plugin (`dsh.bundle.patch` + client inject). A plain
 ### A. DSH plugin page (recommended)
 
 1. Open the Plugins page in DSH.
-2. Add plugin → install bundle, target `dsh-ppt-workbench@0.14.5` (or a local directory).
+2. Add plugin → install bundle, target `dsh-artifact-workbench@0.15.0` (or a local directory).
 3. No restart required; open a `.pptx` document tab to verify the workbench appears.
 
 ### B. `plugin_manager` tool
 
 ```text
 action: install_bundle
-target: dsh-ppt-workbench@0.14.5      # npm spec; use the absolute path of a local checkout instead
+target: dsh-artifact-workbench@0.15.0      # npm spec; use the absolute path of a local checkout instead
 ```
 
 ### C. Local link (development)
@@ -87,8 +88,8 @@ variables, so desktop users should prefer the config file.
 
 ### Config file
 
-`$DSH_HOME/storages/dsh-ppt-workbench/config.json` (default
-`~/.dsh/storages/dsh-ppt-workbench/config.json`; create it manually; restart
+`$DSH_HOME/storages/dsh-artifact-workbench/config.json` (default
+`~/.dsh/storages/dsh-artifact-workbench/config.json`; create it manually; restart
 the plugin/DSH after editing):
 
 ```json
@@ -109,29 +110,31 @@ only contains local paths, no secrets.
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `DSH_HOME` | `~/.dsh` | DSH home; determines the plugin storage root |
-| `PPT_WORKBENCH_STORAGE` | `$DSH_HOME/storages/dsh-ppt-workbench` | plugin cache/log/credential root |
-| `DSH_RESOURCES` / `PPT_WORKBENCH_RESOURCES` | auto-detected DSH resources dir | LibreOffice Kit root |
-| `PPT_WORKBENCH_PYTHON` | DSH runtime python3 | python-pptx interpreter |
-| `PPT_WORKBENCH_CHROME` | auto-detected | Chrome/Chromium for H5 snapshots |
-| `PPT_WORKBENCH_DRAWIO` | auto-detected | draw.io Desktop CLI (page export) |
-| `PPT_WORKBENCH_DRAWIO_APP` | same as `PPT_WORKBENCH_DRAWIO` | draw.io app for "Open in draw.io" |
-| `PPT_WORKBENCH_LIBREOFFICE` | auto-detected | LibreOffice app for "Open in LibreOffice" |
-| `PPT_WORKBENCH_LARK_CLI` | auto-detected | `lark-cli` path |
-| `PPT_WORKBENCH_FEISHU_ACCOUNTS` | `https://accounts.feishu.cn` | Feishu OAuth endpoint (testing) |
-| `PPT_WORKBENCH_FEISHU_OPEN` | `https://open.feishu.cn` | Feishu Open API endpoint (testing) |
-| `PPT_WORKBENCH_OPEN_DRY_RUN` | unset | set to `1` to make "open externally" return metadata without launching |
+| `ARTIFACT_WORKBENCH_STORAGE` | `$DSH_HOME/storages/dsh-artifact-workbench` | plugin cache/log/credential root |
+| `DSH_RESOURCES` / `ARTIFACT_WORKBENCH_RESOURCES` | auto-detected DSH resources dir | LibreOffice Kit root |
+| `ARTIFACT_WORKBENCH_PYTHON` | DSH runtime python3 | python-pptx interpreter |
+| `ARTIFACT_WORKBENCH_CHROME` | auto-detected | Chrome/Chromium for H5 snapshots |
+| `ARTIFACT_WORKBENCH_DRAWIO` | auto-detected | draw.io Desktop CLI (page export) |
+| `ARTIFACT_WORKBENCH_DRAWIO_APP` | same as `ARTIFACT_WORKBENCH_DRAWIO` | draw.io app for "Open in draw.io" |
+| `ARTIFACT_WORKBENCH_LIBREOFFICE` | auto-detected | LibreOffice app for "Open in LibreOffice" |
+| `ARTIFACT_WORKBENCH_LARK_CLI` | auto-detected | `lark-cli` path |
+| `ARTIFACT_WORKBENCH_FEISHU_ACCOUNTS` | `https://accounts.feishu.cn` | Feishu OAuth endpoint (testing) |
+| `ARTIFACT_WORKBENCH_FEISHU_OPEN` | `https://open.feishu.cn` | Feishu Open API endpoint (testing) |
+| `ARTIFACT_WORKBENCH_OPEN_DRY_RUN` | unset | set to `1` to make "open externally" return metadata without launching |
+
+> Compatibility: 0.14.x `PPT_WORKBENCH_*` variables are still read (new names win); an explicit `ARTIFACT_WORKBENCH_STORAGE` disables the automatic storage migration.
 
 ## Data and storage
 
 | Data | Location | Notes |
 | --- | --- | --- |
-| Render cache | `$DSH_HOME/storages/dsh-ppt-workbench/renders/<sha256>/` | page PNGs, inventory, manifest; safe to delete |
-| Runtime log | `$DSH_HOME/storages/dsh-ppt-workbench/workbench.log` | route names, SHA prefixes, timings; no document content or credentials |
+| Render cache | `$DSH_HOME/storages/dsh-artifact-workbench/renders/<sha256>/` | page PNGs, inventory, manifest; safe to delete |
+| Runtime log | `$DSH_HOME/storages/dsh-artifact-workbench/workbench.log` | route names, SHA prefixes, timings; no document content or credentials |
 | Annotation sidecar | `<artifact>.workbench/annotations.json` | next to the artifact inside the workspace; readable by the agent |
 | Edit history | `<artifact>.workbench/history.json` + `history/` | independent snapshots, 30 by default |
 | Edit scratch/lock | `<artifact>.workbench/edit-tmp/`, `edit.lock` | cleaned after save |
 | Conflict copies | `<artifact>.workbench/conflict/` | kept when an external change is detected |
-| Feishu credentials (optional) | `$DSH_HOME/storages/dsh-ppt-workbench/feishu-app.json`, `feishu-token.json` | mode `0600`; never returned to the client or logged |
+| Feishu credentials (optional) | `$DSH_HOME/storages/dsh-artifact-workbench/feishu-app.json`, `feishu-token.json` | mode `0600`; never returned to the client or logged |
 
 The plugin writes no session events and does not modify other DSH plugins'
 data. After uninstalling you can delete the cache and `.workbench` directories
@@ -189,8 +192,8 @@ See [SECURITY.md](SECURITY.md) for details and how to report vulnerabilities.
 
 ## Uninstall
 
-1. Disable or uninstall `dsh-ppt-workbench` from the DSH plugin page / `plugin_manager`.
-2. Optional cleanup: `$DSH_HOME/storages/dsh-ppt-workbench/` (cache, log, Feishu credentials).
+1. Disable or uninstall `dsh-artifact-workbench` from the DSH plugin page / `plugin_manager`.
+2. Optional cleanup: `$DSH_HOME/storages/dsh-artifact-workbench/` (cache, log, Feishu credentials).
 3. Optional cleanup: `<artifact>.workbench/` directories next to artifacts (annotations and edit history).
 4. The plugin writes no registry entries, installs no system services and changes no global DSH configuration.
 
@@ -214,7 +217,7 @@ Release steps: [PUBLISHING.md](PUBLISHING.md).
 ### Repository layout
 
 ```
-index.js              Host half: /api/dsh-ppt-workbench/* routes (deck/slide/annotations/edit/history/undo/redo/open-native/source/feishu/health)
+index.js              Host half: /api/dsh-artifact-workbench/* routes (deck/slide/annotations/edit/history/undo/redo/open-native/source/feishu/health)
 client.js             Client half: sidebar renderer/body, browse/annotate/edit/auto-save, drawio iframe, H5 iframe, Feishu tab
 lib/render.mjs        LibreOffice Kit render queue, PDF/H5/diagram orchestration, external program detection
 lib/artifacts/        adapter registry (pptx editable / pdf / html / diagram)
@@ -234,10 +237,10 @@ scripts/check.mjs     syntax check script
 
 ## Version and compatibility
 
-- Current version **0.14.5** (see [CHANGELOG.md](CHANGELOG.md)).
+- Current version **0.15.0** (see [CHANGELOG.md](CHANGELOG.md)).
 - DSH: `>=0.2.0-rc.2 <0.3.0`; host Node `>=22`.
 - Annotation sidecar schema: `dsh-artifact-annotation@2`, automatically migrating the legacy `dsh-ppt-annotation@1`.
-- The legacy renderer key/tab compatibility is kept for one release cycle under the `dsh-ppt-workbench` name; see the naming migration note in [PUBLISHING.md](PUBLISHING.md).
+- 0.15.0 rename: package id, plugin id and renderer keys are now `dsh-artifact-workbench`; tabs opened before the upgrade must be reopened. `$DSH_HOME/storages/dsh-ppt-workbench` is migrated automatically, and legacy `PPT_WORKBENCH_*` environment variables are still accepted. See [MIGRATION.md](MIGRATION.md).
 
 ## License
 

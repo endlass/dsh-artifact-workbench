@@ -6,15 +6,15 @@ remote yet and no package has been published to npm.
 
 ## Current status
 
-- Version: see `package.json` (`0.14.5`).
+- Version: see `package.json` (`0.15.0`).
 - Licensing: MIT for this project; `editor/` remains draw.io/Apache-2.0 and
   friends — see `THIRD-PARTY-NOTICES.md`.
 - **License gate (2026-11-10):** `COMPLIANCE.md` item 1 (libavoid LGPL-2.1
   source/replaceability) must be resolved before `npm publish` or attaching a
   GitHub Release asset. Shipping the repo as public source is allowed with the
   disclosure in `THIRD-PARTY-NOTICES.md`.
-- Package name: `dsh-ppt-workbench` (kept for compatibility, see the naming
-  migration note below).
+- Package name: `dsh-artifact-workbench` (renamed from `dsh-ppt-workbench` in
+  0.15.0; see `MIGRATION.md`).
 - Distribution channel: DSH bundle install (`install_bundle`), not a plain
   `npm install`.
 
@@ -43,7 +43,7 @@ remote yet and no package has been published to npm.
   changes, patch bump for fixes and docs/open-source plumbing.
 - Keep the annotation sidecar schema (`dsh-artifact-annotation@2`) and the
   legacy `dsh-ppt-annotation@1` migration path for at least one minor version.
-- Keep the renderer key / tab ids (`dsh-ppt-workbench/*`) for one release cycle
+- Keep the renderer key / tab ids (`dsh-artifact-workbench/*`) for one release cycle
   after any rename.
 
 ## Commands (NOT EXECUTED)
@@ -68,34 +68,38 @@ npm pack --dry-run   # check output first
 Tag and GitHub release:
 
 ```bash
-git tag -a v0.14.5 -m "Artifact Workbench v0.14.5"
-git push origin v0.14.5
-gh release create v0.14.5 --notes-from-tag
+git tag -a v0.15.0 -m "Artifact Workbench v0.15.0"
+git push origin v0.15.0
+gh release create v0.15.0 --notes-from-tag
 ```
 
 ## Post-publish verification
 
-1. `npm view dsh-ppt-workbench@0.14.5 dist.tarball` returns the tarball.
-2. Clean profile: `install_bundle target dsh-ppt-workbench@0.14.5` → open a
+1. `npm view dsh-artifact-workbench@0.15.0 dist.tarball` returns the tarball.
+2. Clean profile: `install_bundle target dsh-artifact-workbench@0.15.0` → open a
    `.pptx`, add an annotation, save an edit, reload the tab.
 3. Static asset routes work: draw.io editor iframe loads, H5 report iframe
    loads, PDF page images render.
 4. `npm pack` size stays in the ~12 MB (compressed) range; if it grows
    noticeably, revisit the vendor-splitting proposal below.
 
-## Naming migration note (future work)
+## Naming migration (done in 0.15.0)
 
-The project is branded Artifact Workbench while the npm package/plugin id remain
-`dsh-ppt-workbench`. If the package is ever renamed to
-`dsh-artifact-workbench`:
+0.15.0 renamed the package/plugin from `dsh-ppt-workbench` to
+`dsh-artifact-workbench`. Consequences for a release:
 
-1. Declare the new package name and keep the old renderer key / body key /
-   sidecar schema as aliases for one version.
-2. Keep reading old annotation sidecars (`dsh-artifact-annotation@2` already
-   covers the v1 migration).
-3. Verify with a fresh profile that old tabs and old sidecars still work.
-4. Deprecate the old package with a note pointing to the new one.
-5. Only then remove the old keys and routes.
+1. The npm package name is `dsh-artifact-workbench`; the old name was never
+   published to npm, so there is no old package to deprecate.
+2. Install with `install_bundle target dsh-artifact-workbench@0.15.0`; existing
+   profiles that `link:` the repo must update the profile dependency name.
+3. Renderer/tab keys and API routes changed; tabs opened before the upgrade must
+   be reopened once. Annotation sidecars (`<artifact>.workbench/`) are keyed by
+   file path and are unaffected.
+4. `$DSH_HOME/storages/dsh-ppt-workbench` is migrated to
+   `$DSH_HOME/storages/dsh-artifact-workbench` on first start (unless an explicit
+   `ARTIFACT_WORKBENCH_STORAGE`/legacy `PPT_WORKBENCH_STORAGE` is set).
+5. Legacy `PPT_WORKBENCH_*` environment variables are still read; new
+   `ARTIFACT_WORKBENCH_*` names take precedence.
 
 ## Packaging note: `editor/` vendor
 

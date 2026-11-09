@@ -29,13 +29,13 @@ apply({
 });
 
 async function call(method, path, body, query) {
-  const url = new URL(`http://127.0.0.1/api/dsh-ppt-workbench${path}`);
+  const url = new URL(`http://127.0.0.1/api/dsh-artifact-workbench${path}`);
   if (query) for (const [key, value] of Object.entries(query)) url.searchParams.set(key, value);
   const request = new Request(url, {
     method,
     ...(body === undefined ? {} : { body: JSON.stringify(body), headers: { 'content-type': 'application/json' } }),
   });
-  const response = await routes.get(`/api/dsh-ppt-workbench${path}`).fetch(request);
+  const response = await routes.get(`/api/dsh-artifact-workbench${path}`).fetch(request);
   return { status: response.status, body: await response.json() };
 }
 

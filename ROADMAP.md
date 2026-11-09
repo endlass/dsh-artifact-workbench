@@ -1,8 +1,8 @@
 # Artifact Workbench — Roadmap
 
-Updated 2026-11-09 for v0.14.5. The project name is Artifact Workbench; the
-package/plugin id remains `dsh-ppt-workbench` for compatibility (see
-`PUBLISHING.md`).
+Updated 2026-11-10 for v0.15.0. The project name is Artifact Workbench; the
+package/plugin id is now `dsh-artifact-workbench` (renamed from
+`dsh-ppt-workbench` in 0.15.0 — see `MIGRATION.md`).
 
 ## What exists today
 
@@ -23,7 +23,7 @@ package/plugin id remains `dsh-ppt-workbench` for compatibility (see
 
 ## Next
 
-1. **Release plumbing** — create GitHub repo, push `main`, publish `0.14.5` to
+1. **Release plumbing** — create GitHub repo, push `main`, publish `0.15.0` to
    npm, set up GitHub Releases. (Not executed in this working copy.)
 2. **Vendor size** — decide whether to split `editor/` (draw.io webapp, ~42 MB
    unpacked) into a separate asset package; keep NOTICE/LICENSE intact.
@@ -33,8 +33,8 @@ package/plugin id remains `dsh-ppt-workbench` for compatibility (see
 5. **Platform coverage** — end-to-end verification on Windows and Linux
    (external program detection, native open, editor iframe).
 6. **Examples** — screenshots/GIF and a minimal example deck for the README.
-7. **Naming** — optional migration to `dsh-artifact-workbench` with one release
-   of alias compatibility.
+7. **Naming** — ✅ done in 0.15.0: package/plugin id/renderer keys renamed to
+   `dsh-artifact-workbench`; see `MIGRATION.md`.
 
 ## Explicit non-goals
 

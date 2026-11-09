@@ -10,7 +10,7 @@
  *
  * 使用仓库自带合成样张（test/fixtures/deck-v1.pptx 与 deck-v1-lort.pptx）；
  * 如需更大/真实样张，用环境变量覆盖：
- *   $PPT_WORKBENCH_TEST_DECK、$PPT_WORKBENCH_TEST_DECK_LORT
+ *   $ARTIFACT_WORKBENCH_TEST_DECK、$ARTIFACT_WORKBENCH_TEST_DECK_LORT
  */
 import assert from 'node:assert/strict';
 import { copyFile, mkdtemp, rm } from 'node:fs/promises';
@@ -28,8 +28,8 @@ import { sha256File, statFile } from '../lib/util.mjs';
 
 const FIXTURE_DECK_V1 = fileURLToPath(new URL('./fixtures/deck-v1.pptx', import.meta.url));
 const FIXTURE_DECK_LORT = fileURLToPath(new URL('./fixtures/deck-v1-lort.pptx', import.meta.url));
-const DECK_V1 = process.env.PPT_WORKBENCH_TEST_DECK || FIXTURE_DECK_V1;
-const DECK_LORT = process.env.PPT_WORKBENCH_TEST_DECK_LORT || FIXTURE_DECK_LORT;
+const DECK_V1 = process.env.ARTIFACT_WORKBENCH_TEST_DECK || FIXTURE_DECK_V1;
+const DECK_LORT = process.env.ARTIFACT_WORKBENCH_TEST_DECK_LORT || FIXTURE_DECK_LORT;
 
 async function openDeck(deckPath) {
   const info = await statFile(deckPath);

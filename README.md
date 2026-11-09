@@ -4,7 +4,7 @@
 
 [English](README.en.md) · [更新日志](CHANGELOG.md) · [路线图](ROADMAP.md) · [安全策略](SECURITY.md) · [第三方声明](THIRD-PARTY-NOTICES.md)
 
-> 项目名：Artifact Workbench。npm 包名与插件 id 沿用 `dsh-ppt-workbench`（历史原因，改名会破坏已打开的 tab 与旧批注侧车），仓库名为 `dsh-artifact-workbench`。
+> 项目名：Artifact Workbench。自 **0.15.0** 起 npm 包名、插件 id、renderer/tab key 与路由前缀统一为 `dsh-artifact-workbench`（旧名 `dsh-ppt-workbench`）。从 0.14.x 升级见 [MIGRATION.md](MIGRATION.md)；旧 storage 目录会自动迁移，旧批注侧车不受影响。
 
 Artifact Workbench 是一个 [DSH（DeepSeek Harness）](https://github.com/deepseek-ai/deepseek-harness) 桌面端插件。它接管右侧栏的文档预览，把 `.pptx`、`.pdf`、`.html`、`.drawio`、`.mmd` 等交付物变成可批注（PPTX 还可直接编辑）的工作台：批注落在交付物旁边的 JSON 侧车里，可一键整理成修改指令发回给 Agent。
 
@@ -40,7 +40,7 @@ Artifact Workbench 是一个 [DSH（DeepSeek Harness）](https://github.com/deep
 ### 方式 A：DSH 插件页（推荐）
 
 1. 打开 DSH 的 Plugins / 插件页。
-2. 新增插件 → install bundle，target 填 npm 包名与版本：`dsh-ppt-workbench@0.14.5`（或本地目录）。
+2. 新增插件 → install bundle，target 填 npm 包名与版本：`dsh-artifact-workbench@0.15.0`（或本地目录）。
 3. 安装后无需重启；打开一个 `.pptx` 文档 tab 验证工作台出现。
 
 ### 方式 B：`plugin_manager` 工具
@@ -49,7 +49,7 @@ Artifact Workbench 是一个 [DSH（DeepSeek Harness）](https://github.com/deep
 
 ```text
 action: install_bundle
-target: dsh-ppt-workbench@0.14.5      # npm 源；本地开发时填仓库绝对路径
+target: dsh-artifact-workbench@0.15.0      # npm 源；本地开发时填仓库绝对路径
 ```
 
 ### 方式 C：本地 link（开发）
@@ -79,7 +79,7 @@ npm run check && npm run test:smoke   # 可选：先自检
 
 ### 配置文件
 
-`$DSH_HOME/storages/dsh-ppt-workbench/config.json`（默认 `~/.dsh/storages/dsh-ppt-workbench/config.json`，首次使用可手动创建；改完重启插件/DSH 生效）：
+`$DSH_HOME/storages/dsh-artifact-workbench/config.json`（默认 `~/.dsh/storages/dsh-artifact-workbench/config.json`，首次使用可手动创建；改完重启插件/DSH 生效）：
 
 ```json
 {
@@ -98,29 +98,31 @@ npm run check && npm run test:smoke   # 可选：先自检
 | 变量 | 默认值 | 作用 |
 | --- | --- | --- |
 | `DSH_HOME` | `~/.dsh` | DSH home；决定插件存储根 |
-| `PPT_WORKBENCH_STORAGE` | `$DSH_HOME/storages/dsh-ppt-workbench` | 插件缓存/日志/凭据根目录 |
-| `DSH_RESOURCES` / `PPT_WORKBENCH_RESOURCES` | DSH 安装资源目录（自动探测） | LibreOffice Kit 所在根 |
-| `PPT_WORKBENCH_PYTHON` | DSH runtime python3 | python-pptx 解释器 |
-| `PPT_WORKBENCH_CHROME` | 自动探测 | H5 快照用 Chrome/Chromium |
-| `PPT_WORKBENCH_DRAWIO` | 自动探测 | draw.io Desktop CLI（页图导出） |
-| `PPT_WORKBENCH_DRAWIO_APP` | 同 `PPT_WORKBENCH_DRAWIO` | draw.io 应用路径（「在 draw.io 中打开」） |
-| `PPT_WORKBENCH_LIBREOFFICE` | 自动探测 | LibreOffice 应用路径（「在 LibreOffice 中打开」） |
-| `PPT_WORKBENCH_LARK_CLI` | 自动探测 | `lark-cli` 路径 |
-| `PPT_WORKBENCH_FEISHU_ACCOUNTS` | `https://accounts.feishu.cn` | 飞书 OAuth 账号端点（测试用） |
-| `PPT_WORKBENCH_FEISHU_OPEN` | `https://open.feishu.cn` | 飞书 Open API 端点（测试用） |
-| `PPT_WORKBENCH_OPEN_DRY_RUN` | 未设置 | 设为 `1` 时「外部打开」只返回元信息、不启动程序 |
+| `ARTIFACT_WORKBENCH_STORAGE` | `$DSH_HOME/storages/dsh-artifact-workbench` | 插件缓存/日志/凭据根目录 |
+| `DSH_RESOURCES` / `ARTIFACT_WORKBENCH_RESOURCES` | DSH 安装资源目录（自动探测） | LibreOffice Kit 所在根 |
+| `ARTIFACT_WORKBENCH_PYTHON` | DSH runtime python3 | python-pptx 解释器 |
+| `ARTIFACT_WORKBENCH_CHROME` | 自动探测 | H5 快照用 Chrome/Chromium |
+| `ARTIFACT_WORKBENCH_DRAWIO` | 自动探测 | draw.io Desktop CLI（页图导出） |
+| `ARTIFACT_WORKBENCH_DRAWIO_APP` | 同 `ARTIFACT_WORKBENCH_DRAWIO` | draw.io 应用路径（「在 draw.io 中打开」） |
+| `ARTIFACT_WORKBENCH_LIBREOFFICE` | 自动探测 | LibreOffice 应用路径（「在 LibreOffice 中打开」） |
+| `ARTIFACT_WORKBENCH_LARK_CLI` | 自动探测 | `lark-cli` 路径 |
+| `ARTIFACT_WORKBENCH_FEISHU_ACCOUNTS` | `https://accounts.feishu.cn` | 飞书 OAuth 账号端点（测试用） |
+| `ARTIFACT_WORKBENCH_FEISHU_OPEN` | `https://open.feishu.cn` | 飞书 Open API 端点（测试用） |
+| `ARTIFACT_WORKBENCH_OPEN_DRY_RUN` | 未设置 | 设为 `1` 时「外部打开」只返回元信息、不启动程序 |
+
+> 兼容：0.14.x 的 `PPT_WORKBENCH_*` 环境变量仍会被读取（新名优先）；`ARTIFACT_WORKBENCH_STORAGE` 显式设置时不会自动迁移旧目录。
 
 ## 数据与存储位置
 
 | 数据 | 位置 | 说明 |
 | --- | --- | --- |
-| 渲染缓存 | `$DSH_HOME/storages/dsh-ppt-workbench/renders/<sha256>/` | 页 PNG、inventory、manifest；可随时删除 |
-| 运行日志 | `$DSH_HOME/storages/dsh-ppt-workbench/workbench.log` | 路由名、SHA 前缀、耗时；不含文档正文与凭据 |
+| 渲染缓存 | `$DSH_HOME/storages/dsh-artifact-workbench/renders/<sha256>/` | 页 PNG、inventory、manifest；可随时删除 |
+| 运行日志 | `$DSH_HOME/storages/dsh-artifact-workbench/workbench.log` | 路由名、SHA 前缀、耗时；不含文档正文与凭据 |
 | 批注侧车 | `<交付物>.workbench/annotations.json` | 与交付物同目录（workspace 内），Agent 可直接读取 |
 | 编辑历史 | `<交付物>.workbench/history.json` + `history/` | 独立副本快照，默认 30 条 |
 | 编辑临时/锁 | `<交付物>.workbench/edit-tmp/`、`edit.lock` | 保存完成后清理 |
 | 冲突副本 | `<交付物>.workbench/conflict/` | 检测到外部改写时保留 |
-| 飞书凭据（可选） | `$DSH_HOME/storages/dsh-ppt-workbench/feishu-app.json`、`feishu-token.json` | 权限 `0600`，不返回客户端、不写日志 |
+| 飞书凭据（可选） | `$DSH_HOME/storages/dsh-artifact-workbench/feishu-app.json`、`feishu-token.json` | 权限 `0600`，不返回客户端、不写日志 |
 
 不写 Session 事件，不改 DSH 其他插件的数据。卸载插件后可手动删除上述缓存与 `.workbench` 目录。
 
@@ -162,8 +164,8 @@ npm run check && npm run test:smoke   # 可选：先自检
 
 ## 卸载
 
-1. DSH 插件页 / `plugin_manager` 停用或卸载 `dsh-ppt-workbench`。
-2. 可选清理：`$DSH_HOME/storages/dsh-ppt-workbench/`（缓存、日志、飞书凭据）。
+1. DSH 插件页 / `plugin_manager` 停用或卸载 `dsh-artifact-workbench`。
+2. 可选清理：`$DSH_HOME/storages/dsh-artifact-workbench/`（缓存、日志、飞书凭据）。
 3. 可选清理各交付物旁的 `<交付物>.workbench/` 目录（批注与编辑历史）。
 4. 插件不写注册表、不装系统服务、不改任何 DSH 全局配置。
 
@@ -183,7 +185,7 @@ CI 与发布流程见 [PUBLISHING.md](PUBLISHING.md)。
 ### 项目结构
 
 ```
-index.js              Host 半：/api/dsh-ppt-workbench/* 路由（deck/slide/annotations/edit/history/undo/redo/open-native/source/feishu/health）
+index.js              Host 半：/api/dsh-artifact-workbench/* 路由（deck/slide/annotations/edit/history/undo/redo/open-native/source/feishu/health）
 client.js             Client 半：右侧栏 renderer/body、浏览/批注/编辑/自动保存/drawio iframe/H5 iframe/飞书 tab
 lib/render.mjs        LibreOffice Kit 渲染队列、PDF/H5/diagram 编排、外部程序探测
 lib/artifacts/        adapter registry（pptx 可编辑 / pdf / html / diagram）
@@ -203,10 +205,10 @@ scripts/check.mjs     语法检查脚本
 
 ## 版本与兼容
 
-- 当前版本 **0.14.5**（见 [CHANGELOG.md](CHANGELOG.md)）。
+- 当前版本 **0.15.0**（见 [CHANGELOG.md](CHANGELOG.md)）。
 - DSH：`>=0.2.0-rc.2 <0.3.0`；宿主 Node `>=22`。
 - 批注侧车 schema：`dsh-artifact-annotation@2`，兼容并自动迁移旧 `dsh-ppt-annotation@1`。
-- 旧 renderer key / 旧 tab 兼容策略：保留 `dsh-ppt-workbench` 命名一个版本周期，详见 [PUBLISHING.md](PUBLISHING.md) 的命名迁移说明。
+- 0.15.0 命名迁移：包名/插件 id/renderer key 统一为 `dsh-artifact-workbench`；升级前打开的旧 tab 需要重新打开；`$DSH_HOME/storages/dsh-ppt-workbench` 会自动迁移到新目录；旧环境变量 `PPT_WORKBENCH_*` 仍兼容。详见 [MIGRATION.md](MIGRATION.md)。
 
 ## 许可
 

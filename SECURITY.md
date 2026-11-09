@@ -27,7 +27,7 @@ runs inside the DSH host process and the DSH web client; it is not a network
 service and exposes no port of its own.
 
 - Host routes are mounted on the existing DSH `connection` server
-  (`/api/dsh-ppt-workbench/*`) and rely on DSH's owner-browser authentication.
+  (`/api/dsh-artifact-workbench/*`) and rely on DSH's owner-browser authentication.
   Each request additionally checks that the session is live and that the
   artifact path resolves inside the session's working directory.
 - The plugin assumes the DSH installation and the local user account are
@@ -41,16 +41,16 @@ service and exposes no port of its own.
 
 | Data | Location | Notes |
 | --- | --- | --- |
-| Render cache (PNG pages, inventory JSON) | `$DSH_HOME/storages/dsh-ppt-workbench/renders/<sha256>/` | Reproducible; safe to delete |
-| Runtime log | `$DSH_HOME/storages/dsh-ppt-workbench/workbench.log` | Route names, SHA prefixes, timings; no document content or credentials |
+| Render cache (PNG pages, inventory JSON) | `$DSH_HOME/storages/dsh-artifact-workbench/renders/<sha256>/` | Reproducible; safe to delete |
+| Runtime log | `$DSH_HOME/storages/dsh-artifact-workbench/workbench.log` | Route names, SHA prefixes, timings; no document content or credentials |
 | Annotation sidecar | `<artifact>.workbench/annotations.json` | Written next to the artifact, only inside the session workspace |
 | Edit history | `<artifact>.workbench/history.json` + `history/` snapshots | Old versions kept as independent copies (default 30) |
 | Edit scratch / lock | `<artifact>.workbench/edit-tmp/`, `edit.lock` | Cleaned after save |
 | Conflict copies | `<artifact>.workbench/conflict/` | Written when an external change is detected |
-| Feishu app credentials / user token (optional) | `$DSH_HOME/storages/dsh-ppt-workbench/feishu-app.json`, `feishu-token.json` | Created with mode `0600`; never returned to the client and never logged |
+| Feishu app credentials / user token (optional) | `$DSH_HOME/storages/dsh-artifact-workbench/feishu-app.json`, `feishu-token.json` | Created with mode `0600`; never returned to the client and never logged |
 
 `$DSH_HOME` defaults to `~/.dsh`. Overridable with `DSH_HOME`; the plugin's own
-storage root can be moved independently with `PPT_WORKBENCH_STORAGE` (useful for
+storage root can be moved independently with `ARTIFACT_WORKBENCH_STORAGE` (useful for
 tests and read-only home directories).
 
 ### Write boundary
@@ -72,14 +72,14 @@ a configurable candidate list, never from user-provided command strings:
 - **LibreOffice Kit** — bundled with the DSH desktop application (peer runtime,
   MPL-2.0). Used for PPTX/PDF rendering.
 - **draw.io Desktop** — optional; used only for `.drawio`/`.mmd` page rendering.
-  Override with `PPT_WORKBENCH_DRAWIO`.
+  Override with `ARTIFACT_WORKBENCH_DRAWIO`.
 - **Google Chrome / Chromium** — optional; used only for `.html/.htm` → PDF
-  snapshots. Override with `PPT_WORKBENCH_CHROME`.
+  snapshots. Override with `ARTIFACT_WORKBENCH_CHROME`.
 - **lark-cli** — optional; Feishu integration only. Override with
-  `PPT_WORKBENCH_LARK_CLI`.
+  `ARTIFACT_WORKBENCH_LARK_CLI`.
 - **"Open externally"** — launches LibreOffice or draw.io on the artifact.
   Only allowed for artifacts inside the session workspace, at most once per
-  3 seconds per file. Set `PPT_WORKBENCH_OPEN_DRY_RUN=1` to disable the launch
+  3 seconds per file. Set `ARTIFACT_WORKBENCH_OPEN_DRY_RUN=1` to disable the launch
   in tests/automation.
 
 Processes are spawned with argv arrays (no shell concatenation) and with the

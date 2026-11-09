@@ -1,11 +1,11 @@
 /**
- * dsh-ppt-workbench — Client 半（P1：浏览 + 批注 + 结构化编辑）
+ * dsh-artifact-workbench — Client 半（P1：浏览 + 批注 + 结构化编辑）
  *
  * 产品形态：作为 `.pptx` document renderer 的 body，在右侧栏文档 tab 内直接浏览
  * LibreOffice 渲染出的逐页 PNG，在页面上打 pin 批注，并在「编辑」模式下选中顶层形状、
  * 通过底部属性面板生成结构化 ops，保存回 PPTX（python-pptx 后端，支持 undo/redo）。
  *
- * 数据结构（Host 侧 /api/dsh-ppt-workbench/*）见同目录 CONTRACT.md / EDIT-CONTRACT.md：
+ * 数据结构（Host 侧 /api/dsh-artifact-workbench/*）见同目录 CONTRACT.md / EDIT-CONTRACT.md：
  * - GET  deck?sessionId=&path=   -> { deck(含 history), slides, annotations, annotationsRepair }
  * - GET  slide?sha=&page=        -> image/png
  * - POST annotations             -> { annotations, annotationsRepair, deckSha }
@@ -16,19 +16,19 @@
  * 只依赖 react；不 import @deepseek-ai/*；样式只用宿主 --dsw-* token。
  */
 window.__ModuleLoader__.load({
-  id: 'dsh-ppt-workbench',
+  id: 'dsh-artifact-workbench',
   factory(require) {
     var React = require('react');
     var h = React.createElement;
 
-    var NS = 'dsh-ppt-workbench';
-    var RENDERER_ID = 'dsh-ppt-workbench/pptx';
-    var FEISHU_TAB_ID = 'dsh-ppt-workbench/feishu-doc';
+    var NS = 'dsh-artifact-workbench';
+    var RENDERER_ID = 'dsh-artifact-workbench/pptx';
+    var FEISHU_TAB_ID = 'dsh-artifact-workbench/feishu-doc';
     var FEISHU_AUTO_REFRESH_MS = 30000;
     var FEISHU_BLOCK_LIMIT = 200;
     var FEISHU_TAB_KIND = 'feishu-doc';
-    var API_PREFIX = 'api/dsh-ppt-workbench/';
-    var STYLE_TAG_ID = 'dsh-ppt-workbench/client.css';
+    var API_PREFIX = 'api/dsh-artifact-workbench/';
+    var STYLE_TAG_ID = 'dsh-artifact-workbench/client.css';
     var EAGER_PAGES = 3;
     var RAIL_HIDE_WIDTH = 520;
     var DRAWER_HIDE_WIDTH = 480;
@@ -931,7 +931,7 @@ window.__ModuleLoader__.load({
 
     function drawioEditorUrl() {
       var lang = String(language()).indexOf('zh') === 0 ? 'zh' : 'en';
-      var relative = 'plugins/dsh-ppt-workbench/editor/index.html?embed=1&proto=json&spin=1&lang=' + lang +
+      var relative = 'plugins/dsh-artifact-workbench/editor/index.html?embed=1&proto=json&spin=1&lang=' + lang +
         '&noSaveBtn=0&noExitBtn=1&saveAndExit=0';
       try {
         return new URL(relative, document.baseURI).href;
@@ -4197,7 +4197,7 @@ window.__ModuleLoader__.load({
       var setPageVisible = pageVisibleHook[1];
       var autoNativeHook = React.useState(function () {
         try {
-          var stored = window.localStorage.getItem('dsh-ppt-workbench.feishu.autoNative');
+          var stored = window.localStorage.getItem('dsh-artifact-workbench.feishu.autoNative');
           return stored === null ? true : stored === 'true';
         } catch (error) {
           return true;
@@ -4618,7 +4618,7 @@ window.__ModuleLoader__.load({
               onChange: function (event) {
                 var next = !!event.target.checked;
                 setAutoNative(next);
-                try { window.localStorage.setItem('dsh-ppt-workbench.feishu.autoNative', String(next)); } catch (error) { /* ignore */ }
+                try { window.localStorage.setItem('dsh-artifact-workbench.feishu.autoNative', String(next)); } catch (error) { /* ignore */ }
               },
             }),
             t('feishu.autoNative')),
@@ -4866,7 +4866,7 @@ window.__ModuleLoader__.load({
       var setLogin = loginHook[1];
       var autoNativeHook = React.useState(function () {
         try {
-          return window.localStorage.getItem('dsh-ppt-workbench.feishu.autoNative') !== 'false';
+          return window.localStorage.getItem('dsh-artifact-workbench.feishu.autoNative') !== 'false';
         } catch (error) {
           return true;
         }
@@ -5023,7 +5023,7 @@ window.__ModuleLoader__.load({
             onChange: function (event) {
               var next = !!event.target.checked;
               setAutoNative(next);
-              try { window.localStorage.setItem('dsh-ppt-workbench.feishu.autoNative', String(next)); } catch (error) { /* ignore */ }
+              try { window.localStorage.setItem('dsh-artifact-workbench.feishu.autoNative', String(next)); } catch (error) { /* ignore */ }
             },
           }),
           t('feishu.settingsAutoNative')),
@@ -7906,11 +7906,11 @@ window.__ModuleLoader__.load({
               /* ignore */
             }
           };
-        }, 'dsh-ppt-workbench: dictionaries');
+        }, 'dsh-artifact-workbench: dictionaries');
 
         ctx.effect(function () {
           return injectStyles();
-        }, 'dsh-ppt-workbench: styles');
+        }, 'dsh-artifact-workbench: styles');
 
         ctx.effect(function () {
           return ctx.documentPreviews.register({
@@ -7924,7 +7924,7 @@ window.__ModuleLoader__.load({
             loading: 'renderer',
             wrap: false,
           });
-        }, 'dsh-ppt-workbench: renderer metadata');
+        }, 'dsh-artifact-workbench: renderer metadata');
 
         ctx.effect(function () {
           return ctx.slots.inject('sidebar.right.tab.document', function () {
@@ -7933,7 +7933,7 @@ window.__ModuleLoader__.load({
               WorkbenchBody,
             );
           });
-        }, 'dsh-ppt-workbench: renderer body');
+        }, 'dsh-artifact-workbench: renderer body');
 
         ctx.effect(function () {
           return ctx.sidebarRightTabs.register({
@@ -7955,7 +7955,7 @@ window.__ModuleLoader__.load({
               },
             }],
           });
-        }, 'dsh-ppt-workbench: feishu tab type');
+        }, 'dsh-artifact-workbench: feishu tab type');
 
         ctx.effect(function () {
           return ctx.slots.inject('sidebar.right.pane.tab', function () {
@@ -7983,7 +7983,7 @@ window.__ModuleLoader__.load({
               FeishuDocBody,
             );
           });
-        }, 'dsh-ppt-workbench: feishu body');
+        }, 'dsh-artifact-workbench: feishu body');
 
         ctx.effect(function () {
           return ctx.slots.inject('plugins.item', function () {
@@ -7995,11 +7995,11 @@ window.__ModuleLoader__.load({
               locale: NS,
             }, FeishuSettingsCard);
           });
-        }, 'dsh-ppt-workbench: feishu settings card');
+        }, 'dsh-artifact-workbench: feishu settings card');
 
         ctx.effect(function () {
           return ctx.contextMenus.register({
-            id: 'dsh-ppt-workbench.feishu-url',
+            id: 'dsh-artifact-workbench.feishu-url',
             target: 'url',
             order: 20,
             resolve: function (target) {
@@ -8035,7 +8035,7 @@ window.__ModuleLoader__.load({
               ];
             },
           });
-        }, 'dsh-ppt-workbench: feishu URL context menu');
+        }, 'dsh-artifact-workbench: feishu URL context menu');
       },
     };
   },

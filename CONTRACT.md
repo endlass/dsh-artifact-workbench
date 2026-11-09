@@ -1,4 +1,4 @@
-# dsh-ppt-workbench · Client 半开发契约（P0）
+# dsh-artifact-workbench · Client 半开发契约（P0）
 
 > **历史里程碑文档（已归档）**：本文写于对应里程碑开发期，用于并行开发者交接；文中的
 > 「Lead / Client 分工」「只改某个文件」等协作约束仅对当时有效，实现细节可能已演进。
@@ -14,10 +14,10 @@
 
 ## 2. 技术约束（硬性）
 
-- `client.js` 是**普通浏览器脚本**，必须保持 `window.__ModuleLoader__.load({ id: 'dsh-ppt-workbench', factory(require) { ... } })` 结构；`require('react')` 拿 React 18，用 `React.createElement`（不要 JSX、不要 ESM import、不要构建步骤）。
+- `client.js` 是**普通浏览器脚本**，必须保持 `window.__ModuleLoader__.load({ id: 'dsh-artifact-workbench', factory(require) { ... } })` 结构；`require('react')` 拿 React 18，用 `React.createElement`（不要 JSX、不要 ESM import、不要构建步骤）。
 - 不 import 任何 `@deepseek-ai/*` 包；不新增 npm 依赖。
 - 视觉只用宿主主题 token（`--dsw-*`，如 `--dsw-alias-bg-base`、`--dsw-alias-label-primary`、`--dsw-alias-border-secondary`、`--dsw-alias-label-secondary`、`--dsw-alias-label-tertiary`、`--dsw-alias-state-error-primary`），必须同时适配亮/暗主题；不要写死深色背景。
-- 可见文案走字典：`ctx.locale.register('dsh-ppt-workbench', { zh: {...}, en: {...} })`，组件内用注入的 `props.t`（注册 slot 时已带 `locale: NS`）。
+- 可见文案走字典：`ctx.locale.register('dsh-artifact-workbench', { zh: {...}, en: {...} })`，组件内用注入的 `props.t`（注册 slot 时已带 `locale: NS`）。
 - 组件收到的关键 props：
   - `resourceAddress`：`dsh-resource://file/session/<sessionId>/<encoded path>`（绝对路径时 path 保留前导 `/`）
   - `content`：`{ kind:'renderer', revision, loaded(version), failed(), reload() }`
@@ -25,13 +25,13 @@
   - `inputActions`：composer 输入动作（见 §4.6）
   - `sessionId`：标准 prop
   - `useResource(address)`：可选
-- 渲染器注册与 body 注册保留现有写法（`ctx.documentPreviews.register` + `ctx.slots.register` 到 `sidebar.right.tab.document`，key=`dsh-ppt-workbench/pptx`）。
+- 渲染器注册与 body 注册保留现有写法（`ctx.documentPreviews.register` + `ctx.slots.register` 到 `sidebar.right.tab.document`，key=`dsh-artifact-workbench/pptx`）。
 - `content` 契约：mount 后加载成功调用 `content.loaded(versionString)`；失败调用 `content.failed()`；`content.revision` 变化时取消旧请求并重新加载（degrade gracefully，不要整页崩）。
 - 不改 `index.js`/`lib/**`；不调用 plugin_manager；不重启 app。改完 `node --check client.js` 必须通过。
 
-## 3. 数据契约（Host `/api/dsh-ppt-workbench/*`，均已实现）
+## 3. 数据契约（Host `/api/dsh-artifact-workbench/*`，均已实现）
 
-同源调用：`new URL('api/dsh-ppt-workbench/<path>', document.baseURI)`。桌面页面 baseURI 是 `dsh-app://app/`，已实测可 fetch（必须走 `document.baseURI`，不要写死 127.0.0.1）。`credentials: 'include'`。
+同源调用：`new URL('api/dsh-artifact-workbench/<path>', document.baseURI)`。桌面页面 baseURI 是 `dsh-app://app/`，已实测可 fetch（必须走 `document.baseURI`，不要写死 127.0.0.1）。`credentials: 'include'`。
 
 ### 3.1 `GET deck?sessionId=<sid>&path=<path>`
 
@@ -208,7 +208,7 @@ props.inputActions.insertText(text, span);
 ## 5. 自测与交付
 
 - `node --check client.js` 必须通过。
-- 改完后 HMR 会热替换；app 里已打开一个 pptx 预览 tab，会自动拉 deck。Host 日志在 `~/.dsh/storages/dsh-ppt-workbench/workbench.log`（deck open / annotation 行），可以用来确认请求是否成功。
+- 改完后 HMR 会热替换；app 里已打开一个 pptx 预览 tab，会自动拉 deck。Host 日志在 `~/.dsh/storages/dsh-artifact-workbench/workbench.log`（deck open / annotation 行），可以用来确认请求是否成功。
 - 不要尝试安装/重启插件；Host 半已就绪。
 - 交付：更新后的 `client.js` + 一段自测说明（实现了哪些交互、已知缺口、未验证项）。**视觉验收由 Lead 负责**（你无法截图），但代码必须逻辑自洽、错误路径完整。
 

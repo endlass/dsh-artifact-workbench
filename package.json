@@ -1,6 +1,6 @@
 {
-  "name": "dsh-ppt-workbench",
-  "version": "0.14.5",
+  "name": "dsh-artifact-workbench",
+  "version": "0.15.0",
   "description": "Artifact Workbench: browse, annotate and edit agent-generated artifacts (PPTX, PDF, H5, drawio, Mermaid) in the DeepSeek Harness sidebar.",
   "type": "module",
   "main": "index.js",
@@ -20,6 +20,7 @@
     "cordis.patch.yml",
     "editor/",
     "README.md",
+    "MIGRATION.md",
     "README.en.md",
     "CHANGELOG.md",
     "ROADMAP.md",

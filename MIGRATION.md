@@ -1,0 +1,61 @@
+# Migration: 0.14.x → 0.15.0 (`dsh-ppt-workbench` → `dsh-artifact-workbench`)
+
+0.15.0 renames the plugin to match the project name. The annotation data format
+and the sidecar files are unchanged; identifiers and routes change.
+
+| Item | 0.14.x | 0.15.0 |
+| --- | --- | --- |
+| npm package / bundle name | `dsh-ppt-workbench` | `dsh-artifact-workbench` |
+| Plugin id / renderer key | `dsh-ppt-workbench/pptx` | `dsh-artifact-workbench/pptx` |
+| Feishu tab key | `dsh-ppt-workbench/feishu-doc` | `dsh-artifact-workbench/feishu-doc` |
+| API route prefix | `/api/dsh-ppt-workbench/*` | `/api/dsh-artifact-workbench/*` |
+| Locale namespace | `dsh-ppt-workbench` | `dsh-artifact-workbench` |
+| Storage root | `$DSH_HOME/storages/dsh-ppt-workbench` | `$DSH_HOME/storages/dsh-artifact-workbench` |
+| Env variables | `PPT_WORKBENCH_*` | `ARTIFACT_WORKBENCH_*` (legacy names still read) |
+| Annotation sidecars | `<artifact>.workbench/annotations.json` | unchanged |
+| Annotation schema | `dsh-artifact-annotation@2` (`dsh-ppt-annotation@1` migrated) | unchanged |
+
+## Upgrade steps (DSH desktop)
+
+1. Install the new bundle with the new name:
+   - Plugin page: `install bundle` → `dsh-artifact-workbench@0.15.0`; or
+   - local development: update the profile dependency to the repo path under the
+     **new** name and add `dsh-artifact-workbench` to `dsh.profile.bundles`, e.g.
+     `"dsh-artifact-workbench": "link:/path/to/dsh-artifact-workbench"`.
+2. Remove the old `dsh-ppt-workbench` dependency/bundle entry from the profile
+   (and the old `node_modules` link/copy) so the old and new ids don't coexist.
+3. Restart DSH. The first start moves
+   `$DSH_HOME/storages/dsh-ppt-workbench` to
+   `$DSH_HOME/storages/dsh-artifact-workbench` automatically (skipped if either
+   `ARTIFACT_WORKBENCH_STORAGE` or `PPT_WORKBENCH_STORAGE` is set explicitly).
+4. Reopen document tabs that were already open before the upgrade: they hold the
+   old renderer key. Newly opened `.pptx`/`.pdf`/`.html`/`.drawio`/`.mmd` tabs use
+   the new key. Existing `<artifact>.workbench/` sidecars continue to load.
+5. Optional: if you had scripts/automation calling `/api/dsh-ppt-workbench/*` or
+   using the old renderer id, update them to `/api/dsh-artifact-workbench/*` /
+   `dsh-artifact-workbench/*`.
+6. Environment variables: prefer the new `ARTIFACT_WORKBENCH_*` names; the old
+   `PPT_WORKBENCH_*` names keep working (new names win when both are set).
+
+## Manual storage migration (if automatic rename could not happen)
+
+```bash
+# DSH must be stopped while moving the directory.
+mv "$HOME/.dsh/storages/dsh-ppt-workbench" "$HOME/.dsh/storages/dsh-artifact-workbench"
+```
+
+If both directories exist, the plugin keeps using
+`$DSH_HOME/storages/dsh-artifact-workbench` and leaves the old directory
+untouched; copy anything you still need manually.
+
+## Rollback
+
+Reinstall `dsh-ppt-workbench` (the 0.14.x checkout) and restart DSH. Storage
+continues under the new directory if it was already migrated; rename it back if
+you need the old version to find its settings/cache:
+
+```bash
+mv "$HOME/.dsh/storages/dsh-artifact-workbench" "$HOME/.dsh/storages/dsh-ppt-workbench"
+```
+
+Annotation sidecars are version-independent and do not need to be moved.

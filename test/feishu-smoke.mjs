@@ -6,8 +6,8 @@ import assert from 'node:assert/strict';
 import { chmod } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 
-process.env.PPT_WORKBENCH_LARK_CLI = fileURLToPath(new URL('./fixtures/fake-lark-cli', import.meta.url));
-await chmod(process.env.PPT_WORKBENCH_LARK_CLI, 0o755);
+process.env.ARTIFACT_WORKBENCH_LARK_CLI = fileURLToPath(new URL('./fixtures/fake-lark-cli', import.meta.url));
+await chmod(process.env.ARTIFACT_WORKBENCH_LARK_CLI, 0o755);
 
 const {
   addFeishuComment,

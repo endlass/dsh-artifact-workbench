@@ -20,7 +20,7 @@ import { ensureDeck } from '../lib/render.mjs';
 import { sha256File, statFile, writeJsonFile } from '../lib/util.mjs';
 
 const DECK_V1 =
-  process.env.PPT_WORKBENCH_TEST_DECK ||
+  process.env.ARTIFACT_WORKBENCH_TEST_DECK ||
   fileURLToPath(new URL('./fixtures/deck-v1.pptx', import.meta.url));
 const work = await mkdtemp(join(tmpdir(), 'ppt-wb-ann-conc-'));
 const deck = join(work, 'deck.pptx');

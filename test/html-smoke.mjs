@@ -15,7 +15,7 @@ import { loadAnnotationFile } from '../lib/annotations.mjs';
 import { sha256File, statFile } from '../lib/util.mjs';
 
 const HTML_SOURCE =
-  process.env.PPT_WORKBENCH_TEST_HTML ||
+  process.env.ARTIFACT_WORKBENCH_TEST_HTML ||
   fileURLToPath(new URL('./fixtures/sample-report.html', import.meta.url));
 const work = await mkdtemp(join(tmpdir(), 'ppt-wb-html-'));
 const file = join(work, 'report.html');

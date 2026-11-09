@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { apply } from '../index.js';
 
 const PDF_SOURCE =
-  process.env.PPT_WORKBENCH_TEST_PDF ||
+  process.env.ARTIFACT_WORKBENCH_TEST_PDF ||
   fileURLToPath(new URL('./fixtures/sample-report.pdf', import.meta.url));
 const workspace = await mkdtemp(join(tmpdir(), 'ppt-wb-pdf-http-'));
 const pdf = join(workspace, 'report.pdf');
@@ -27,13 +27,13 @@ apply({
 });
 
 async function call(method, path, body, query) {
-  const url = new URL(`http://127.0.0.1/api/dsh-ppt-workbench${path}`);
+  const url = new URL(`http://127.0.0.1/api/dsh-artifact-workbench${path}`);
   if (query) for (const [key, value] of Object.entries(query)) url.searchParams.set(key, value);
   const request = new Request(url, {
     method,
     ...(body === undefined ? {} : { body: JSON.stringify(body), headers: { 'content-type': 'application/json' } }),
   });
-  const response = await routes.get(`/api/dsh-ppt-workbench${path}`).fetch(request);
+  const response = await routes.get(`/api/dsh-artifact-workbench${path}`).fetch(request);
   return { status: response.status, body: await response.json() };
 }
 
@@ -81,8 +81,8 @@ try {
 }
 
 async function fetchLikeSlide(page) {
-  const route = routes.get('/api/dsh-ppt-workbench/slide');
-  const url = new URL('http://127.0.0.1/api/dsh-ppt-workbench/slide');
+  const route = routes.get('/api/dsh-artifact-workbench/slide');
+  const url = new URL('http://127.0.0.1/api/dsh-artifact-workbench/slide');
   url.searchParams.set('sha', (await call('GET', '/deck', undefined, { sessionId, path: pdf })).body.deck.sha256);
   url.searchParams.set('page', String(page));
   const response = await route.fetch(new Request(url));

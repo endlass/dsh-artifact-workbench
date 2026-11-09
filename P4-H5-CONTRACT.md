@@ -8,8 +8,8 @@
 
 ## Host
 
-- `webServer` prefix `/plugins/dsh-ppt-workbench/artifact`。
-- `GET /artifact-url?sessionId&path` -> `{ok,url,title}`；`url` 是 `/plugins/dsh-ppt-workbench/artifact/<token>/<basename>`，token 随机、1h、只映射 HTML 所在目录。
+- `webServer` prefix `/plugins/dsh-artifact-workbench/artifact`。
+- `GET /artifact-url?sessionId&path` -> `{ok,url,title}`；`url` 是 `/plugins/dsh-artifact-workbench/artifact/<token>/<basename>`，token 随机、1h、只映射 HTML 所在目录。
 - 静态服务保留相对资源（css/js/img）；HTML 响应注入 `/__dsh-bridge.js`（同源相对路径），其他文件原样。
 - 安全：仅 token 范围内、目录穿越拒绝、只接受 session workspace 内文件。
 - 批注 format=`html`，anchor.kind=`html-dom`：

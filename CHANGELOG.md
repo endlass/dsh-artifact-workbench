@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.15.0 — 2026-11-10
+
+**Rename release.** No behavior change beyond identifiers.
+
+- Package/plugin id renamed from `dsh-ppt-workbench` to
+  `dsh-artifact-workbench`, matching the project name and repository. This is a
+  breaking identifier change: renderer key, Feishu tab key, API route prefix
+  (`/api/dsh-artifact-workbench/*`), locale namespace and style tag now use the
+  new name. See `MIGRATION.md`.
+- Storage directory migrated automatically from
+  `$DSH_HOME/storages/dsh-ppt-workbench` to
+  `$DSH_HOME/storages/dsh-artifact-workbench` (explicit storage overrides are
+  left untouched).
+- Environment variables renamed to `ARTIFACT_WORKBENCH_*`; legacy
+  `PPT_WORKBENCH_*` names are still read (new names take precedence).
+- Annotation sidecars (`<artifact>.workbench/`) and the
+  `dsh-artifact-annotation@2` schema are unchanged; legacy
+  `dsh-ppt-annotation@1` migration still applies.
+- `MIGRATION.md` added; READMEs, contracts, publishing and roadmap updated for
+  the new name; `files` now includes `MIGRATION.md`.
+
 ## Unreleased — 2026-11-10 (licensing compliance)
 
 - Added `licenses/` with full texts (MIT, Apache-2.0, Zlib, EPL-2.0,

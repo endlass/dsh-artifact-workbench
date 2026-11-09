@@ -1,4 +1,4 @@
-# dsh-ppt-workbench · P1 编辑契约（Host 已实现 / Client 待实现）
+# dsh-artifact-workbench · P1 编辑契约（Host 已实现 / Client 待实现）
 
 > **历史里程碑文档（已归档）**：本文写于对应里程碑开发期，用于并行开发者交接；文中的
 > 「Lead / Client 分工」「只改某个文件」等协作约束仅对当时有效，实现细节可能已演进。
@@ -40,7 +40,7 @@
 - 表格 `cells` 最多 12×8；图表 series 最多 6 条、每类最多 24 点；超限截断。
 - `deck.history` 字段：`{ "version": 3, "cursor": 3, "canUndo": true, "canRedo": false }`（列表用 `/history` 单独取）。
 
-## 3. 编辑 API（`/api/dsh-ppt-workbench/*`）
+## 3. 编辑 API（`/api/dsh-artifact-workbench/*`）
 
 所有请求同源 fetch、`credentials:'include'`，body JSON；错误形态 `{ok:false,code,message,...}`。
 

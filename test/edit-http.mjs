@@ -12,7 +12,7 @@ import { apply } from '../index.js';
 import { statFile } from '../lib/util.mjs';
 
 const DECK_V1 =
-  process.env.PPT_WORKBENCH_TEST_DECK ||
+  process.env.ARTIFACT_WORKBENCH_TEST_DECK ||
   fileURLToPath(new URL('./fixtures/deck-v1.pptx', import.meta.url));
 
 const workspace = await mkdtemp(join(tmpdir(), 'ppt-wb-http-'));
@@ -41,13 +41,13 @@ const fakeCtx = {
 };
 
 function endpoint(path) {
-  const route = routes.get(`/api/dsh-ppt-workbench${path}`);
+  const route = routes.get(`/api/dsh-artifact-workbench${path}`);
   assert.ok(route, `route not registered: ${path}`);
   return route;
 }
 
 async function call(method, path, body, query) {
-  const url = new URL(`http://127.0.0.1/api/dsh-ppt-workbench${path}`);
+  const url = new URL(`http://127.0.0.1/api/dsh-artifact-workbench${path}`);
   if (query) for (const [key, value] of Object.entries(query)) url.searchParams.set(key, value);
   const request = new Request(url, {
     method,
@@ -70,14 +70,14 @@ try {
   const textShape = opened.body.slides[9].shapes.find((shape) => shape.name === 'EDIT-TEXT');
   assert.match(textShape.text, /EDIT-TEXT/, 'inventory includes full text');
 
-  process.env.PPT_WORKBENCH_OPEN_DRY_RUN = '1';
+  process.env.ARTIFACT_WORKBENCH_OPEN_DRY_RUN = '1';
   const native = await call('POST', '/open-native', { sessionId, path: deckPath });
   assert.equal(native.status, 200);
   assert.equal(native.body.dryRun, true);
   assert.equal(native.body.app, 'LibreOffice');
   const nativeAgain = await call('POST', '/open-native', { sessionId, path: deckPath });
   assert.equal(nativeAgain.status, 429, 'open-native is rate limited');
-  delete process.env.PPT_WORKBENCH_OPEN_DRY_RUN;
+  delete process.env.ARTIFACT_WORKBENCH_OPEN_DRY_RUN;
   console.log('[ok] POST /open-native dry-run + rate limit');
 
   const edited = await call('POST', '/edit', {

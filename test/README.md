@@ -12,11 +12,11 @@ npm dependency is required.
 
 | Requirement | Why | Env override |
 | --- | --- | --- |
-| `@deepseek-ai/libreoffice-kit` from the installed DSH desktop app | PPTX/PDF page rendering + inventory (`inventory.py`) | `DSH_RESOURCES` / `PPT_WORKBENCH_RESOURCES` |
-| python-pptx in the DSH runtime Python | PPTX inventory and structured edit ops | `PPT_WORKBENCH_PYTHON` |
-| LibreOffice.app (macOS) / libreoffice (other) | only `open-native` dry-run tests; not needed by the rest | `PPT_WORKBENCH_LIBREOFFICE` |
-| draw.io Desktop | `.drawio`/`.mmd` page rendering (`diagram-smoke`, `source-http`) | `PPT_WORKBENCH_DRAWIO` |
-| Chrome/Chromium | HTML → PDF snapshots (`html-smoke`) | `PPT_WORKBENCH_CHROME` |
+| `@deepseek-ai/libreoffice-kit` from the installed DSH desktop app | PPTX/PDF page rendering + inventory (`inventory.py`) | `DSH_RESOURCES` / `ARTIFACT_WORKBENCH_RESOURCES` |
+| python-pptx in the DSH runtime Python | PPTX inventory and structured edit ops | `ARTIFACT_WORKBENCH_PYTHON` |
+| LibreOffice.app (macOS) / libreoffice (other) | only `open-native` dry-run tests; not needed by the rest | `ARTIFACT_WORKBENCH_LIBREOFFICE` |
+| draw.io Desktop | `.drawio`/`.mmd` page rendering (`diagram-smoke`, `source-http`) | `ARTIFACT_WORKBENCH_DRAWIO` |
+| Chrome/Chromium | HTML → PDF snapshots (`html-smoke`) | `ARTIFACT_WORKBENCH_CHROME` |
 | bash | `test/feishu-smoke.mjs` runs a fake `lark-cli` fixture | — |
 
 Fixtures are synthetic: `test/fixtures/deck-v1.pptx` (12-slide python-pptx test
@@ -25,8 +25,8 @@ deck), `test/fixtures/deck-v1-lort.pptx` (LibreOffice round-trip variant),
 pipelines). No real business documents or personal data are included.
 
 Tests write only to OS temp directories and the plugin storage root
-(`$DSH_HOME/storages/dsh-ppt-workbench`, override with
-`PPT_WORKBENCH_STORAGE`).
+(`$DSH_HOME/storages/dsh-artifact-workbench`, override with
+`ARTIFACT_WORKBENCH_STORAGE`).
 
 ## Matrix
 
@@ -53,6 +53,6 @@ Tests write only to OS temp directories and the plugin storage root
 
 `host-smoke.mjs` additionally compares a LibreOffice round-trip deck
 (`deck-v1-lort.pptx`): shape ids change, so anchor repair has to fall back to
-shape names. Both deck files are committed fixtures; `PPT_WORKBENCH_TEST_DECK`,
-`PPT_WORKBENCH_TEST_DECK_LORT` and `PPT_WORKBENCH_TEST_PDF` /
-`PPT_WORKBENCH_TEST_HTML` can point at larger local samples.
+shape names. Both deck files are committed fixtures; `ARTIFACT_WORKBENCH_TEST_DECK`,
+`ARTIFACT_WORKBENCH_TEST_DECK_LORT` and `ARTIFACT_WORKBENCH_TEST_PDF` /
+`ARTIFACT_WORKBENCH_TEST_HTML` can point at larger local samples.

@@ -15,7 +15,7 @@ import { annotationFile, loadAnnotationFile } from '../lib/annotations.mjs';
 import { sha256File, statFile, writeJsonFile } from '../lib/util.mjs';
 
 const PDF_SOURCE =
-  process.env.PPT_WORKBENCH_TEST_PDF ||
+  process.env.ARTIFACT_WORKBENCH_TEST_PDF ||
   fileURLToPath(new URL('./fixtures/sample-report.pdf', import.meta.url));
 const work = await mkdtemp(join(tmpdir(), 'ppt-wb-pdf-'));
 const pdf = join(work, 'report.pdf');

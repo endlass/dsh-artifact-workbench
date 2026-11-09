@@ -1,6 +1,6 @@
 # Artifact Workbench 挂载声明
 # 保留 DSH 右侧栏文档预览宿主，为 .pptx 等交付物叠加工作台 renderer。
-# 插件 id / 路由前缀沿用 dsh-ppt-workbench，避免已打开的 tab 与旧批注侧车失效。
+# 0.15.0 起插件 id / 路由前缀 / renderer key 统一为 dsh-artifact-workbench（旧名 dsh-ppt-workbench）。
 - insert:
-    - id: dsh-ppt-workbench
-      name: dsh-ppt-workbench
+    - id: dsh-artifact-workbench
+      name: dsh-artifact-workbench

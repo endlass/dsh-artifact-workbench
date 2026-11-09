@@ -1,7 +1,7 @@
 /**
- * dsh-ppt-workbench — Host 半（P1：浏览 + 批注 + 结构化编辑）
+ * dsh-artifact-workbench — Host 半（P1：浏览 + 批注 + 结构化编辑）
  *
- * 路由（均挂在 /api/dsh-ppt-workbench/ 下，走 connection 的 owner 浏览器鉴权）：
+ * 路由（均挂在 /api/dsh-artifact-workbench/ 下，走 connection 的 owner 浏览器鉴权）：
  * - GET  deck              deck 元信息：inventory + 渲染页面 + 批注 + 历史摘要
  * - GET  slide             某页 PNG 字节
  * - GET  annotations       读批注（含锚点修复）
@@ -42,6 +42,7 @@ import {
   STORAGE,
   configuredPath,
   errorText,
+  envOpt,
   isInside,
   isInsideReal,
   log,
@@ -50,7 +51,7 @@ import {
   syncFile,
 } from './lib/util.mjs';
 
-const NS = '/api/dsh-ppt-workbench';
+const NS = '/api/dsh-artifact-workbench';
 const OPS_MAX = 100;
 
 /**
@@ -61,8 +62,8 @@ function nativeAppCandidates(kind) {
   const home = homedir();
   if (kind === 'drawio') {
     return [
-      configuredPath('drawio', 'PPT_WORKBENCH_DRAWIO_APP'),
-      process.env.PPT_WORKBENCH_DRAWIO,
+      configuredPath('drawio', 'ARTIFACT_WORKBENCH_DRAWIO_APP'),
+      envOpt('DRAWIO'),
       '/Applications/draw.io.app',
       join(home, 'Applications/draw.io.app'),
       '/usr/bin/drawio',
@@ -73,7 +74,7 @@ function nativeAppCandidates(kind) {
     ].filter(Boolean);
   }
   return [
-    configuredPath('libreoffice', 'PPT_WORKBENCH_LIBREOFFICE'),
+    configuredPath('libreoffice', 'ARTIFACT_WORKBENCH_LIBREOFFICE'),
     '/Applications/LibreOffice.app',
     join(home, 'Applications/LibreOffice.app'),
     '/usr/bin/libreoffice',
@@ -248,8 +249,8 @@ async function openNative(meta) {
   const kind = isDiagram ? 'drawio' : 'libreoffice';
   const appName = isDiagram ? 'draw.io' : 'LibreOffice';
   const envHint = isDiagram
-    ? 'PPT_WORKBENCH_DRAWIO_APP (or PPT_WORKBENCH_DRAWIO)'
-    : 'PPT_WORKBENCH_LIBREOFFICE';
+    ? 'ARTIFACT_WORKBENCH_DRAWIO_APP (or ARTIFACT_WORKBENCH_DRAWIO)'
+    : 'ARTIFACT_WORKBENCH_LIBREOFFICE';
   const appPath = await resolveNativeApp(kind);
   if (!appPath) {
     throw userError(
@@ -263,7 +264,7 @@ async function openNative(meta) {
     throw userError('the artifact was just opened externally', 429, 'rate-limited');
   }
   nativeOpenAt.set(meta.absolutePath, Date.now());
-  if (process.env.PPT_WORKBENCH_OPEN_DRY_RUN === '1') {
+  if (envOpt('OPEN_DRY_RUN') === '1') {
     return { ok: true, app: appName, path: meta.absolutePath, dryRun: true };
   }
   // macOS app bundles are launched through LaunchServices; on Linux/Windows the
@@ -489,25 +490,25 @@ export function apply(ctx) {
           /* ignore */
         }
       };
-    }, `dsh-ppt-workbench: route ${path}`);
+    }, `dsh-artifact-workbench: route ${path}`);
   };
 
   ctx.effect(() => ctx.webServer.register({
     kind: 'prefix',
     path: EDITOR_ROUTE,
     handler: serveEditorFile,
-  }), 'dsh-ppt-workbench: drawio editor assets');
+  }), 'dsh-artifact-workbench: drawio editor assets');
 
   ctx.effect(() => ctx.webServer.register({
     kind: 'prefix',
     path: ARTIFACT_ROUTE,
     handler: serveHtmlArtifact,
-  }), 'dsh-ppt-workbench: h5 artifact assets');
+  }), 'dsh-artifact-workbench: h5 artifact assets');
 
   route('health', ['GET'], 'buffered', async () => {
     return json(200, {
       ok: true,
-      plugin: 'dsh-ppt-workbench',
+      plugin: 'dsh-artifact-workbench',
       phase: 'P1',
       node: process.version,
       storage: STORAGE,
@@ -650,7 +651,7 @@ export function apply(ctx) {
         comments: doc.comments,
       };
     },
-  }), 'dsh-ppt-workbench: feishu_doc_read tool');
+  }), 'dsh-artifact-workbench: feishu_doc_read tool');
 
   route('feishu/auth-status', ['GET'], 'buffered', async () => {
     try {
@@ -945,7 +946,7 @@ export function apply(ctx) {
     return () => {
       disposeRenderer().catch(() => {});
     };
-  }, 'dsh-ppt-workbench: renderer lifetime');
+  }, 'dsh-artifact-workbench: renderer lifetime');
 
   void log('host plugin applied (P1)');
 }

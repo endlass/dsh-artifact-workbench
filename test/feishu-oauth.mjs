@@ -10,7 +10,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 const work = await mkdtemp(join(tmpdir(), 'wb-feishu-oauth-'));
-process.env.PPT_WORKBENCH_STORAGE = work;
+process.env.ARTIFACT_WORKBENCH_STORAGE = work;
 
 let polls = 0;
 const server = createServer(async (req, res) => {
@@ -53,8 +53,8 @@ const server = createServer(async (req, res) => {
 server.listen(0, '127.0.0.1');
 await once(server, 'listening');
 const origin = `http://127.0.0.1:${server.address().port}`;
-process.env.PPT_WORKBENCH_FEISHU_ACCOUNTS = origin;
-process.env.PPT_WORKBENCH_FEISHU_OPEN = origin;
+process.env.ARTIFACT_WORKBENCH_FEISHU_ACCOUNTS = origin;
+process.env.ARTIFACT_WORKBENCH_FEISHU_OPEN = origin;
 try {
   const oauth = await import('../lib/feishu-oauth.mjs');
   await oauth.saveFeishuAppConfig({ appId: 'cli_test', appSecret: 'secret_test' });

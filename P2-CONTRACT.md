@@ -8,7 +8,7 @@
 
 ## 1. Host 路由保持不变
 
-继续使用 `/api/dsh-ppt-workbench/{deck,slide,annotations,edit,history,undo,redo,open-native,health}`，避免已打开 tab 失效。路径支持 `.pptx` 与 `.pdf`；由内部 `ArtifactAdapter` 分派。
+继续使用 `/api/dsh-artifact-workbench/{deck,slide,annotations,edit,history,undo,redo,open-native,health}`，避免已打开 tab 失效。路径支持 `.pptx` 与 `.pdf`；由内部 `ArtifactAdapter` 分派。
 
 ## 2. `GET deck` 的通用字段
 
@@ -96,7 +96,7 @@
 - `.html/.htm` 由 Host 用本机 Chrome headless 打印成 PDF 快照（缓存 `<artifact-sha>/source.pdf`），再走 PDF 页图/批注管线。
 - `deck.format='pdf'`、`sourceFormat='html'`、`editable=false`、`snapshot=true`；Client 显示「H5 · 只读批注」，不提供编辑。
 - 批注锚点沿用 `pdf-page`；侧车在源 HTML 同目录，格式字段为 `pdf`。
-- 只支持报告类静态页；动态交互、链接、表单不保留。Chrome 路径可用 `PPT_WORKBENCH_CHROME` 覆盖。
+- 只支持报告类静态页；动态交互、链接、表单不保留。Chrome 路径可用 `ARTIFACT_WORKBENCH_CHROME` 覆盖。
 
 
 ## 7. P2.3 流程图（v0.6.0）
@@ -106,4 +106,4 @@
 - 页面锚点沿用 `pdf-page`；批注侧车在源文件同目录。
 - drawio：工具栏「在 draw.io 中编辑」外部打开；保存后靠 revision 刷新。
 - Mermaid：当前只读预览+批注，源码编辑下一阶段。
-- 当前只渲染第一页；多页 drawio 会提示截断。draw.io 路径可用 `PPT_WORKBENCH_DRAWIO` 覆盖。
+- 当前只渲染第一页；多页 drawio 会提示截断。draw.io 路径可用 `ARTIFACT_WORKBENCH_DRAWIO` 覆盖。
