@@ -1,56 +1,98 @@
 # Third-party notices
 
-This repository (the MIT-licensed Artifact Workbench plugin) redistributes a
-number of third-party components. This file lists them, their licenses and
-where the corresponding license texts live. It is not a license grant for the
-components themselves: those remain under their own terms.
+This repository combines:
 
-The repository root is licensed under MIT (see `LICENSE`). Everything under
-`editor/` is a vendored draw.io web application and remains under the licenses
-described below; it is *not* relicensed under MIT.
+- **first-party code** (plugin host/client, docs, tests) licensed **MIT** — see
+  `LICENSE`;
+- a **vendored draw.io web application** under `editor/`, which remains under
+  its own licenses (Apache-2.0, plus EPL-2.0, LGPL-2.1, CC-BY-4.0, OFL-1.1 and
+  the draw.io icon/stencil additional terms). Nothing under `editor/` is
+  relicensed under MIT.
 
-## 1. Bundled / vendored components
+The **full component inventory, per-component copyright lines and the license
+texts** are in [`licenses/README.md`](licenses/README.md) and `licenses/`.
+This file summarises provenance, obligations and the current compliance
+status (see also [`COMPLIANCE.md`](COMPLIANCE.md)).
 
-| Component | Version / provenance | License | Location |
+## 1. Provenance
+
+- `editor/` is derived from the **draw.io web application v31.4.5**
+  (<https://github.com/jgraph/drawio>, Apache-2.0, © JGraph Holdings Ltd and
+  draw.io AG) as packaged by the DSH plugin **`dsh-drawioedit`**
+  (<https://github.com/zhang-guo-wen/dsh-drawioedit>, npm
+  `@guowenzhang/dsh-drawioedit`, Apache-2.0, © 2026 zhang-guo-wen).
+- The exact copy corresponds to `dsh-drawioedit` **main commit `6029d77`
+  (2026-11-05)** (npm 1.3.0 is a slightly older snapshot).
+- `editor/NOTICE` is retained verbatim from the upstream project; its addendum,
+  the modification list and the verified hashes are in
+  [`editor/PROVENANCE.md`](editor/PROVENANCE.md) and
+  [`editor/MODIFICATIONS.md`](editor/MODIFICATIONS.md).
+- `editor/index.html` is **not** patched: the DSH bridge
+  (`editor/__dsh-bridge.js`) is injected by the plugin's server when the editor
+  is served (`lib/editor-server.mjs`, `lib/html-server.mjs`).
+
+## 2. License texts in this repository
+
+| Text | File |
+| --- | --- |
+| MIT | `licenses/mit.txt` |
+| Apache-2.0 | `licenses/apache-2.0.txt` (and `editor/LICENSE`) |
+| Zlib (pako's second license) | `licenses/zlib.txt` |
+| EPL-2.0 (ELK) | `licenses/epl-2.0.txt` (and `editor/js/elk/LICENSE`) |
+| LGPL-2.1 (libavoid) | `licenses/lgpl-2.1.txt` (and `editor/js/libavoid-js/LICENSE`) |
+| CC-BY-4.0 (draw.io templates) | `licenses/cc-by-4.0.txt` (and `editor/templates/LICENSE`) |
+| OFL-1.1 (Architects Daughter) | `licenses/OFL-1.1.txt` |
+
+## 3. Component summary
+
+### 3.1 draw.io web application and assets (`editor/`)
+
+| Component | Version | License |
+| --- | --- | --- |
+| draw.io web application (app/extensions/viewer bundles, JS, resources) | 31.4.5 | Apache-2.0 |
+| dsh-drawioedit (upstream packaging) | main `6029d77` | Apache-2.0 |
+| draw.io stencils / shapes / icon sets | 31.4.5 | Apache-2.0 **plus** the additional terms quoted in §4 |
+| draw.io diagram templates | 31.4.5 | CC-BY-4.0 (attribution in `editor/templates/ATTRIBUTION.md`) |
+| draw.io UI translations | 31.4.5 | Apache-2.0 |
+| draw.io branding/UI images and third-party logos | 31.4.5 | trademarks of their owners; see §6 |
+
+### 3.2 Third-party JavaScript components
+
+| Component | Version | License | Location |
 | --- | --- | --- | --- |
-| draw.io web application (Flowchart Maker & Online Diagram Software) | Trimmed copy of <https://github.com/jgraph/drawio>, © 2006–2025 JGraph Holdings Ltd and draw.io AG | Apache-2.0 | `editor/` (`editor/LICENSE`) |
-| draw.io editor for DSH (provenance notice retained) | © 2026 zhang-guo-wen; the vendored tree's original NOTICE is kept verbatim | Apache-2.0 | `editor/NOTICE` |
-| draw.io stencils / shapes / icon sets | From the draw.io project | Apache-2.0 plus the draw.io additional terms for icons and stencil libraries (see below) | `editor/stencils/`, `editor/shapes/`, `editor/img/` (`LICENSE` in each) |
-| draw.io diagram templates | From the draw.io project | CC-BY-4.0 | `editor/templates/` (`editor/templates/LICENSE`) |
-| draw.io UI translations | From the draw.io project | Apache-2.0 | `editor/resources/*.txt` |
-| libavoid (Adaptagrams obstacle-avoiding orthogonal router), pure-JS build | Built by the draw.io project from <https://github.com/jgraph/drawio-libavoid> (Adaptagrams, <https://www.adaptagrams.org/>) | **LGPL-2.1** | `editor/js/libavoid-js/libavoid.min.js`, license at `editor/js/libavoid-js/LICENSE` |
-| MathJax | 4.1.3 | Apache-2.0 | `editor/math4/` |
-| MathJax web fonts (WOFF2) | Part of the MathJax distribution | Apache-2.0 | `editor/math4/es5/fonts/` |
-| DOMPurify | 3.4.15, © Cure53 and other contributors | Apache-2.0 OR MPL-2.0 (redistributed here under Apache-2.0) | `editor/js/sanitizer/purify.min.js` |
-| jQuery | 3.6.0, © OpenJS Foundation and other contributors | MIT | `editor/js/jquery/jquery-3.6.0.min.js` |
-| JSZip | 3.10.0, © Stuart Knightley | MIT or GPLv3 (redistributed here under MIT) | `editor/js/jszip/jszip.min.js` |
-| pako | 2.2.0, © nodeca | MIT AND Zlib | `editor/js/deflate/pako.min.js` |
-| CryptoJS (trimmed rollup: core, enc-base64, md5, evpkdf, cipher-core, aes) | 4.2.0, © Jeff Mott, Evan Vosberg and contributors | MIT | `editor/js/cryptojs/aes.min.js` |
-| spin.js | 2.0.0, © Felix Gnass | MIT | `editor/js/spin/spin.min.js` |
-| rough.js | 4.6.6 | MIT | `editor/js/rough/rough.min.js` |
-| perfect-freehand | © Steve Ruiz | MIT | `editor/js/freehand/perfect-freehand.js` |
-| simple-peer | 9.10.0, © Feross Aboukhadijeh | MIT | `editor/js/simplepeer/simplepeer9.10.0.min.js` |
-| Dropbox SDK for JavaScript | 2.5.13 | MIT | `editor/js/dropbox/Dropbox-sdk.min.js` |
-| Microsoft OneDrive JavaScript SDK | © Microsoft Corporation | MIT (see upstream <https://github.com/microsoft/onedrive-js-sdk>) | `editor/js/onedrive/` |
-| ELK layout bundle (`@drawio/elk`) | 0.1.0, © Eclipse Foundation / KIELER project | EPL-2.0 | `editor/js/elk/drawio-elk.min.js` |
-| Mermaid bundle (`@drawio/mermaid`) | 0.1.0, © Mermaid contributors | MIT | `editor/js/mermaid/drawio-mermaid.min.js` |
-| PlantUML-to-draw.io converter bundle (`@drawio/plantuml`) | © JGraph Ltd | Apache-2.0 (draw.io project); the PlantUML server/runtime is **not** bundled | `editor/js/plantuml/drawio-plantuml.min.js` |
-| Gliffy-to-draw.io converter | © JGraph Ltd | Apache-2.0 | `editor/js/gliffy/drawio-gliffy.min.js` |
-| Bridge.NET runtime + org-chart layout bundles | Bridge.NET 15.6.0, © Object.NET, Inc. (Apache-2.0); org-chart layout © draw.io project | Apache-2.0 | `editor/js/orgchart/` |
-| Architects Daughter font | © 2012 Kimberly Geswein | SIL Open Font License 1.1 | `editor/styles/fonts/ArchitectsDaughter-Regular.ttf`, full text in `licenses/OFL-1.1.txt` |
+| MathJax + web fonts | 4.1.3 | Apache-2.0 | `editor/math4/` |
+| mhchem (MathJax extension) | 4.2.1 | Apache-2.0 | `editor/math4/es5/input/tex/extensions/mhchem.js` |
+| DOMPurify | 3.4.15 | Apache-2.0 (elected; alternative MPL-2.0) | `editor/js/sanitizer/purify.min.js`; embedded in `app/viewer*.min.js` |
+| jQuery | 3.6.0 | MIT | `editor/js/jquery/` |
+| JSZip | 3.10.0 | MIT (elected; alternative GPL-3.0) | `editor/js/jszip/`; embedded in `extensions.min.js` |
+| pako | 2.2.0 | MIT **AND** Zlib | `editor/js/deflate/`; embedded in `app.min.js` |
+| CryptoJS (trimmed rollup) | 4.2.0 | MIT | `editor/js/cryptojs/`; embedded in `app.min.js` |
+| spin.js | banner says 2.0.0; bundled code is 1.3.3 (upstream draw.io ships it this way) | MIT | `editor/js/spin/`; embedded in `app.min.js` |
+| rough.js | 4.6.6 | MIT | `editor/js/rough/` |
+| perfect-freehand | up to 0.4.x (no version banner) | MIT | `editor/js/freehand/` |
+| simple-peer (+ bundled shims) | 9.10.0 | MIT | `editor/js/simplepeer/`; embedded in `app.min.js` |
+| Dropbox SDK for JavaScript | 2.5.13 | MIT | `editor/js/dropbox/` |
+| Microsoft OneDrive JavaScript SDK (+ es6-promise 3.3.1) | JS SDK v7.2 (draw.io-modified) | MIT | `editor/js/onedrive/` |
+| Mermaid to draw.io bundle | `@drawio/mermaid 0.1.0+commit.7003579` (embedded copy: `+commit.be7192b`) | MIT | `editor/js/mermaid/`; embedded in `extensions.min.js` |
+| dagre / graphlib / lodash (inside Mermaid bundle) | bundled | MIT | inside the Mermaid bundle |
+| Bridge.NET runtime | 15.6.0 | Apache-2.0 | `editor/js/orgchart/`, `editor/js/orgchart.min.js`; embedded in `extensions.min.js` |
+| OrgChart.Layout (Bridge.NET assembly) | bundled | Apache-2.0 | `editor/js/orgchart/OrgChart.Layout.min.js` |
+| PlantUML-to-draw.io converter | `@drawio/plantuml` build (no version banner) | Apache-2.0 | `editor/js/plantuml/` |
+| Gliffy-to-draw.io converter | `@drawio/gliffy` build (no version banner) | Apache-2.0 | `editor/js/gliffy/` |
+| WebCola | 3.3.7 | MIT | `editor/plugins/webcola/cola.min.js` |
+| bmp-js | bundled in VSDS importer | MIT | `editor/js/diagramly/vsdx/bmpDecoder.js` |
+| Emscripten runtime (compiled into libavoid bundle) | bundled | MIT | inside the libavoid bundle |
+| Architects Daughter font | 1.003 | OFL-1.1 | `editor/styles/fonts/ArchitectsDaughter-Regular.ttf` |
 
-`editor/` is a *modified* copy of the draw.io web application: `WEB-INF/`,
-cloud-storage integration scripts, legacy unminified mxGraph sources, the
-service worker, some stencil/icon libraries and development sources were
-removed; `editor/index.html` is patched to inject the DSH bridge
-(`editor/__dsh-bridge.js`); `js/stencils.min.js` was regenerated from the
-retained core stencil XML files and `templates/index.xml` lists only the
-retained templates. See `editor/NOTICE` for the upstream-compatible notice.
+A number of these are statically merged into the draw.io bundles
+(`editor/js/app.min.js`, `editor/js/extensions.min.js`,
+`editor/js/viewer*.min.js`); they are executed from those bundles. The full
+per-component copyright lines are in `licenses/README.md`.
 
-### draw.io additional terms for icons and stencils
+## 4. draw.io additional terms for icons and stencil libraries
 
-From the draw.io project (reproduced in `editor/stencils/LICENSE`,
-`editor/shapes/LICENSE` and `editor/img/LICENSE`):
+Reproduced from the draw.io project (also shipped in
+`editor/{img,shapes,stencils}/LICENSE`):
 
 > The icon sets and stencil libraries included in this software, and any
 > derivatives thereof (including conversions to other formats, traced
@@ -62,44 +104,79 @@ From the draw.io project (reproduced in `editor/stencils/LICENSE`,
 > does not apply to end-user diagram output (such as exported images or
 > documents) created using this software.
 
-### LGPL-2.1 compliance note (libavoid)
+This project is not an Atlassian product; the restriction is retained for
+downstream users. The icon/stencil files are not relicensed under MIT.
 
-`editor/js/libavoid-js/libavoid.min.js` is a self-contained jQuery-free
-JavaScript bundle generated by the draw.io project from the LGPL-2.1 libavoid
-sources. In this repository it is shipped as an independent, unmodified file
-loaded at runtime by the draw.io editor, so it can be replaced by the user with
-a compatible build. The LGPL-2.1 text is included at
-`editor/js/libavoid-js/LICENSE`; corresponding sources are available at
-<https://github.com/jgraph/drawio-libavoid> and <https://www.adaptagrams.org/>.
+## 5. Copyleft components
 
-## 2. Not redistributed — external programs invoked at runtime
+### 5.1 ELK / elkjs — EPL-2.0
 
-The plugin can optionally call local programs. They are **not** bundled in this
-repository or npm package:
+`@drawio/elk 0.1.0+commit.ddfc94b` (built 2026-08-27), embedded in
+`editor/js/extensions.min.js`. EPL-2.0 license text:
+`editor/js/elk/LICENSE` / `licenses/epl-2.0.txt`; source description:
+`editor/js/elk/SOURCE.md`. EPL-2.0 is a weak copyleft: it applies to the ELK
+component, not to the MIT-licensed plugin code. ELK upstream source:
+<https://github.com/eclipse/elk>.
 
-| Program | Used for | License (upstream) |
-| --- | --- | --- |
-| LibreOffice (desktop app) | "Open in LibreOffice" external editing | MPL-2.0 |
-| draw.io Desktop | page-image rendering for `.drawio` / Mermaid artifacts | Apache-2.0 |
-| Google Chrome / Chromium | HTML → PDF snapshot for H5 report annotation | BSD-3-Clause and others |
-| Feishu `lark-cli` (optional) | Feishu document/comment integration | Apache-2.0 |
+### 5.2 libavoid (Adaptagrams) — LGPL-2.1
 
-PPTX/PDF rendering itself uses the LibreOffice Kit (`@deepseek-ai/libreoffice-kit`,
-MPL-2.0) that ships with the DeepSeek Harness desktop application; it is a peer
-runtime, not a dependency of this package.
+The pure-JS libavoid build is statically merged into
+`editor/js/extensions.min.js`; the standalone copy at
+`editor/js/libavoid-js/libavoid.min.js` is **not loaded at runtime**. LGPL-2.1
+text: `editor/js/libavoid-js/LICENSE` / `licenses/lgpl-2.1.txt`. The upstream
+Adaptagrams C++ sources are public (LGPL-2.1), but the draw.io JavaScript build
+repository (`jgraph/drawio-libavoid`) was not publicly available at audit time,
+so the complete corresponding source for the bundled build is **not currently
+published here**. This open item is tracked in `COMPLIANCE.md`; distribution via
+npm/Release is blocked until it is resolved (rebuild without libavoid, or obtain
+and publish the build sources). See `editor/js/libavoid-js/SOURCE.md`.
 
-## 3. Peer runtime contract
+### 5.3 No GPL/AGPL content in this distribution
 
-The client half is a DSH plugin and consumes the DeepSeek Harness sidebar
-contract at runtime (MIT, © 2026 DeepSeek). No `@deepseek-ai/*` package is
-vendored or bundled here.
+The PlantUML runtime itself (GPL-3.0) is **not** bundled; only draw.io's
+Apache-2.0 converter bundle is present. No AGPL code was found. The only
+copyleft components are the EPL-2.0 (ELK) and LGPL-2.1 (libavoid) items above.
+The PlantUML converter's provenance is an open item in `COMPLIANCE.md`.
 
-## 4. Trademarks
+## 6. Trademarks
 
-- "draw.io" is a registered EU trademark (#018062448) of draw.io Ltd. This is
-  an independent integration, not affiliated with, endorsed by or sponsored by
-  draw.io Ltd. No draw.io logo or branding is used.
-- Other product names (Feishu/Lark, LibreOffice, Chrome, Chromium, Dropbox,
-  Microsoft OneDrive, PlantUML, Mermaid, ELK, MathJax) are trademarks or
-  registered trademarks of their respective owners and are used only for
+- **draw.io** is a registered EU trademark (#018062448) of draw.io Ltd. This
+  project is an independent integration and is **not affiliated with, endorsed
+  by or sponsored by draw.io Ltd**. The vendored `editor/` tree retains the
+  upstream draw.io UI branding/assets for functional fidelity; this project
+  does **not** use draw.io logos/branding as its own project identity (the
+  plugin icon is original) and must not be presented as an official draw.io
+  product.
+- Other product names and logos appearing in the vendored UI or this
+  documentation (Feishu/Lark, LibreOffice, Chrome/Chromium, Dropbox, Microsoft
+  OneDrive, PlantUML, Mermaid, ELK, MathJax, GitHub, GitLab, Google Drive,
+  Confluence, Trello, Atlassian) are trademarks or registered trademarks of
+  their respective owners and are used only as shipped by upstream or for
   identification.
+
+## 7. Not redistributed — runtime dependencies
+
+These are **not** bundled in this repository or npm package; they are external
+programs or peer runtimes:
+
+| Dependency | Used for | License (upstream) |
+| --- | --- | --- |
+| DSH LibreOffice Kit (`@deepseek-ai/libreoffice-kit`, ships with DSH) | PPTX/PDF page rendering | MPL-2.0 |
+| python-pptx (DSH runtime Python) | PPTX inventory/editing | MIT |
+| LibreOffice desktop app | "Open in LibreOffice" external editing | MPL-2.0 and others |
+| draw.io Desktop | `.drawio`/`.mmd` page-image export | Apache-2.0 |
+| Google Chrome / Chromium | HTML → PDF snapshot | BSD-3-Clause and others |
+| Feishu `lark-cli` (optional) | Feishu document/comment integration | Apache-2.0 |
+| React (host DSH client peer) | client UI | MIT |
+
+The client half consumes the DSH sidebar contract at runtime; no
+`@deepseek-ai/*` package is vendored or bundled here.
+
+## 8. Compliance status
+
+The 2026-11-10 licensing pass added the missing license texts, restored correct
+attribution, corrected the earlier notices, and documented provenance. The one
+**blocking** open item is the libavoid LGPL-2.1 source/replaceability issue
+(§5.2). See [`COMPLIANCE.md`](COMPLIANCE.md) for the status table and the
+two remediation options. **Do not publish this package to npm / attach it to a
+GitHub Release until that item is resolved.**

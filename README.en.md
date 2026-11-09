@@ -241,12 +241,23 @@ scripts/check.mjs     syntax check script
 
 ## License
 
-This project is released under the **MIT** license, © 2026 Xingchen Zhao
-(endlass). See [LICENSE](LICENSE).
+This project's own code is released under the **MIT** license, © 2026 Xingchen
+Zhao (endlass). See [LICENSE](LICENSE).
 
-`editor/` is a third-party draw.io webapp (Apache-2.0, with additional
-icon/stencil terms, CC-BY-4.0 templates, LGPL-2.1 libavoid, Apache-2.0
-MathJax, OFL fonts, etc.). Component provenance, versions, licenses and the
-locations of full license texts are listed in
-[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md). "draw.io" is a registered
-trademark of draw.io Ltd; this project is not affiliated with draw.io Ltd.
+`editor/` is a vendored draw.io webapp (draw.io 31.4.5, packaged via
+`dsh-drawioedit` main) and is **not** MIT-licensed: it is predominantly
+Apache-2.0, with EPL-2.0 (ELK), LGPL-2.1 (libavoid), CC-BY-4.0 (templates),
+OFL-1.1 (font) and the draw.io icon/stencil additional terms. The full
+component inventory, per-component copyright lines and license texts are in
+[licenses/README.md](licenses/README.md) and
+[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md); provenance and modification
+records are in [editor/PROVENANCE.md](editor/PROVENANCE.md) and
+[editor/MODIFICATIONS.md](editor/MODIFICATIONS.md).
+
+Compliance status and open items (including the libavoid LGPL source
+availability issue, which gates npm/Release distribution) are tracked in
+[COMPLIANCE.md](COMPLIANCE.md). "draw.io" is a registered trademark (EU
+#018062448) of draw.io Ltd; this project is an independent integration, not
+affiliated with or endorsed by draw.io Ltd. Upstream branding assets retained
+in `editor/` are used only for functional fidelity, not as this project's own
+branding.

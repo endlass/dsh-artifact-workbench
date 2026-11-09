@@ -1,13 +1,15 @@
 Architects Daughter
-Copyright (c) 2012 Kimberly Geswein (kimberlygeswein.com), with Reserved Font Name "Architects Daughter".
+Copyright (c) 2010, Kimberly Geswein (kimberlygeswein.com)
 
 This Font Software is licensed under the SIL Open Font License, Version 1.1.
 This license is copied below, and is also available with a FAQ at:
 https://openfontlicense.org
 
 The font file bundled with the draw.io editor at
-`editor/styles/fonts/ArchitectsDaughter-Regular.ttf` is redistributed unmodified
-under this license.
+`editor/styles/fonts/ArchitectsDaughter-Regular.ttf` is the copy shipped by
+draw.io v31.4.5 (SHA-256 8116fb167643f707c4a99f544e9bcdb9cb7ba00c0a72c9bbc9e0b20966ed9810),
+reproduced here as part of the vendored draw.io web application. Its embedded
+name table declares the 2010 copyright line above and no Reserved Font Name.
 
 -----------------------------------------------------------
 SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007

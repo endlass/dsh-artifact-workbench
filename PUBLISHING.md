@@ -9,6 +9,10 @@ remote yet and no package has been published to npm.
 - Version: see `package.json` (`0.14.5`).
 - Licensing: MIT for this project; `editor/` remains draw.io/Apache-2.0 and
   friends — see `THIRD-PARTY-NOTICES.md`.
+- **License gate (2026-11-10):** `COMPLIANCE.md` item 1 (libavoid LGPL-2.1
+  source/replaceability) must be resolved before `npm publish` or attaching a
+  GitHub Release asset. Shipping the repo as public source is allowed with the
+  disclosure in `THIRD-PARTY-NOTICES.md`.
 - Package name: `dsh-ppt-workbench` (kept for compatibility, see the naming
   migration note below).
 - Distribution channel: DSH bundle install (`install_bundle`), not a plain

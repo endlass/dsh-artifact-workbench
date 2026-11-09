@@ -1,5 +1,28 @@
 # Changelog
 
+## Unreleased — 2026-11-10 (licensing compliance)
+
+- Added `licenses/` with full texts (MIT, Apache-2.0, Zlib, EPL-2.0,
+  LGPL-2.1, CC-BY-4.0, OFL-1.1) and `licenses/README.md`, a per-component
+  index of versions, locations and copyright lines.
+- Rewrote `THIRD-PARTY-NOTICES.md` against the actual vendored tree: draw.io
+  31.4.5 via `dsh-drawioedit` main `6029d77`; corrected earlier statements
+  (draw.io branding, `index.html` patch, libavoid "runtime replaceable",
+  spin.js version, missing drawio/dsh-drawioedit versions) and added missing
+  components (WebCola, bmp-js, dagre/graphlib/lodash, es6-promise, Emscripten
+  runtime, `orgchart.min.js`, python-pptx/React as runtime peers).
+- Added `editor/PROVENANCE.md` (hash-verified provenance),
+  `editor/MODIFICATIONS.md` (changes vs upstream, incl. removed internal
+  CLAUDE.md notes), `editor/js/elk/LICENSE` + `editor/js/elk/SOURCE.md`,
+  `editor/js/libavoid-js/SOURCE.md`, `editor/templates/ATTRIBUTION.md`, and
+  an addendum to `editor/NOTICE` (upstream text kept verbatim).
+- Fixed `licenses/OFL-1.1.txt` to the font's embedded 2010/no-RFN copyright
+  notice and pinned the draw.io copy by SHA-256; added CC-BY-4.0 attribution
+  for the diagram templates.
+- Added `COMPLIANCE.md`: remaining open items; **npm publish / Release is
+  gated** on resolving the libavoid LGPL-2.1 source-availability issue.
+- No runtime behaviour changes.
+
 ## 0.14.5 — 2026-11-09
 
 Open-source readiness release. No change to artifact formats or annotation

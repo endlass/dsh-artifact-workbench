@@ -210,6 +210,8 @@ scripts/check.mjs     语法检查脚本
 
 ## 许可
 
-本项目以 **MIT** 许可发布，© 2026 Xingchen Zhao (endlass)。完整文本见 [LICENSE](LICENSE)。
+本项目自有代码以 **MIT** 许可发布，© 2026 Xingchen Zhao (endlass)，完整文本见 [LICENSE](LICENSE)。
 
-`editor/` 目录是第三方的 draw.io webapp（Apache-2.0，含 icons/stencils 附加条款、模板 CC-BY-4.0、libavoid LGPL-2.1、MathJax/Apache-2.0、OFL 字体等）。各组件的来源、版本、许可证与完整文本位置见 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)。"draw.io" 是 draw.io Ltd 的注册商标，本项目与 draw.io Ltd 无隶属关系。
+`editor/` 目录是 vendored draw.io webapp（draw.io 31.4.5，经 `dsh-drawioedit` main 打包），**不适用 MIT**：主体为 Apache-2.0，另含 EPL-2.0（ELK）、LGPL-2.1（libavoid）、CC-BY-4.0（模板）、OFL-1.1（字体）与 draw.io 图标/模板附加条款。逐组件清单、版权行与许可全文见 [licenses/README.md](licenses/README.md) 与 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)；来源与修改记录见 [editor/PROVENANCE.md](editor/PROVENANCE.md)、[editor/MODIFICATIONS.md](editor/MODIFICATIONS.md)。
+
+合规状态与已知未决项（含 libavoid LGPL 源码可得性；npm/Release 发布前须解决）见 [COMPLIANCE.md](COMPLIANCE.md)。"draw.io" 是 draw.io Ltd 的注册商标（EU #018062448），本项目为独立集成，与 draw.io Ltd 无隶属/背书关系；`editor/` 中保留的上游品牌素材仅用于功能保真，不用于本项目自身品牌。

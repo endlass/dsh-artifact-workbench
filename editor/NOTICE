@@ -79,3 +79,21 @@ worker, specialist stencil XML libraries, icons, palette previews, development
 JavaScript sources, and cloud/network templates are removed. `js/stencils.min.js`
 is regenerated from the retained core stencil XML files. `templates/index.xml`
 lists only the retained templates; other vendored files are unchanged.
+
+--------------------------------------------------------------------------
+
+ADDENDUM (this repository)
+
+This NOTICE is retained verbatim from the upstream project
+`zhang-guo-wen/dsh-drawioedit` (Apache-2.0), from which this repository's
+`editor/` tree is derived (main commit 6029d77, 2026-11-05). The copy in this
+repository was modified: three files were added (LICENSE, NOTICE,
+__dsh-bridge.js), five internal CLAUDE.md development notes were removed, and
+line endings normalized. See `MODIFICATIONS.md` and `PROVENANCE.md`.
+
+Statements in the upstream NOTICE about draw.io branding and about all
+third-party licenses being "compatible with Apache 2.0 (no GPL or AGPL)" are
+superseded by the corrected, component-level notices in this repository's
+`../THIRD-PARTY-NOTICES.md` and `../licenses/README.md` (the vendored tree also
+contains EPL-2.0 and LGPL-2.1 components). The upstream copyright and
+attribution statements above are unaffected.
