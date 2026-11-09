@@ -1,8 +1,8 @@
 # Publishing
 
-This file is the maintainer checklist for cutting a release. Nothing in the
-"Commands" section has been executed in this working copy: the repository has no
-remote yet and no package has been published to npm.
+This file is the maintainer checklist for cutting a release. The repository is
+public at <https://github.com/endlass/dsh-artifact-workbench> and
+`dsh-artifact-workbench@0.15.1` is published on npm (2026-11-10).
 
 ## Current status
 

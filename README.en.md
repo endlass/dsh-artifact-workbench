@@ -2,6 +2,8 @@
 
 **Browse, annotate and edit agent-generated artifacts in the DeepSeek Harness sidebar.**
 
+[![npm version](https://img.shields.io/npm/v/dsh-artifact-workbench?label=npm)](https://www.npmjs.com/package/dsh-artifact-workbench)
+
 [中文](README.md) · [Changelog](CHANGELOG.md) · [Roadmap](ROADMAP.md) · [Security](SECURITY.md) · [Third-party notices](THIRD-PARTY-NOTICES.md)
 
 > Project name: Artifact Workbench. Starting with **0.15.0**, the npm package

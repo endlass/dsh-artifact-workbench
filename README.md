@@ -2,6 +2,8 @@
 
 **在 DeepSeek Harness 右侧栏里浏览、批注、编辑 Agent 生成的交付物。**
 
+[![npm version](https://img.shields.io/npm/v/dsh-artifact-workbench?label=npm)](https://www.npmjs.com/package/dsh-artifact-workbench)
+
 [English](README.en.md) · [更新日志](CHANGELOG.md) · [路线图](ROADMAP.md) · [安全策略](SECURITY.md) · [第三方声明](THIRD-PARTY-NOTICES.md)
 
 > 项目名：Artifact Workbench。自 **0.15.0** 起 npm 包名、插件 id、renderer/tab key 与路由前缀统一为 `dsh-artifact-workbench`（旧名 `dsh-ppt-workbench`）。从 0.14.x 升级见 [MIGRATION.md](MIGRATION.md)；旧 storage 目录会自动迁移，旧批注侧车不受影响。

@@ -23,6 +23,7 @@
   unavailable; ordinary orthogonal edge styles are draw.io core and unaffected.
   This removes the LGPL source/replaceability blocker recorded in
   `COMPLIANCE.md`. No annotation/artifact data change.
+- Published to npm as `dsh-artifact-workbench@0.15.1` (`latest`).
 
 ## 0.15.0 — 2026-11-10
 
