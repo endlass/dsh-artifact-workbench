@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.14.4 — 2026-11-09
+
+- Client: conflict/error banner readability. The error banner previously relied on theme tokens (saturated red background + light text, ~3.6:1) and its action link inherited a low-contrast grey; the reload action was nearly invisible. Error banner now uses a fixed dark red (#9F1D15) with white text (~7.9:1), 13px/500 weight, and the action renders as a bordered pill button.
+- No Host changes; annotations/editing behavior untouched.
+
 ## 0.14.3 — 2026-11-09
 
 - P1-01: history snapshots are independent copies (not hardlinks), restore verifies snapshot SHA; source-render failure only rolls back when the file is still the version this request wrote, otherwise preserves external content in a conflict copy.

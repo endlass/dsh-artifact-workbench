@@ -1,6 +1,6 @@
 {
   "name": "dsh-ppt-workbench",
-  "version": "0.14.3",
+  "version": "0.14.4",
   "private": true,
   "description": "Artifact Workbench：在右侧栏浏览/批注/编辑 dsh 生成的交付物（当前支持 PPTX 编辑与 PDF 批注）",
   "type": "module",
