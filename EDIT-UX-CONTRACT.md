@@ -1,5 +1,9 @@
 # P1.1 直接编辑 UX + 外部 LibreOffice 契约（Client 改 client.js，Host 由 Lead 实现）
 
+> **历史里程碑文档（已归档）**：本文写于对应里程碑开发期，用于并行开发者交接；文中的
+> 「Lead / Client 分工」「只改某个文件」等协作约束仅对当时有效，实现细节可能已演进。
+> 当前行为以 [README.md](README.md)、[SECURITY.md](SECURITY.md) 与代码为准。
+
 目标：解决“Apply→Save 两步感”，让编辑模式接近直接编辑；同时提供 LibreOffice 原生编辑兜底。
 
 ## 1. Host 新增（Lead 实现，已可用）
@@ -7,8 +11,8 @@
 ### `POST open-native`
 body `{sessionId, path}`：
 - 校验 session/path 存在、`.pptx`、workspace 内可写；
-- macOS 固定用 `open -a "LibreOffice" <绝对路径>` 打开；返回 `{ok:true, app:'LibreOffice', path}`；
-- 文件不存在 404；workspace 外 403；非 macOS/应用缺失 500/501；同一 deck 请求做 3s 去重限流；
+- macOS 通过 `open -a` 启动应用包，Linux/Windows 直接启动解析到的二进制；返回 `{ok:true, app:'LibreOffice', path}`；
+- 文件不存在 404；workspace 外 403；应用缺失 500（`native-app-missing`）；同一 deck 请求做 3s 去重限流；
 - 测试/无 GUI 时 Host 支持 `PPT_WORKBENCH_OPEN_DRY_RUN=1`（返回 `{ok:true,dryRun:true}`，不启动）。
 - 外部保存后依赖现有 `content.revision` 自动刷新；若 `content` revision 不更新，可再加 `GET meta` 轮询（先不假设，需实测）。
 
@@ -52,7 +56,7 @@ body `{sessionId, path}`：
 新增 zh/en keys：直接编辑提示、自动保存开/关/保存中/已保存、外部打开、保存失败等；不要硬编码中文。
 
 ## 4. 测试（harness）
-扩展 `/tmp/wb-harness`：
+扩展 本地 Playwright harness（未随仓库分发）：
 1. 双击文本 → overlay 出现、输入、blur → pending+1、mock `/edit` 1.5s 后收到 setText；
 2. 拖动形状 40px → setShapeBox left/top 改变；拖角 → width/height 改变；点击不拖不产生 op；
 3. inspector 改字号后 blur → 自动 pending（无需点 Apply）；
@@ -61,4 +65,4 @@ body `{sessionId, path}`：
 6. 外部按钮：先保存 pending 再 POST open-native，toast；
 7. P0/P1 原有回归全过（浏览/批注/页操作/undo/redo/stale）。
 
-交付：`node --check client.js`；报告 PASS/FAIL 数、截图；只改 client.js（可改 /tmp/wb-harness）。
+交付：`node --check client.js`；报告 PASS/FAIL 数、截图；只改 client.js（可改 本地 Playwright harness（未随仓库分发））。

@@ -1,5 +1,38 @@
 # Changelog
 
+## 0.14.5 — 2026-11-09
+
+Open-source readiness release. No change to artifact formats or annotation
+schema.
+
+- Licensing and governance: MIT `LICENSE` (© 2026 Xingchen Zhao / endlass),
+  `THIRD-PARTY-NOTICES.md` (draw.io webapp, libavoid LGPL-2.1, MathJax,
+  DOMPurify, jQuery, JSZip, pako, CryptoJS, fonts, icons/stencils, templates),
+  `SECURITY.md` (write boundary, data locations, external programs, network).
+- Docs: README rewritten for newcomers, with a full English translation
+  (`README.en.md`); refreshed `ROADMAP.md` and `PUBLISHING.md` (release
+  checklist + naming migration + vendor size notes).
+- Package metadata: MIT license, repository/homepage/bugs/author, keywords,
+  `publishConfig.access=public`, `private` removed, `files` whitelist cleaned
+  (docs and `licenses/` included, `test/` no longer published), version 0.14.5.
+- Configurable external programs: `$STORAGE/config.json` (`chrome`, `drawio`,
+  `libreoffice`, `larkCli`, `python`) is read in addition to the existing
+  `PPT_WORKBENCH_*` environment variables and auto-detection; "open externally"
+  now resolves LibreOffice/draw.io from config/env/candidate lists and supports
+  non-macOS binaries instead of hard-coded `/Applications/...` paths.
+  `PPT_WORKBENCH_STORAGE` now also overrides the plugin storage root;
+  `PPT_WORKBENCH_RESOURCES`/`DSH_RESOURCES` can point at a non-default DSH
+  installation.
+- Tests: self-contained synthetic fixtures committed under `test/fixtures/`
+  (12-slide PPTX + LibreOffice round-trip variant + 2-page HTML/PDF), so tests
+  no longer depend on `research/` or `mortgage-calc/` paths outside the repo;
+  plain `node test/*.mjs` with temp-dir output only.
+- Engineering: `scripts/check.mjs` syntax checks every hand-written JS file;
+  new `npm run test:smoke` (dependency-free subset, used by CI);
+  `.github/workflows/ci.yml` for Node 22/24 (check + smoke + `npm pack
+  --dry-run` content assertions); `.gitignore`; `test/README.md` with the
+  environment matrix for tests that need local DSH/LibreOffice/draw.io/Chrome.
+
 ## 0.14.4 — 2026-11-09
 
 - Client: conflict/error banner readability. The error banner previously relied on theme tokens (saturated red background + light text, ~3.6:1) and its action link inherited a low-contrast grey; the reload action was nearly invisible. Error banner now uses a fixed dark red (#9F1D15) with white text (~7.9:1), 13px/500 weight, and the action renders as a bordered pill button.

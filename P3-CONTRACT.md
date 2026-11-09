@@ -1,5 +1,9 @@
 # P3 契约：Mermaid 源码编辑 + drawio 多页
 
+> **历史里程碑文档（已归档）**：本文写于对应里程碑开发期，用于并行开发者交接；文中的
+> 「Lead / Client 分工」「只改某个文件」等协作约束仅对当时有效，实现细节可能已演进。
+> 当前行为以 [README.md](README.md)、[SECURITY.md](SECURITY.md) 与代码为准。
+
 日期：2026-11-05。范围：P2.3 收尾。**Client 只改 `client.js`；Lead 改 Host/lib/契约。**
 
 ## 1. drawio 多页

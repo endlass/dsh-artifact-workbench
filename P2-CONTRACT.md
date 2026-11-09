@@ -1,5 +1,9 @@
 # P2 契约：Artifact Workbench 骨架 + PDF 工作台
 
+> **历史里程碑文档（已归档）**：本文写于对应里程碑开发期，用于并行开发者交接；文中的
+> 「Lead / Client 分工」「只改某个文件」等协作约束仅对当时有效，实现细节可能已演进。
+> 当前行为以 [README.md](README.md)、[SECURITY.md](SECURITY.md) 与代码为准。
+
 日期：2026-11-05。P2.0（骨架/schema）、P2.1（PDF 预览+批注）、P2.2（H5 报告快照批注）与 P2.3（流程图预览/批注）。**Client 只改 `client.js`（Lead 负责 Host/lib/契约）**。
 
 ## 1. Host 路由保持不变
@@ -84,7 +88,7 @@
   4. PPT 回归不退化。
 - `node --check client.js`；Lead 做真机 PDF tab 验收。
 
-交付：只改 client.js（可改 /tmp/wb-harness），不要动 Host/lib/locale/package，不要调用 plugin_manager。
+交付：只改 client.js（可改 本地 Playwright harness（未随仓库分发）），不要动 Host/lib/locale/package，不要调用 plugin_manager。
 
 
 ## 6. P2.2 H5 报告（v0.5.0）

@@ -1,12 +1,16 @@
 # dsh-ppt-workbench · Client 半开发契约（P0）
 
+> **历史里程碑文档（已归档）**：本文写于对应里程碑开发期，用于并行开发者交接；文中的
+> 「Lead / Client 分工」「只改某个文件」等协作约束仅对当时有效，实现细节可能已演进。
+> 当前行为以 [README.md](README.md)、[SECURITY.md](SECURITY.md) 与代码为准。
+
 本文件是 Lead 与 Client UI 实现者之间的契约。**只允许修改 `client.js`**；`index.js`、`lib/**`、`package.json`、locale 文件由 Lead 维护。
 
 ## 1. 现状
 
 - Host 半已实现并通过实测：`deck / slide / annotations / health` 路由，LibreOffice Kit 渲染（144dpi PNG），python-pptx inventory，批注侧车 JSON + 锚点修复。
 - Client 半当前是 S0 验证版（能注册 renderer、显示占位内容、跑探针）。P0 要把它替换成真正的工作台 UI。
-- 客户端插件已经注册并能默认接管 `.pptx`（S0 已验证，见 `dev.log`）。app 里已有一个打开的 `.pptx` 预览 tab，Client 代码更新后 HMR 会热替换、body 会重新挂载。
+- 客户端插件已经注册并能默认接管 `.pptx`（S0 已验证，见当时的开发日志）。app 里已有一个打开的 `.pptx` 预览 tab，Client 代码更新后 HMR 会热替换、body 会重新挂载。
 
 ## 2. 技术约束（硬性）
 

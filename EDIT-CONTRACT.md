@@ -1,5 +1,9 @@
 # dsh-ppt-workbench · P1 编辑契约（Host 已实现 / Client 待实现）
 
+> **历史里程碑文档（已归档）**：本文写于对应里程碑开发期，用于并行开发者交接；文中的
+> 「Lead / Client 分工」「只改某个文件」等协作约束仅对当时有效，实现细节可能已演进。
+> 当前行为以 [README.md](README.md)、[SECURITY.md](SECURITY.md) 与代码为准。
+
 本文件是 P1（结构化编辑）的实现契约。**Client 实现者只改 `client.js`**；`index.js`、`lib/**`、`package.json`、`EDIT-CONTRACT.md` 由 Lead 维护。
 
 ## 1. 总原则
@@ -162,7 +166,7 @@ body：`{ "sessionId", "path" }`。成功响应结构同 `POST edit`（`edit.his
 ## 5. 开发与验证
 
 - 只改 `client.js`；`node --check client.js` 必须通过。
-- 可用本地 harness：`/tmp/wb-harness/`（Playwright + mock Host）当前只 mock 了 GET deck/slide/annotations；实现时请同步扩展 mock `/edit` `/undo` `/redo` `/history`，并覆盖：
+- 可用本地 harness：本地 Playwright harness（未随仓库分发）（Playwright + mock Host）当前只 mock 了 GET deck/slide/annotations；实现时请同步扩展 mock `/edit` `/undo` `/redo` `/history`，并覆盖：
   1. 进入编辑模式选中形状 → 改文本/字号/几何 → Apply → pending 标记；
   2. Save 发出正确 ops（baseSha、slideIndex、shapeId、字段）；
   3. 保存后 deck sha 更新、pending 清空、drawer 显示新值；

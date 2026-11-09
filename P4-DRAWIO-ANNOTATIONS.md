@@ -1,5 +1,9 @@
 # P4.2 drawio 节点级批注契约
 
+> **历史里程碑文档（已归档）**：本文写于对应里程碑开发期，用于并行开发者交接；文中的
+> 「Lead / Client 分工」「只改某个文件」等协作约束仅对当时有效，实现细节可能已演进。
+> 当前行为以 [README.md](README.md)、[SECURITY.md](SECURITY.md) 与代码为准。
+
 ## 数据
 
 - sidecar 仍为 `<file>.workbench/annotations.json`，`format:'drawio'`；

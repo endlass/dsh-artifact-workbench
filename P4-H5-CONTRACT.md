@@ -1,5 +1,9 @@
 # P4.3 H5 原页 iframe + 交互批注契约
 
+> **历史里程碑文档（已归档）**：本文写于对应里程碑开发期，用于并行开发者交接；文中的
+> 「Lead / Client 分工」「只改某个文件」等协作约束仅对当时有效，实现细节可能已演进。
+> 当前行为以 [README.md](README.md)、[SECURITY.md](SECURITY.md) 与代码为准。
+
 目标：`.html/.htm` 不再打印成 PDF 分页快照；原始页面在 iframe 中运行（CSS/JS/滚动/交互保留），批注层可选开启，按 DOM 元素锚定。
 
 ## Host

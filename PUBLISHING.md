@@ -1,41 +1,111 @@
-# 发布清单（P2.4 前用）
+# Publishing
 
-当前状态：`package.json` 仍 `private: true`，只是本机 linked package，不发布。本清单是 P2.0 的工程骨架，发布前逐项勾。
+This file is the maintainer checklist for cutting a release. Nothing in the
+"Commands" section has been executed in this working copy: the repository has no
+remote yet and no package has been published to npm.
 
-## 1. 待用户决定
+## Current status
 
-- 包名：`dsh-artifact-workbench`（推荐，反映多格式）还是保留 `dsh-ppt-workbench`。
-- 许可证：MIT 或 Apache-2.0；决定后补 `LICENSE`。
-- 仓库地址与主页：GitHub 仓库、README 截图、示例文件。
-- 分发方式：npm、GitHub Release、DSH 插件市场（如果开放）。
+- Version: see `package.json` (`0.14.5`).
+- Licensing: MIT for this project; `editor/` remains draw.io/Apache-2.0 and
+  friends — see `THIRD-PARTY-NOTICES.md`.
+- Package name: `dsh-ppt-workbench` (kept for compatibility, see the naming
+  migration note below).
+- Distribution channel: DSH bundle install (`install_bundle`), not a plain
+  `npm install`.
 
-## 2. 发布前必须通过
+## Pre-release checklist
 
-- `node --check index.js && node --check client.js`
-- `node test/*.mjs` 全绿（Host、PPT、PDF、schema 迁移）
-- Client harness：`/tmp/wb-harness/test-p1.py`、`test-p11.py`、新增 PDF 用例全绿
-- 干净 profile 安装：`plugin_manager install_bundle <路径>`，打开 PPTX/PDF tab 无报错
-- `dsh-plugin-upgrade-audit` E0–E3 回归
-- 真实入口验收：PPTX 编辑/批注/自动保存；PDF 预览/批注/发送给 dsh
+1. `npm run check` — syntax check passes.
+2. `npm run test:smoke` — starts from a clean checkout.
+3. `npm test` on a machine with the DSH desktop app (LibreOffice Kit +
+   python-pptx), draw.io Desktop and Chrome — all 18 tests pass.
+4. `npm pack --dry-run` — inspect file list; `LICENSE`,
+   `THIRD-PARTY-NOTICES.md`, `SECURITY.md`, `editor/` and `lib/` must be inside;
+   `test/` must not be.
+5. `git status` is clean and the working tree contains no local paths,
+   credentials or generated decks.
+6. `CHANGELOG.md` has an entry for the version and the version in
+   `package.json` matches the tag you are about to create.
+7. DSH compatibility re-check: fresh profile → install the tarball → open one
+   `.pptx`, one `.pdf`, one `.html` and one `.drawio`; verify annotations,
+   auto-save, and "open externally".
+8. Run a DSH plugin compatibility audit (E0–E3 style checks) on both the rc and
+   alpha DSH lines.
 
-## 3. 包内容
+## Versioning
 
-- `index.js`、`client.js`、`lib/`、`locale/`、`icon.svg`、`cordis.patch.yml`
-- `README.md`、`CHANGELOG.md`、`ROADMAP.md`、`LICENSE`、契约文档
-- 可选：`examples/` 最小 PPTX/PDF、截图；不要把真实业务 deck 打进去。
+- SemVer. Package `0.x`: minor bump for user-visible features/breaking format
+  changes, patch bump for fixes and docs/open-source plumbing.
+- Keep the annotation sidecar schema (`dsh-artifact-annotation@2`) and the
+  legacy `dsh-ppt-annotation@1` migration path for at least one minor version.
+- Keep the renderer key / tab ids (`dsh-ppt-workbench/*`) for one release cycle
+  after any rename.
 
-## 4. 兼容与迁移
+## Commands (NOT EXECUTED)
 
-- 保留 PPT renderer key 与旧 body key 至少一个版本；已打开的 tab 不失效。
-- 旧批注 `dsh-ppt-annotation@1` 自动迁移；不删除 orphan。
-- `engines.dsh` 按实际验证版本收紧/放宽，发布前核对 DSH rc/alpha 线。
-- 发布 tag 后回写 `CHANGELOG.md` 和 docs/飞书归档。
+Create the GitHub repository and push (run only after the maintainer confirms
+the target org/repository URL in `package.json`):
 
-## 5. 命名迁移草案
+```bash
+# from the repository root
+gh repo create endlass/dsh-artifact-workbench --public --source=. --remote=origin
+git push -u origin main
+```
 
-如果改名 `dsh-artifact-workbench`：
+npm publish (requires the maintainer's npm login and 2FA):
 
-1. 新包声明 `dsh.bundle.patch`、client inject、renderer/body key 使用新 id；旧 id 保留 alias 一个版本。
-2. 安装验证：新 profile 安装新包，旧 tab/旧 sidecar 仍可读。
-3. 旧包标记 deprecated，README 指到新包。
-4. 迁移完成后再移除旧 key。
+```bash
+npm login
+npm publish --access public
+npm pack --dry-run   # check output first
+```
+
+Tag and GitHub release:
+
+```bash
+git tag -a v0.14.5 -m "Artifact Workbench v0.14.5"
+git push origin v0.14.5
+gh release create v0.14.5 --notes-from-tag
+```
+
+## Post-publish verification
+
+1. `npm view dsh-ppt-workbench@0.14.5 dist.tarball` returns the tarball.
+2. Clean profile: `install_bundle target dsh-ppt-workbench@0.14.5` → open a
+   `.pptx`, add an annotation, save an edit, reload the tab.
+3. Static asset routes work: draw.io editor iframe loads, H5 report iframe
+   loads, PDF page images render.
+4. `npm pack` size stays in the ~12 MB (compressed) range; if it grows
+   noticeably, revisit the vendor-splitting proposal below.
+
+## Naming migration note (future work)
+
+The project is branded Artifact Workbench while the npm package/plugin id remain
+`dsh-ppt-workbench`. If the package is ever renamed to
+`dsh-artifact-workbench`:
+
+1. Declare the new package name and keep the old renderer key / body key /
+   sidecar schema as aliases for one version.
+2. Keep reading old annotation sidecars (`dsh-artifact-annotation@2` already
+   covers the v1 migration).
+3. Verify with a fresh profile that old tabs and old sidecars still work.
+4. Deprecate the old package with a note pointing to the new one.
+5. Only then remove the old keys and routes.
+
+## Packaging note: `editor/` vendor
+
+`npm pack` is ~11.5 MB compressed / ~43 MB unpacked, of which ~42 MB unpacked is
+the trimmed draw.io webapp in `editor/` (770 files). It is included because the
+plugin must work offline and install as a single bundle. Options if the size
+becomes a problem (not implemented in this release):
+
+- move `editor/` to a separate asset package (e.g. `@dsh-artifact-workbench/drawio-editor`)
+  resolved at install time, keeping the JS bundle small;
+- trim further in `editor/` (already trimmed: WEB-INF, cloud integrations,
+  legacy unminified sources, specialist stencils);
+- publish the vendor tree as a GitHub release artifact and download it on first
+  use (needs network and a hash check, breaks offline-by-default).
+
+Any such split must keep the Apache-2.0/NOTICE files and the LGPL-2.1 libavoid
+file intact and documented in `THIRD-PARTY-NOTICES.md`.
