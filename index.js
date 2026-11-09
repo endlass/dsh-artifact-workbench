@@ -295,6 +295,7 @@ async function sourceBackupDir(artifactPath) {
 
 async function backupMermaidSource(artifactPath) {
   const dir = await sourceBackupDir(artifactPath);
+  await ensureSafeDir(`${artifactPath}.workbench`, 'deck workbench directory');
   await ensureSafeDir(dir, 'source backup directory');
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
   const lower = artifactPath.toLowerCase();
@@ -339,6 +340,7 @@ async function historyResponse(ctx, payload) {
 async function writeConflictCopy(absolutePath, ops) {
   try {
     const dir = join(`${absolutePath}.workbench`, 'conflict');
+    await ensureSafeDir(`${absolutePath}.workbench`, 'deck workbench directory');
     await ensureSafeDir(dir, 'conflict copy directory');
     const target = join(dir, `conflict-${Date.now()}.pptx`);
     await copyFile(absolutePath, target);

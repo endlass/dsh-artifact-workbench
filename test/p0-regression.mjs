@@ -17,6 +17,7 @@ import {
   readAnnotations,
   saveAnnotationFile,
 } from '../lib/annotations.mjs';
+import { saveHistory } from '../lib/history.mjs';
 
 const work = await mkdtemp(join(tmpdir(), 'wb-p0-'));
 
@@ -57,7 +58,16 @@ try {
   }
   assert.equal(rejected, true);
   assert.deepEqual(await readdir(sidecarOutside), []);
-  console.log('[ok] annotation sidecar rejects symlinked .workbench directories');
+  let historyRejected = false;
+  try {
+    await saveHistory(deckPath, { schema: 'dsh-ppt-history@1', items: [], cursor: 0 });
+  } catch (error) {
+    historyRejected = true;
+    assert.equal(error.status, 403);
+  }
+  assert.equal(historyRejected, true);
+  assert.deepEqual(await readdir(sidecarOutside), []);
+  console.log('[ok] annotation/history sidecars reject symlinked .workbench directories');
 
   // 2) H5 artifact directory must not expose siblings or symlinks
   const htmlRoot = join(work, 'report');
