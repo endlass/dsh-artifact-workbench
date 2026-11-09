@@ -79,6 +79,7 @@
     "url": "https://github.com/endlass/dsh-artifact-workbench/issues"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   }
 }
