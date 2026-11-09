@@ -8,14 +8,15 @@
  * - 批注 create / resolve / reply
  * - deck 变化后的锚点修复（LibreOffice round-trip：shape id 全变，按 name 修复）
  *
- * 使用前把测试样张放在：
- *   $PPT_WORKBENCH_TEST_DECK（默认 research/ppt-workbench/engine/deck/deck-v1.pptx）
- *   $PPT_WORKBENCH_TEST_DECK_LORT（默认 deck-v1-lort.pptx，同一目录）
+ * 使用仓库自带合成样张（test/fixtures/deck-v1.pptx 与 deck-v1-lort.pptx）；
+ * 如需更大/真实样张，用环境变量覆盖：
+ *   $PPT_WORKBENCH_TEST_DECK、$PPT_WORKBENCH_TEST_DECK_LORT
  */
 import assert from 'node:assert/strict';
 import { copyFile, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import {
   loadAnnotationFile,
@@ -25,13 +26,10 @@ import {
 import { ensureDeck, readSlidePng } from '../lib/render.mjs';
 import { sha256File, statFile } from '../lib/util.mjs';
 
-const ROOT = new URL('../..', import.meta.url).pathname;
-const DECK_V1 =
-  process.env.PPT_WORKBENCH_TEST_DECK ||
-  join(ROOT, 'research/ppt-workbench/engine/deck/deck-v1.pptx');
-const DECK_LORT =
-  process.env.PPT_WORKBENCH_TEST_DECK_LORT ||
-  join(ROOT, 'research/ppt-workbench/engine/deck/deck-v1-lort.pptx');
+const FIXTURE_DECK_V1 = fileURLToPath(new URL('./fixtures/deck-v1.pptx', import.meta.url));
+const FIXTURE_DECK_LORT = fileURLToPath(new URL('./fixtures/deck-v1-lort.pptx', import.meta.url));
+const DECK_V1 = process.env.PPT_WORKBENCH_TEST_DECK || FIXTURE_DECK_V1;
+const DECK_LORT = process.env.PPT_WORKBENCH_TEST_DECK_LORT || FIXTURE_DECK_LORT;
 
 async function openDeck(deckPath) {
   const info = await statFile(deckPath);

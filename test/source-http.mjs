@@ -6,16 +6,17 @@ import assert from 'node:assert/strict';
 import { copyFile, mkdtemp, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { apply } from '../index.js';
 
-const ROOT = new URL('../..', import.meta.url).pathname;
-const FIXTURE = join(ROOT, 'dsh-ppt-workbench/test/fixtures/simple.mmd');
+const FIXTURES = fileURLToPath(new URL('./fixtures/', import.meta.url));
+const FIXTURE = join(FIXTURES, 'simple.mmd');
 const workspace = await mkdtemp(join(tmpdir(), 'ppt-wb-source-'));
 const mmd = join(workspace, 'flow.mmd');
 await copyFile(FIXTURE, mmd);
 const drawioPath = join(workspace, 'diagram.drawio');
-await copyFile(join(ROOT, 'dsh-ppt-workbench/test/fixtures/simple.drawio'), drawioPath);
+await copyFile(join(FIXTURES, 'simple.drawio'), drawioPath);
 const sessionId = 'source-session';
 const routes = new Map();
 apply({
@@ -72,7 +73,7 @@ try {
 
   const nonEditable = await call('GET', '/source', undefined, {
     sessionId,
-    path: join(ROOT, 'dsh-ppt-workbench/test/fixtures/simple.mmd.workbench/nope'),
+    path: join(FIXTURES, 'simple.mmd.workbench/nope'),
   });
   assert.ok([403, 404, 415, 422].includes(nonEditable.status));
   const drawio = await call('GET', '/source', undefined, {

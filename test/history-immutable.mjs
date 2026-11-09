@@ -6,15 +6,15 @@ import assert from 'node:assert/strict';
 import { copyFile, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { ensureCurrentSnapshot, historyFile, loadHistory, undo } from '../lib/history.mjs';
 import { sha256Bytes, sha256File } from '../lib/util.mjs';
 
-const ROOT = new URL('../..', import.meta.url).pathname;
 const work = await mkdtemp(join(tmpdir(), 'wb-history-'));
 const deck = join(work, 'deck.pptx');
 try {
-  await copyFile(join(ROOT, 'research/ppt-workbench/engine/deck/deck-v1.pptx'), deck);
+  await copyFile(fileURLToPath(new URL('./fixtures/deck-v1.pptx', import.meta.url)), deck);
   const original = await sha256File(deck);
   const history = await ensureCurrentSnapshot(deck, original.sha, 0);
   assert.equal(history.items.length, 1);

@@ -17,6 +17,7 @@
 
 import { spawn } from 'node:child_process';
 import { access, copyFile, mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
+import { homedir } from 'node:os';
 import { basename, dirname, isAbsolute, join, resolve } from 'node:path';
 
 import { annotationFile } from './lib/annotations.mjs';
@@ -39,6 +40,7 @@ import {
 import { disposeRenderer, readSlidePng } from './lib/render.mjs';
 import {
   STORAGE,
+  configuredPath,
   errorText,
   isInside,
   isInsideReal,
@@ -50,8 +52,54 @@ import {
 
 const NS = '/api/dsh-ppt-workbench';
 const OPS_MAX = 100;
-const LIBREOFFICE_APP = '/Applications/LibreOffice.app';
-const DRAWIO_APP = '/Applications/draw.io.app';
+
+/**
+ * Native apps used by "open externally" are discovered, never hard-coded to one
+ * machine. Override with the environment variables listed first in each list.
+ */
+function nativeAppCandidates(kind) {
+  const home = homedir();
+  if (kind === 'drawio') {
+    return [
+      configuredPath('drawio', 'PPT_WORKBENCH_DRAWIO_APP'),
+      process.env.PPT_WORKBENCH_DRAWIO,
+      '/Applications/draw.io.app',
+      join(home, 'Applications/draw.io.app'),
+      '/usr/bin/drawio',
+      '/usr/local/bin/drawio',
+      '/snap/bin/drawio',
+      process.env.PROGRAMFILES ? join(process.env.PROGRAMFILES, 'draw.io', 'draw.io.exe') : null,
+      process.env.LOCALAPPDATA ? join(process.env.LOCALAPPDATA, 'Programs', 'draw.io', 'draw.io.exe') : null,
+    ].filter(Boolean);
+  }
+  return [
+    configuredPath('libreoffice', 'PPT_WORKBENCH_LIBREOFFICE'),
+    '/Applications/LibreOffice.app',
+    join(home, 'Applications/LibreOffice.app'),
+    '/usr/bin/libreoffice',
+    '/usr/bin/soffice',
+    '/opt/libreoffice/program/soffice',
+    process.env.PROGRAMFILES
+      ? join(process.env.PROGRAMFILES, 'LibreOffice', 'program', 'soffice.exe')
+      : null,
+    process.env['PROGRAMFILES(X86)']
+      ? join(process.env['PROGRAMFILES(X86)'], 'LibreOffice', 'program', 'soffice.exe')
+      : null,
+  ].filter(Boolean);
+}
+
+async function resolveNativeApp(kind) {
+  for (const candidate of nativeAppCandidates(kind)) {
+    try {
+      await access(candidate);
+      return candidate;
+    } catch {
+      /* keep looking */
+    }
+  }
+  return null;
+}
+
 const nativeOpenAt = new Map();
 
 export const inject = ['connection', 'sessions', 'workingDirectory', 'webServer', 'tools'];
@@ -196,16 +244,19 @@ async function openNative(meta) {
   if (!meta.writeAllowed) {
     throw userError('external editing is only allowed inside the session workspace', 403, 'outside-workspace');
   }
-  if (process.platform !== 'darwin') {
-    throw userError('external editing is currently implemented for macOS only', 501, 'unsupported-platform');
-  }
   const isDiagram = /\.(drawio|mmd|mermaid)$/i.test(meta.absolutePath);
-  const appPath = isDiagram ? DRAWIO_APP : LIBREOFFICE_APP;
+  const kind = isDiagram ? 'drawio' : 'libreoffice';
   const appName = isDiagram ? 'draw.io' : 'LibreOffice';
-  try {
-    await access(appPath);
-  } catch {
-    throw userError(`${appName}.app was not found at /Applications`, 500, 'native-app-missing');
+  const envHint = isDiagram
+    ? 'PPT_WORKBENCH_DRAWIO_APP (or PPT_WORKBENCH_DRAWIO)'
+    : 'PPT_WORKBENCH_LIBREOFFICE';
+  const appPath = await resolveNativeApp(kind);
+  if (!appPath) {
+    throw userError(
+      `${appName} was not found; install it or set ${envHint} to the app/binary path`,
+      500,
+      'native-app-missing',
+    );
   }
   const previous = nativeOpenAt.get(meta.absolutePath) || 0;
   if (Date.now() - previous < 3000) {
@@ -215,10 +266,12 @@ async function openNative(meta) {
   if (process.env.PPT_WORKBENCH_OPEN_DRY_RUN === '1') {
     return { ok: true, app: appName, path: meta.absolutePath, dryRun: true };
   }
-  const child = spawn('open', ['-a', appPath, meta.absolutePath], {
-    detached: true,
-    stdio: 'ignore',
-  });
+  // macOS app bundles are launched through LaunchServices; on Linux/Windows the
+  // resolved binary is spawned directly with the file as its only argument.
+  const child =
+    process.platform === 'darwin' && appPath.endsWith('.app')
+      ? spawn('open', ['-a', appPath, meta.absolutePath], { detached: true, stdio: 'ignore' })
+      : spawn(appPath, [meta.absolutePath], { detached: true, stdio: 'ignore' });
   child.on('error', (error) => {
     void log(`open-native spawn failed: ${errorText(error)}`);
   });

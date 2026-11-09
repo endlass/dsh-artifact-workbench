@@ -8,15 +8,15 @@ import assert from 'node:assert/strict';
 import { copyFile, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { adapterForPath } from '../lib/artifacts/index.mjs';
 import { annotationFile, loadAnnotationFile } from '../lib/annotations.mjs';
 import { sha256File, statFile, writeJsonFile } from '../lib/util.mjs';
 
-const ROOT = new URL('../..', import.meta.url).pathname;
 const PDF_SOURCE =
   process.env.PPT_WORKBENCH_TEST_PDF ||
-  join(ROOT, 'mortgage-calc/docs/zj-502-visit-card-20261020.pdf');
+  fileURLToPath(new URL('./fixtures/sample-report.pdf', import.meta.url));
 const work = await mkdtemp(join(tmpdir(), 'ppt-wb-pdf-'));
 const pdf = join(work, 'report.pdf');
 

@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Artifact Workbench 测试报告</title>
+<style>
+  body { font-family: -apple-system, "PingFang SC", sans-serif; margin: 48px; color: #222; }
+  h1 { font-size: 28px; border-bottom: 2px solid #2f6fed; padding-bottom: 8px; }
+  h2 { font-size: 20px; margin-top: 28px; }
+  table { border-collapse: collapse; margin-top: 12px; }
+  th, td { border: 1px solid #999; padding: 6px 12px; text-align: left; }
+  .ok { color: #1a7f37; }
+  .page-break { page-break-before: always; }
+</style>
+</head>
+<body>
+  <h1>H5 报告</h1>
+  <p>这是 Artifact Workbench 仓库内的合成测试样张，用于验证 HTML 打印快照与 PDF 页批注管线，不含任何真实业务数据。</p>
+  <h2>一、能力清单</h2>
+  <table>
+    <tr><th>能力</th><th>状态</th></tr>
+    <tr><td>HTML 打印为 PDF 快照</td><td class="ok">covered</td></tr>
+    <tr><td>PDF 页图渲染</td><td class="ok">covered</td></tr>
+    <tr><td>页码 / 区域批注</td><td class="ok">covered</td></tr>
+  </table>
+  <h2 class="page-break">二、第二页</h2>
+  <p>第二页用于验证多页 PDF 的页数与逐页渲染。</p>
+</body>
+</html>

@@ -6,14 +6,14 @@ import assert from 'node:assert/strict';
 import { copyFile, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { apply } from '../index.js';
 import { statFile } from '../lib/util.mjs';
 
-const ROOT = new URL('../..', import.meta.url).pathname;
 const DECK_V1 =
   process.env.PPT_WORKBENCH_TEST_DECK ||
-  join(ROOT, 'research/ppt-workbench/engine/deck/deck-v1.pptx');
+  fileURLToPath(new URL('./fixtures/deck-v1.pptx', import.meta.url));
 
 const workspace = await mkdtemp(join(tmpdir(), 'ppt-wb-http-'));
 const deckPath = join(workspace, 'deck.pptx');

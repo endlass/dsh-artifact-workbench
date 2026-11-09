@@ -8,13 +8,13 @@ import assert from 'node:assert/strict';
 import { copyFile, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { adapterForPath } from '../lib/artifacts/index.mjs';
 import { loadAnnotationFile } from '../lib/annotations.mjs';
 import { sha256File, statFile } from '../lib/util.mjs';
 
-const ROOT = new URL('../..', import.meta.url).pathname;
-const FIXTURES = join(ROOT, 'dsh-ppt-workbench/test/fixtures');
+const FIXTURES = fileURLToPath(new URL('./fixtures/', import.meta.url));
 const cases = [
   { file: 'simple.drawio', sourceFormat: 'drawio', pages: 1 },
   { file: 'multi.drawio', sourceFormat: 'drawio', pages: 2 },
