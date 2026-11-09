@@ -11,7 +11,9 @@
   created `0700`; JSON sidecars and the runtime log are written `0600`.
 - **H5 artifact responses** now send `Referrer-Policy: no-referrer` so the
   per-artifact URL token is not leaked to third-party resources through the
-  Referer header.
+  Referer header, plus `Content-Security-Policy: sandbox allow-scripts` as
+  defense in depth for direct/top-level opens.
+- Added `.github/dependabot.yml` (GitHub Actions + npm weekly updates).
 - No behavior change for legitimate artifacts; existing sidecars keep working.
 
 ## 0.15.0 — 2026-11-10

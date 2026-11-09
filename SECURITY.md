@@ -110,3 +110,13 @@ artifact path as data. File contents are never passed through a shell.
   carefully as changes to `index.js`/`client.js`.
 - External programs (LibreOffice, draw.io Desktop, Chrome) are trusted local
   applications; their own vulnerabilities are out of scope.
+
+## 2026-11-10 hardening
+
+- Annotation/history/lock/temp/backup writes under `<artifact>.workbench` now
+  reject a symlinked `.workbench` directory or sidecar file, so they cannot
+  escape the session workspace (`ensureSafeDir` / `assertNotSymlink`).
+- Plugin storage and `.workbench` directories are created `0700`; sidecar JSON
+  and the runtime log are written `0600`.
+- H5 artifact requests send `Referrer-Policy: no-referrer` and a
+  `Content-Security-Policy: sandbox allow-scripts` header for defense in depth.
