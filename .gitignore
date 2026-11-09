@@ -1,0 +1,31 @@
+# Dependencies (the plugin has none at runtime; kept for local tooling)
+node_modules/
+.pnpm-store/
+
+# npm pack / release artifacts
+*.tgz
+npm-debug.log*
+.npm/
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Runtime sidecars and caches produced when testing artifacts inside the repo
+*.workbench/
+*.workbench
+*.tmp
+*.log
+
+# Local test output
+coverage/
+tmp/
+out/
+
+# Never commit local credentials or generated build assets
+.env
+.env.*
+!.env.example

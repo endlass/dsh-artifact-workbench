@@ -1,0 +1,87 @@
+name: CI
+
+# What runs here
+#   - syntax check for all hand-written JS              (npm run check)
+#   - the dependency-free test subset                   (npm run test:smoke)
+#   - package manifest sanity + pack size report        (npm pack --dry-run)
+#
+# The remaining tests exercise real local programs (LibreOffice Kit bundled with
+# the DSH desktop app, LibreOffice/draw.io/Chrome, python-pptx fixtures) and are
+# therefore not run on hosted runners. See test/README.md for the full matrix.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: node ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22, 24]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js ${{ matrix.node }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Syntax check
+        run: npm run check
+
+      - name: Smoke tests (no DSH / external programs needed)
+        run: npm run test:smoke
+
+      - name: Package dry-run and content assertions
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm pack --dry-run --json > pack.json
+          node --input-type=module -e '
+            import { readFileSync } from "node:fs";
+            const [pack] = JSON.parse(readFileSync("pack.json", "utf8"));
+            const names = new Set(pack.files.map((file) => file.path));
+            const required = [
+              "LICENSE",
+              "THIRD-PARTY-NOTICES.md",
+              "SECURITY.md",
+              "index.js",
+              "client.js",
+              "cordis.patch.yml",
+              "locale/zh.json",
+              "locale/en.json",
+              "editor/index.html",
+              "editor/LICENSE",
+              "lib/render.mjs",
+              "lib/feishu-oauth.mjs",
+              "lib/artifacts/pptx.mjs",
+            ];
+            const missing = required.filter((name) => !names.has(name));
+            if (missing.length > 0) {
+              console.error("missing from package:", missing.join(", "));
+              process.exit(1);
+            }
+            if ([...names].some((name) => name.startsWith("test/"))) {
+              console.error("test/ must not be published");
+              process.exit(1);
+            }
+            console.log(
+              `package ok: ${pack.name}@${pack.version} files=${pack.entryCount} ` +
+              `size=${(pack.size / 1024 / 1024).toFixed(1)}MB ` +
+              `unpacked=${(pack.unpackedSize / 1024 / 1024).toFixed(1)}MB`,
+            );
+          '
