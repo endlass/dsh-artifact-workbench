@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — 2026-11-10 (security hardening)
+## 0.15.1 — 2026-11-10
 
 - **Workspace boundary**: annotation/history/lock/temp/backup paths under
   `<artifact>.workbench` now reject a symlinked `.workbench` directory or
@@ -14,7 +14,15 @@
   Referer header, plus `Content-Security-Policy: sandbox allow-scripts` as
   defense in depth for direct/top-level opens.
 - Added `.github/dependabot.yml` (GitHub Actions + npm weekly updates).
-- No behavior change for legitimate artifacts; existing sidecars keep working.
+- **Removed libavoid (LGPL-2.1) from the vendored editor.**
+  `editor/js/extensions.min.js` is now built by `scripts/build-drawio-extensions.mjs`
+  from the upstream draw.io 31.4.5 bundle with the libavoid append
+  (`libavoid.min.js` + `libavoid-routing.js` + `LibavoidRouting.js`) removed;
+  `editor/js/libavoid-js/` and `licenses/lgpl-2.1.txt` are gone. The draw.io
+  **Arrange → Layout → Orthogonal Routing** auto-routing action is therefore
+  unavailable; ordinary orthogonal edge styles are draw.io core and unaffected.
+  This removes the LGPL source/replaceability blocker recorded in
+  `COMPLIANCE.md`. No annotation/artifact data change.
 
 ## 0.15.0 — 2026-11-10
 

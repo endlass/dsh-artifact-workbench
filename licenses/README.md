@@ -6,8 +6,8 @@ accompany them.
 
 The repository root (`index.js`, `client.js`, `lib/`, docs) is **MIT** — see
 `../LICENSE`. The vendored draw.io web application under `../editor/` remains
-under its own licenses (mostly Apache-2.0, with EPL-2.0, LGPL-2.1, CC-BY-4.0,
-OFL-1.1 and the draw.io icon/stencil additional terms). Nothing under
+under its own licenses (mostly Apache-2.0, with EPL-2.0, CC-BY-4.0, OFL-1.1
+and the draw.io icon/stencil additional terms). Nothing under
 `../editor/` is relicensed under MIT.
 
 ## Texts in this directory
@@ -18,7 +18,6 @@ OFL-1.1 and the draw.io icon/stencil additional terms). Nothing under
 | `apache-2.0.txt` | Apache License 2.0 |
 | `zlib.txt` | zlib License (pako's second license) |
 | `epl-2.0.txt` | Eclipse Public License 2.0 (ELK) |
-| `lgpl-2.1.txt` | GNU Lesser General Public License 2.1 (libavoid) |
 | `cc-by-4.0.txt` | Creative Commons Attribution 4.0 (draw.io diagram templates) |
 | `OFL-1.1.txt` | SIL Open Font License 1.1 (Architects Daughter font) |
 
@@ -52,8 +51,6 @@ copyright line is listed here because MIT requires it to be reproduced.
 | graphlib (inside Mermaid bundle) | bundled | MIT | inside Mermaid bundle | `mit.txt` | Copyright (c) 2012-2014 Chris Pettitt |
 | lodash (inside Mermaid/dagre bundle) | bundled | MIT | inside Mermaid bundle | `mit.txt` | Copyright OpenJS Foundation and other contributors; based on Underscore.js, copyright Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors |
 | ELK / elkjs bundle | `@drawio/elk 0.1.0+commit.ddfc94b` (2026-08-27); embedded in `editor/js/extensions.min.js` | EPL-2.0 | `editor/js/elk/drawio-elk.min.js`; embedded in `editor/js/extensions.min.js` | `epl-2.0.txt` (+ `editor/js/elk/LICENSE`, `editor/js/elk/SOURCE.md`) | Copyright (c) Eclipse Foundation, Inc. and contributors (ELK/KIELER project) |
-| libavoid (Adaptagrams, pure-JS build) | bundled by draw.io; no version banner | LGPL-2.1 | embedded in `editor/js/extensions.min.js`; also a standalone copy at `editor/js/libavoid-js/libavoid.min.js` (not loaded at runtime) | `lgpl-2.1.txt` (+ `editor/js/libavoid-js/LICENSE`, `editor/js/libavoid-js/SOURCE.md`) | Copyright notices are maintained in the upstream Adaptagrams sources (see `SOURCE.md`) |
-| Emscripten runtime (compiled into libavoid bundle) | bundled | MIT | inside libavoid bundle | `mit.txt` | Copyright (c) Emscripten authors |
 | Bridge.NET runtime | 15.6.0 | Apache-2.0 | `editor/js/orgchart/{bridge.min.js,bridge.collections.min.js}`; `editor/js/orgchart.min.js`; embedded in `editor/js/extensions.min.js` | `apache-2.0.txt` | Copyright 2008-2016 Object.NET, Inc. |
 | OrgChart.Layout (Bridge.NET assembly) | bundled | Apache-2.0 | `editor/js/orgchart/OrgChart.Layout.min.js` | `apache-2.0.txt` | Copyright (c) JGraph Holdings Ltd and draw.io AG (draw.io project) |
 | PlantUML-to-draw.io converter | `@drawio/plantuml` build (no version banner) | Apache-2.0 | `editor/js/plantuml/drawio-plantuml.min.js` | `apache-2.0.txt` | Copyright (c) 2006-2026 JGraph Ltd |
@@ -74,8 +71,9 @@ copyright line is listed here because MIT requires it to be reproduced.
 - Components marked "embedded in …" are statically merged into a draw.io bundle
   and are actually executed from there; the standalone files are draw.io's
   build inputs/copies and may not be loaded at runtime.
-- `editor/js/libavoid-js/SOURCE.md` and `COMPLIANCE.md` record the open LGPL
-  source-availability item for libavoid.
+- `COMPLIANCE.md` records the resolved libavoid removal (0.15.1): the LGPL
+  append and `licenses/lgpl-2.1.txt` were removed; `test/editor-license.mjs`
+  guards against reintroduction.
 - Third-party copyright lines are reproduced as they appear in the upstream
   distributions or package registries. Where upstream ships no explicit
   copyright line, the project attribution above is used; confirm against

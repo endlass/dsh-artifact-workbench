@@ -40,7 +40,7 @@ Artifact Workbench 是一个 [DSH（DeepSeek Harness）](https://github.com/deep
 ### 方式 A：DSH 插件页（推荐）
 
 1. 打开 DSH 的 Plugins / 插件页。
-2. 新增插件 → install bundle，target 填 npm 包名与版本：`dsh-artifact-workbench@0.15.0`（或本地目录）。
+2. 新增插件 → install bundle，target 填 npm 包名与版本：`dsh-artifact-workbench@0.15.1`（或本地目录）。
 3. 安装后无需重启；打开一个 `.pptx` 文档 tab 验证工作台出现。
 
 ### 方式 B：`plugin_manager` 工具
@@ -49,7 +49,7 @@ Artifact Workbench 是一个 [DSH（DeepSeek Harness）](https://github.com/deep
 
 ```text
 action: install_bundle
-target: dsh-artifact-workbench@0.15.0      # npm 源；本地开发时填仓库绝对路径
+target: dsh-artifact-workbench@0.15.1      # npm 源；本地开发时填仓库绝对路径
 ```
 
 ### 方式 C：本地 link（开发）
@@ -205,7 +205,7 @@ scripts/check.mjs     语法检查脚本
 
 ## 版本与兼容
 
-- 当前版本 **0.15.0**（见 [CHANGELOG.md](CHANGELOG.md)）。
+- 当前版本 **0.15.1**（见 [CHANGELOG.md](CHANGELOG.md)）。
 - DSH：`>=0.2.0-rc.2 <0.3.0`；宿主 Node `>=22`。
 - 批注侧车 schema：`dsh-artifact-annotation@2`，兼容并自动迁移旧 `dsh-ppt-annotation@1`。
 - 0.15.0 命名迁移：包名/插件 id/renderer key 统一为 `dsh-artifact-workbench`；升级前打开的旧 tab 需要重新打开；`$DSH_HOME/storages/dsh-ppt-workbench` 会自动迁移到新目录；旧环境变量 `PPT_WORKBENCH_*` 仍兼容。详见 [MIGRATION.md](MIGRATION.md)。
@@ -214,6 +214,8 @@ scripts/check.mjs     语法检查脚本
 
 本项目自有代码以 **MIT** 许可发布，© 2026 Xingchen Zhao (endlass)，完整文本见 [LICENSE](LICENSE)。
 
-`editor/` 目录是 vendored draw.io webapp（draw.io 31.4.5，经 `dsh-drawioedit` main 打包），**不适用 MIT**：主体为 Apache-2.0，另含 EPL-2.0（ELK）、LGPL-2.1（libavoid）、CC-BY-4.0（模板）、OFL-1.1（字体）与 draw.io 图标/模板附加条款。逐组件清单、版权行与许可全文见 [licenses/README.md](licenses/README.md) 与 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)；来源与修改记录见 [editor/PROVENANCE.md](editor/PROVENANCE.md)、[editor/MODIFICATIONS.md](editor/MODIFICATIONS.md)。
+`editor/` 目录是 vendored draw.io webapp（draw.io 31.4.5，经 `dsh-drawioedit` main 打包），**不适用 MIT**：主体为 Apache-2.0，另含 EPL-2.0（ELK）、CC-BY-4.0（模板）、OFL-1.1（字体）与 draw.io 图标/模板附加条款。逐组件清单、版权行与许可全文见 [licenses/README.md](licenses/README.md) 与 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)；来源与修改记录见 [editor/PROVENANCE.md](editor/PROVENANCE.md)、[editor/MODIFICATIONS.md](editor/MODIFICATIONS.md)。
 
-合规状态与已知未决项（含 libavoid LGPL 源码可得性；npm/Release 发布前须解决）见 [COMPLIANCE.md](COMPLIANCE.md)。"draw.io" 是 draw.io Ltd 的注册商标（EU #018062448），本项目为独立集成，与 draw.io Ltd 无隶属/背书关系；`editor/` 中保留的上游品牌素材仅用于功能保真，不用于本项目自身品牌。
+> 0.15.1 起，`editor/js/extensions.min.js` 已移除 libavoid（LGPL-2.1）：draw.io 的 **Arrange → Layout → Orthogonal Routing** 自动绕障布局不可用；普通正交连线（`orthogonalEdgeStyle`）不受影响。
+
+合规状态与未决项（libavoid LGPL 阻塞已解除；ELK/PlantUML 来源项见 [COMPLIANCE.md](COMPLIANCE.md)）。"draw.io" 是 draw.io Ltd 的注册商标（EU #018062448），本项目为独立集成，与 draw.io Ltd 无隶属/背书关系；`editor/` 中保留的上游品牌素材仅用于功能保真，不用于本项目自身品牌。

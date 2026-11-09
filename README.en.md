@@ -45,14 +45,14 @@ This is a DSH bundle plugin (`dsh.bundle.patch` + client inject). A plain
 ### A. DSH plugin page (recommended)
 
 1. Open the Plugins page in DSH.
-2. Add plugin → install bundle, target `dsh-artifact-workbench@0.15.0` (or a local directory).
+2. Add plugin → install bundle, target `dsh-artifact-workbench@0.15.1` (or a local directory).
 3. No restart required; open a `.pptx` document tab to verify the workbench appears.
 
 ### B. `plugin_manager` tool
 
 ```text
 action: install_bundle
-target: dsh-artifact-workbench@0.15.0      # npm spec; use the absolute path of a local checkout instead
+target: dsh-artifact-workbench@0.15.1      # npm spec; use the absolute path of a local checkout instead
 ```
 
 ### C. Local link (development)
@@ -237,7 +237,7 @@ scripts/check.mjs     syntax check script
 
 ## Version and compatibility
 
-- Current version **0.15.0** (see [CHANGELOG.md](CHANGELOG.md)).
+- Current version **0.15.1** (see [CHANGELOG.md](CHANGELOG.md)).
 - DSH: `>=0.2.0-rc.2 <0.3.0`; host Node `>=22`.
 - Annotation sidecar schema: `dsh-artifact-annotation@2`, automatically migrating the legacy `dsh-ppt-annotation@1`.
 - 0.15.0 rename: package id, plugin id and renderer keys are now `dsh-artifact-workbench`; tabs opened before the upgrade must be reopened. `$DSH_HOME/storages/dsh-ppt-workbench` is migrated automatically, and legacy `PPT_WORKBENCH_*` environment variables are still accepted. See [MIGRATION.md](MIGRATION.md).
@@ -249,7 +249,7 @@ Zhao (endlass). See [LICENSE](LICENSE).
 
 `editor/` is a vendored draw.io webapp (draw.io 31.4.5, packaged via
 `dsh-drawioedit` main) and is **not** MIT-licensed: it is predominantly
-Apache-2.0, with EPL-2.0 (ELK), LGPL-2.1 (libavoid), CC-BY-4.0 (templates),
+Apache-2.0, with EPL-2.0 (ELK), CC-BY-4.0 (templates),
 OFL-1.1 (font) and the draw.io icon/stencil additional terms. The full
 component inventory, per-component copyright lines and license texts are in
 [licenses/README.md](licenses/README.md) and
@@ -257,9 +257,14 @@ component inventory, per-component copyright lines and license texts are in
 records are in [editor/PROVENANCE.md](editor/PROVENANCE.md) and
 [editor/MODIFICATIONS.md](editor/MODIFICATIONS.md).
 
-Compliance status and open items (including the libavoid LGPL source
-availability issue, which gates npm/Release distribution) are tracked in
-[COMPLIANCE.md](COMPLIANCE.md). "draw.io" is a registered trademark (EU
+Starting with 0.15.1 the libavoid (LGPL-2.1) append is removed from
+`editor/js/extensions.min.js`, so draw.io's **Arrange → Layout → Orthogonal
+Routing** auto-routing action is unavailable; ordinary orthogonal edge styles
+(part of draw.io core) are unaffected.
+
+Compliance status and open items (libavoid LGPL is no longer a blocker; the
+remaining ELK/PlantUML provenance items are tracked in
+[COMPLIANCE.md](COMPLIANCE.md)). "draw.io" is a registered trademark (EU
 #018062448) of draw.io Ltd; this project is an independent integration, not
 affiliated with or endorsed by draw.io Ltd. Upstream branding assets retained
 in `editor/` are used only for functional fidelity, not as this project's own

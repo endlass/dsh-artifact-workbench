@@ -6,15 +6,17 @@ remote yet and no package has been published to npm.
 
 ## Current status
 
-- Version: see `package.json` (`0.15.0`).
+- Version: see `package.json` (`0.15.1`).
 - Licensing: MIT for this project; `editor/` remains draw.io/Apache-2.0 and
   friends — see `THIRD-PARTY-NOTICES.md`.
-- **License gate (2026-11-10):** `COMPLIANCE.md` item 1 (libavoid LGPL-2.1
-  source/replaceability) must be resolved before `npm publish` or attaching a
-  GitHub Release asset. Shipping the repo as public source is allowed with the
-  disclosure in `THIRD-PARTY-NOTICES.md`.
+- **License gate (2026-11-10, updated for 0.15.1):** the libavoid LGPL-2.1
+  blocker is resolved — the editor bundle no longer contains libavoid. The
+  remaining ELK (EPL-2.0) and PlantUML converter provenance items are documented
+  as medium risk in `COMPLIANCE.md`; have counsel review them before commercial
+  distribution. No LGPL component remains in the package.
 - Package name: `dsh-artifact-workbench` (renamed from `dsh-ppt-workbench` in
-  0.15.0; see `MIGRATION.md`).
+  0.15.0; see `MIGRATION.md`; 0.15.1 removes libavoid and drops the
+  Orthogonal Routing layout action).
 - Distribution channel: DSH bundle install (`install_bundle`), not a plain
   `npm install`.
 
@@ -68,15 +70,15 @@ npm pack --dry-run   # check output first
 Tag and GitHub release:
 
 ```bash
-git tag -a v0.15.0 -m "Artifact Workbench v0.15.0"
-git push origin v0.15.0
-gh release create v0.15.0 --notes-from-tag
+git tag -a v0.15.1 -m "Artifact Workbench v0.15.1"
+git push origin v0.15.1
+gh release create v0.15.1 --notes-from-tag
 ```
 
 ## Post-publish verification
 
-1. `npm view dsh-artifact-workbench@0.15.0 dist.tarball` returns the tarball.
-2. Clean profile: `install_bundle target dsh-artifact-workbench@0.15.0` → open a
+1. `npm view dsh-artifact-workbench@0.15.1 dist.tarball` returns the tarball.
+2. Clean profile: `install_bundle target dsh-artifact-workbench@0.15.1` → open a
    `.pptx`, add an annotation, save an edit, reload the tab.
 3. Static asset routes work: draw.io editor iframe loads, H5 report iframe
    loads, PDF page images render.
@@ -90,7 +92,7 @@ gh release create v0.15.0 --notes-from-tag
 
 1. The npm package name is `dsh-artifact-workbench`; the old name was never
    published to npm, so there is no old package to deprecate.
-2. Install with `install_bundle target dsh-artifact-workbench@0.15.0`; existing
+2. Install with `install_bundle target dsh-artifact-workbench@0.15.1`; existing
    profiles that `link:` the repo must update the profile dependency name.
 3. Renderer/tab keys and API routes changed; tabs opened before the upgrade must
    be reopened once. Annotation sidecars (`<artifact>.workbench/`) are keyed by
@@ -115,5 +117,5 @@ becomes a problem (not implemented in this release):
 - publish the vendor tree as a GitHub release artifact and download it on first
   use (needs network and a hash check, breaks offline-by-default).
 
-Any such split must keep the Apache-2.0/NOTICE files and the LGPL-2.1 libavoid
-file intact and documented in `THIRD-PARTY-NOTICES.md`.
+Any such split must keep the Apache-2.0/NOTICE files, the EPL-2.0/ELK notices and
+the libavoid-removal note intact and documented in `THIRD-PARTY-NOTICES.md`.

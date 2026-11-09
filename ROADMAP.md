@@ -1,6 +1,6 @@
 # Artifact Workbench — Roadmap
 
-Updated 2026-11-10 for v0.15.0. The project name is Artifact Workbench; the
+Updated 2026-11-10 for v0.15.1. The project name is Artifact Workbench; the
 package/plugin id is now `dsh-artifact-workbench` (renamed from
 `dsh-ppt-workbench` in 0.15.0 — see `MIGRATION.md`).
 
@@ -23,7 +23,7 @@ package/plugin id is now `dsh-artifact-workbench` (renamed from
 
 ## Next
 
-1. **Release plumbing** — create GitHub repo, push `main`, publish `0.15.0` to
+1. **Release plumbing** — create GitHub repo, push `main`, publish `0.15.1` to
    npm, set up GitHub Releases. (Not executed in this working copy.)
 2. **Vendor size** — decide whether to split `editor/` (draw.io webapp, ~42 MB
    unpacked) into a separate asset package; keep NOTICE/LICENSE intact.

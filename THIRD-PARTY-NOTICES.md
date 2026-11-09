@@ -5,7 +5,7 @@ This repository combines:
 - **first-party code** (plugin host/client, docs, tests) licensed **MIT** — see
   `LICENSE`;
 - a **vendored draw.io web application** under `editor/`, which remains under
-  its own licenses (Apache-2.0, plus EPL-2.0, LGPL-2.1, CC-BY-4.0, OFL-1.1 and
+  its own licenses (Apache-2.0, plus EPL-2.0, CC-BY-4.0, OFL-1.1 and
   the draw.io icon/stencil additional terms). Nothing under `editor/` is
   relicensed under MIT.
 
@@ -39,7 +39,6 @@ status (see also [`COMPLIANCE.md`](COMPLIANCE.md)).
 | Apache-2.0 | `licenses/apache-2.0.txt` (and `editor/LICENSE`) |
 | Zlib (pako's second license) | `licenses/zlib.txt` |
 | EPL-2.0 (ELK) | `licenses/epl-2.0.txt` (and `editor/js/elk/LICENSE`) |
-| LGPL-2.1 (libavoid) | `licenses/lgpl-2.1.txt` (and `editor/js/libavoid-js/LICENSE`) |
 | CC-BY-4.0 (draw.io templates) | `licenses/cc-by-4.0.txt` (and `editor/templates/LICENSE`) |
 | OFL-1.1 (Architects Daughter) | `licenses/OFL-1.1.txt` |
 
@@ -81,7 +80,6 @@ status (see also [`COMPLIANCE.md`](COMPLIANCE.md)).
 | Gliffy-to-draw.io converter | `@drawio/gliffy` build (no version banner) | Apache-2.0 | `editor/js/gliffy/` |
 | WebCola | 3.3.7 | MIT | `editor/plugins/webcola/cola.min.js` |
 | bmp-js | bundled in VSDS importer | MIT | `editor/js/diagramly/vsdx/bmpDecoder.js` |
-| Emscripten runtime (compiled into libavoid bundle) | bundled | MIT | inside the libavoid bundle |
 | Architects Daughter font | 1.003 | OFL-1.1 | `editor/styles/fonts/ArchitectsDaughter-Regular.ttf` |
 
 A number of these are statically merged into the draw.io bundles
@@ -118,24 +116,24 @@ downstream users. The icon/stencil files are not relicensed under MIT.
 component, not to the MIT-licensed plugin code. ELK upstream source:
 <https://github.com/eclipse/elk>.
 
-### 5.2 libavoid (Adaptagrams) — LGPL-2.1
+### 5.2 libavoid — removed in 0.15.1
 
-The pure-JS libavoid build is statically merged into
-`editor/js/extensions.min.js`; the standalone copy at
-`editor/js/libavoid-js/libavoid.min.js` is **not loaded at runtime**. LGPL-2.1
-text: `editor/js/libavoid-js/LICENSE` / `licenses/lgpl-2.1.txt`. The upstream
-Adaptagrams C++ sources are public (LGPL-2.1), but the draw.io JavaScript build
-repository (`jgraph/drawio-libavoid`) was not publicly available at audit time,
-so the complete corresponding source for the bundled build is **not currently
-published here**. This open item is tracked in `COMPLIANCE.md`; distribution via
-npm/Release is blocked until it is resolved (rebuild without libavoid, or obtain
-and publish the build sources). See `editor/js/libavoid-js/SOURCE.md`.
+draw.io 31.4.5 appended libavoid (LGPL-2.1) to `editor/js/extensions.min.js`.
+Artifact Workbench 0.15.1 removes that append with
+`scripts/build-drawio-extensions.mjs`: the 627,678-byte libavoid tail
+(`libavoid.min.js`, `libavoid-routing.js`, `LibavoidRouting.js`) is not
+distributed, and `editor/js/libavoid-js/` plus `licenses/lgpl-2.1.txt` are
+gone. The remaining draw.io code is Apache-2.0. Consequence: the draw.io
+**Arrange → Layout → Orthogonal Routing** auto-routing action is unavailable;
+ordinary orthogonal edge styles (draw.io core) are unaffected. See
+`COMPLIANCE.md` and `editor/MODIFICATIONS.md`.
 
 ### 5.3 No GPL/AGPL content in this distribution
 
 The PlantUML runtime itself (GPL-3.0) is **not** bundled; only draw.io's
 Apache-2.0 converter bundle is present. No AGPL code was found. The only
-copyleft components are the EPL-2.0 (ELK) and LGPL-2.1 (libavoid) items above.
+copyleft component is the EPL-2.0 (ELK) item above; the LGPL-2.1 libavoid append
+was removed in 0.15.1.
 The PlantUML converter's provenance is an open item in `COMPLIANCE.md`.
 
 ## 6. Trademarks
@@ -175,8 +173,9 @@ The client half consumes the DSH sidebar contract at runtime; no
 ## 8. Compliance status
 
 The 2026-11-10 licensing pass added the missing license texts, restored correct
-attribution, corrected the earlier notices, and documented provenance. The one
-**blocking** open item is the libavoid LGPL-2.1 source/replaceability issue
-(§5.2). See [`COMPLIANCE.md`](COMPLIANCE.md) for the status table and the
-two remediation options. **Do not publish this package to npm / attach it to a
-GitHub Release until that item is resolved.**
+attribution, corrected the earlier notices, and documented provenance. The
+libavoid LGPL-2.1 blocker was resolved in 0.15.1 by removing the libavoid append
+from the editor bundle (§5.2). Remaining open items are the EPL-2.0 ELK source
+pointer and the PlantUML converter provenance, both documented as medium risk in
+[`COMPLIANCE.md`](COMPLIANCE.md); no LGPL component is distributed. Have counsel
+review the remaining items before commercial distribution.
