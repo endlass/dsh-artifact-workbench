@@ -1,6 +1,6 @@
 {
   "meta": {
-    "title": "PPT / PDF 工作台",
-    "description": "在会话右侧栏打开 dsh 生成的 .pptx/.pdf：浏览、批注；PPTX 支持直接编辑和自动保存，PDF 只读批注。"
+    "title": "Artifact Workbench",
+    "description": "在会话右侧栏浏览/批注/编辑 DSH 生成的交付物：PPTX 浏览与结构化编辑、PDF 与 H5 批注、drawio 内嵌编辑；飞书文档可选联动。"
   }
 }

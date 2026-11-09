@@ -1,8 +1,7 @@
 {
   "name": "dsh-ppt-workbench",
-  "version": "0.14.4",
-  "private": true,
-  "description": "Artifact Workbench：在右侧栏浏览/批注/编辑 dsh 生成的交付物（当前支持 PPTX 编辑与 PDF 批注）",
+  "version": "0.14.5",
+  "description": "Artifact Workbench: browse, annotate and edit agent-generated artifacts (PPTX, PDF, H5, drawio, Mermaid) in the DeepSeek Harness sidebar.",
   "type": "module",
   "main": "index.js",
   "exports": {
@@ -16,44 +15,27 @@
     "index.js",
     "client.js",
     "lib/",
-    "test/",
     "locale/*.json",
     "icon.svg",
     "cordis.patch.yml",
-    "README.md",
-    "CONTRACT.md",
-    "EDIT-CONTRACT.md",
-    "lib/edit_ops.py",
-    "EDIT-UX-CONTRACT.md",
-    "ROADMAP.md",
-    "P2-CONTRACT.md",
-    "lib/artifacts/",
-    "CHANGELOG.md",
-    "PUBLISHING.md",
-    "P3-CONTRACT.md",
     "editor/",
-    "P4-CONTRACT.md",
-    "P4-DRAWIO-ANNOTATIONS.md",
-    "P4-H5-CONTRACT.md",
-    "lib/html-bridge.js",
-    "lib/feishu.mjs",
-    "test/feishu-smoke.mjs",
-    "P5.1-FEISHU-TAB.md",
-    "test/fixtures/fake-lark-cli",
-    "P5.2-FEISHU-WORKBENCH.md",
-    "lib/feishu-oauth.mjs",
-    "test/feishu-oauth.mjs",
-    "test/p0-regression.mjs",
-    "P0-FIX-CONTRACT.md",
-    "test/history-immutable.mjs"
+    "README.md",
+    "README.en.md",
+    "CHANGELOG.md",
+    "ROADMAP.md",
+    "LICENSE",
+    "THIRD-PARTY-NOTICES.md",
+    "SECURITY.md",
+    "licenses/"
   ],
   "engines": {
     "node": ">=22",
     "dsh": ">=0.2.0-rc.2 <0.3.0"
   },
   "scripts": {
-    "check": "node --check index.js && node --check client.js",
-    "test": "node test/host-smoke.mjs && node test/annotation-multi.mjs && node test/annotation-concurrency.mjs && node test/edit-smoke.mjs && node test/edit-http.mjs && node test/pdf-smoke.mjs && node test/pdf-http.mjs && node test/html-smoke.mjs && node test/diagram-smoke.mjs && node test/editor-assets.mjs && node test/drawio-annotations.mjs && node test/html-artifact.mjs && node test/feishu-smoke.mjs && node test/feishu-oauth.mjs && node test/p0-regression.mjs && node test/history-immutable.mjs && node test/source-http.mjs && node test/annotation-schema.mjs"
+    "check": "node scripts/check.mjs",
+    "test": "node test/host-smoke.mjs && node test/annotation-multi.mjs && node test/annotation-concurrency.mjs && node test/edit-smoke.mjs && node test/edit-http.mjs && node test/pdf-smoke.mjs && node test/pdf-http.mjs && node test/html-smoke.mjs && node test/diagram-smoke.mjs && node test/editor-assets.mjs && node test/drawio-annotations.mjs && node test/html-artifact.mjs && node test/feishu-smoke.mjs && node test/feishu-oauth.mjs && node test/p0-regression.mjs && node test/history-immutable.mjs && node test/source-http.mjs && node test/annotation-schema.mjs",
+    "test:smoke": "node test/editor-assets.mjs && node test/drawio-annotations.mjs && node test/html-artifact.mjs && node test/feishu-smoke.mjs && node test/feishu-oauth.mjs && node test/p0-regression.mjs && node test/history-immutable.mjs"
   },
   "dsh": {
     "bundle": {
@@ -74,6 +56,26 @@
     "artifact-workbench",
     "pptx",
     "pdf",
-    "annotations"
-  ]
+    "annotations",
+    "drawio",
+    "mermaid",
+    "h5",
+    "feishu"
+  ],
+  "license": "MIT",
+  "author": {
+    "name": "Xingchen Zhao",
+    "email": "endlass@users.noreply.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/endlass/dsh-artifact-workbench.git"
+  },
+  "homepage": "https://github.com/endlass/dsh-artifact-workbench#readme",
+  "bugs": {
+    "url": "https://github.com/endlass/dsh-artifact-workbench/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }
