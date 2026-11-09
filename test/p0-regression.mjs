@@ -5,7 +5,7 @@
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { once } from 'node:events';
-import { mkdtemp, mkdir, rm, symlink, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readdir, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -33,6 +33,31 @@ try {
   assert.equal(await isInsideReal(inside, join(inside, 'link-dir', 'secret.txt')), false);
   assert.equal(await isInsideReal(inside, join(inside, 'new-file.txt')), true);
   console.log('[ok] realpath containment rejects symlink escapes');
+
+  // 1b) annotation sidecar directory must not be a symlink (workspace write
+  // boundary also covers <artifact>.workbench, history, locks and backups).
+  const deckDir = join(work, 'deck-dir');
+  await mkdir(deckDir);
+  const deckPath = join(deckDir, 'deck.pptx');
+  await writeFile(deckPath, 'fake deck');
+  const sidecarOutside = join(work, 'sidecar-outside');
+  await mkdir(sidecarOutside);
+  await symlink(sidecarOutside, `${deckPath}.workbench`);
+  let rejected = false;
+  try {
+    await saveAnnotationFile(deckPath, {
+      schema: 'dsh-artifact-annotation@2',
+      format: 'pptx',
+      deck: { path: deckPath, sha256: 'a'.repeat(64) },
+      annotations: [],
+    });
+  } catch (error) {
+    rejected = true;
+    assert.equal(error.status, 403);
+  }
+  assert.equal(rejected, true);
+  assert.deepEqual(await readdir(sidecarOutside), []);
+  console.log('[ok] annotation sidecar rejects symlinked .workbench directories');
 
   // 2) H5 artifact directory must not expose siblings or symlinks
   const htmlRoot = join(work, 'report');

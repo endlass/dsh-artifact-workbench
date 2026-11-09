@@ -43,6 +43,7 @@ import {
   configuredPath,
   errorText,
   envOpt,
+  ensureSafeDir,
   isInside,
   isInsideReal,
   log,
@@ -294,7 +295,7 @@ async function sourceBackupDir(artifactPath) {
 
 async function backupMermaidSource(artifactPath) {
   const dir = await sourceBackupDir(artifactPath);
-  await mkdir(dir, { recursive: true });
+  await ensureSafeDir(dir, 'source backup directory');
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
   const lower = artifactPath.toLowerCase();
   const extension = lower.endsWith('.mermaid') ? 'mermaid' : lower.endsWith('.drawio') ? 'drawio' : 'mmd';
@@ -338,7 +339,7 @@ async function historyResponse(ctx, payload) {
 async function writeConflictCopy(absolutePath, ops) {
   try {
     const dir = join(`${absolutePath}.workbench`, 'conflict');
-    await mkdir(dir, { recursive: true });
+    await ensureSafeDir(dir, 'conflict copy directory');
     const target = join(dir, `conflict-${Date.now()}.pptx`);
     await copyFile(absolutePath, target);
     if (Array.isArray(ops) && ops.length > 0) {
@@ -842,7 +843,7 @@ export function apply(ctx) {
       }
       const backup = await backupMermaidSource(meta.absolutePath);
       const workbench = `${meta.absolutePath}.workbench`;
-      await mkdir(workbench, { recursive: true });
+      await ensureSafeDir(workbench, 'deck workbench directory');
       const tmp = join(workbench, `source-${process.pid}-${Date.now()}.${meta.absolutePath.toLowerCase().endsWith('.mermaid') ? 'mermaid' : meta.absolutePath.toLowerCase().endsWith('.drawio') ? 'drawio' : 'mmd'}`);
       try {
         await writeFile(tmp, payload.text, 'utf8');
@@ -879,7 +880,7 @@ export function apply(ctx) {
           const afterFailure = await sha256File(meta.absolutePath).catch(() => null);
           if (afterFailure && afterFailure.sha !== newSha) {
             const conflictDir = join(workbench, 'conflict');
-            await mkdir(conflictDir, { recursive: true }).catch(() => {});
+            await ensureSafeDir(conflictDir, 'conflict copy directory').catch(() => {});
             const extension = meta.absolutePath.toLowerCase().endsWith('.drawio') ? 'drawio' : 'mmd';
             const conflictCopy = join(conflictDir, `source-${Date.now()}-${process.pid}.${extension}`);
             await copyFile(meta.absolutePath, conflictCopy).catch(() => {});

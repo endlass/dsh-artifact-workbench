@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased — 2026-11-10 (security hardening)
+
+- **Workspace boundary**: annotation/history/lock/temp/backup paths under
+  `<artifact>.workbench` now reject a symlinked `.workbench` directory or
+  sidecar file (`ensureSafeDir` / `assertNotSymlink`); the sidecar regression
+  test was extended accordingly. This closes a path where a symlink inside the
+  workspace could make plugin writes land outside it.
+- **File permissions**: plugin storage root and `.workbench` directories are
+  created `0700`; JSON sidecars and the runtime log are written `0600`.
+- **H5 artifact responses** now send `Referrer-Policy: no-referrer` so the
+  per-artifact URL token is not leaked to third-party resources through the
+  Referer header.
+- No behavior change for legitimate artifacts; existing sidecars keep working.
+
 ## 0.15.0 — 2026-11-10
 
 **Rename release.** No behavior change beyond identifiers.
