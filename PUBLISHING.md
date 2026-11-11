@@ -59,6 +59,10 @@ gh repo create endlass/dsh-artifact-workbench --public --source=. --remote=origi
 git push -u origin main
 ```
 
+Trusted Publishing（推荐，OIDC 免 token；需先在 npmjs.com 本包 Settings → Trusted Publisher 添加
+`endlass/dsh-artifact-workbench` + workflow `publish.yml`、environment 留空，并设置仓库变量
+`USE_TRUSTED_PUBLISHING=true`）：推 tag `vX.Y.Z` 即由 GitHub Actions 发布。
+
 npm publish (requires the maintainer's npm login and 2FA):
 
 ```bash

@@ -1,0 +1,96 @@
+name: publish
+
+# Publish to npm when a release tag is pushed (vX.Y.Z must equal package.json
+# version) or manually from workflow_dispatch.
+#
+# Authentication is dual-mode:
+#   - repository variable USE_TRUSTED_PUBLISHING=true → npm Trusted Publishing
+#     (GitHub OIDC; configure the trusted publisher on npmjs.com first)
+#   - otherwise → NPM_TOKEN secret (legacy fallback)
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: >-
+      github.repository == 'endlass/dsh-artifact-workbench' &&
+      (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          registry-url: 'https://registry.npmjs.org'
+      - name: Check and smoke tests
+        run: |
+          npm run check
+          npm run test:smoke
+      - name: Package dry-run
+        run: npm pack --dry-run
+      - name: Verify tag matches package.json (tag push only)
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          if [ "v${VERSION}" != "${GITHUB_REF_NAME}" ]; then
+            echo "::error::tag ${GITHUB_REF_NAME} does not match package.json version v${VERSION}"
+            exit 1
+          fi
+      - name: Upgrade npm CLI (trusted publishing needs npm >= 11.5)
+        run: npm install -g npm@latest
+      - name: Publish (prerelease goes to the next tag)
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          USE_TRUSTED_PUBLISHING: ${{ vars.USE_TRUSTED_PUBLISHING }}
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          if [[ "$VERSION" == *-* ]]; then TAG=next; else TAG=latest; fi
+          if [[ "${USE_TRUSTED_PUBLISHING:-}" == "true" ]]; then
+            unset NODE_AUTH_TOKEN
+            printf 'registry=https://registry.npmjs.org/\n' > "${RUNNER_TEMP:-/tmp}/npmrc-trusted"
+            export NPM_CONFIG_USERCONFIG="${RUNNER_TEMP:-/tmp}/npmrc-trusted"
+            echo "::notice title=publish mode::trusted publishing (GitHub OIDC, npm token not used)"
+          else
+            echo "::notice title=publish mode::npm token (NPM_TOKEN secret)"
+            if [[ -z "${NODE_AUTH_TOKEN:-}" ]]; then
+              echo "::error title=NPM_TOKEN missing::NPM_TOKEN secret 未注入（Repository secret，名称 NPM_TOKEN）"
+              exit 1
+            fi
+            whoami="$(npm whoami 2>&1 || true)"
+            echo "::notice title=npm whoami::$(printf '%s' "$whoami" | tail -n 1 | cut -c1-300)"
+          fi
+          echo "publishing $VERSION with tag $TAG"
+          set +e
+          npm publish --access public --provenance --tag "$TAG" --loglevel verbose 2>&1 | tee /tmp/publish.log
+          code=${PIPESTATUS[0]}
+          if [[ "$code" -ne 0 ]]; then
+            detail="$(grep -E 'npm (error|ERR)' /tmp/publish.log | head -n 6 | tr '\n' ' ' | sed 's/%/%25/g; s/\r/ /g' | cut -c1-1100)"
+            echo "::error title=npm publish failed::${detail:-unknown npm failure}"
+            authlog="$(grep -Ei 'oidc|trusted|token exchange|ENEEDAUTH|EOTP|E401|E403' /tmp/publish.log | tail -n 5 | tr '\n' ' ' | sed 's/%/%25/g; s/\r/ /g' | cut -c1-1100)"
+            echo "::error title=npm auth detail::${authlog:-no auth lines}"
+            exit 1
+          fi
+          name="$(node -p "require('./package.json').name")"
+          found=""
+          for i in $(seq 1 24); do
+            found="$(npm view "${name}@${VERSION}" version --registry=https://registry.npmjs.org/ 2>/dev/null || true)"
+            [[ "$found" == "$VERSION" ]] && break
+            sleep 10
+          done
+          if [[ "$found" == "$VERSION" ]]; then
+            echo "::notice title=npm published::${name}@${VERSION} is visible on registry.npmjs.org"
+          else
+            echo "::warning title=npm not visible yet::${name}@${VERSION} 尚未在 registry 可见（可能是 CDN 延迟或 staging，请人工确认）"
+          fi
